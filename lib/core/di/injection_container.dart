@@ -6,6 +6,12 @@ import 'package:guess_party/features/auth/domain/usecases/sign_in_guest.dart';
 import 'package:guess_party/features/auth/domain/usecases/sign_in_with_password.dart';
 import 'package:guess_party/features/auth/domain/usecases/sign_up_with_password.dart';
 import 'package:guess_party/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:guess_party/features/home/data/datasources/home_remote_data_source.dart';
+import 'package:guess_party/features/home/data/repositories/home_repository_impl.dart';
+import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
+import 'package:guess_party/features/home/domain/usecases/get_current_user.dart';
+import 'package:guess_party/features/home/domain/usecases/sign_out.dart';
+import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
 import 'package:guess_party/features/room/data/repositories/room_repository_impl.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
@@ -27,7 +33,7 @@ Future<void> init() async {
   final supabase = Supabase.instance.client;
   sl.registerLazySingleton<SupabaseClient>(() => supabase);
 
-  // Auth Feature
+  // ============= Auth Feature =============
   //Auth Cubit
   sl.registerFactory(
     () => AuthCubit(
@@ -49,6 +55,21 @@ Future<void> init() async {
   // Data Sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(client: sl()),
+  );
+
+  // ============= Home Feature =============
+
+  sl.registerFactory(() => HomeCubit(getCurrentUser: sl(), signOut: sl()));
+
+  sl.registerLazySingleton(() => GetCurrentUser(sl()));
+  sl.registerLazySingleton(() => SignOut(sl()));
+
+  sl.registerLazySingleton<HomeRepository>(
+    () => HomeRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<HomeRemoteDataSource>(
+    () => HomeRemoteDataSourceImpl(supabaseClient: sl()),
   );
 
   // ============= Room Feature =============

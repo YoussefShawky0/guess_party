@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/di/injection_container.dart' as di;
+import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
+import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
 import 'package:guess_party/shared/presentation/widgets/app_bar_title.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'widgets/home_action_buttons.dart';
 import 'widgets/welcome_section.dart';
@@ -11,8 +14,18 @@ class HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final username = user?.userMetadata?['username'] ?? 'Guest';
+    return BlocProvider(
+      create: (context) => di.sl<HomeCubit>()..loadUserInfo(),
+      child: const HomeContent(),
+    );
+  }
+}
+
+class HomeContent extends StatelessWidget {
+  const HomeContent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
 
@@ -31,36 +44,62 @@ class HomeView extends StatelessWidget {
                     iconSize: 28,
                     color: Colors.white,
                     tooltip: 'Logout',
-                    onPressed: () async {
-                      await Supabase.instance.client.auth.signOut();
-                      if (context.mounted) {
-                        context.go('/auth');
-                      }
+                    onPressed: () {
+                      context.read<HomeCubit>().signOutUser();
                     },
                   ),
                 ),
               ],
             ),
             Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isTablet ? size.width * 0.15 : 24,
-                    vertical: 24,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        WelcomeSection(username: username, isTablet: isTablet),
-                        SizedBox(height: isTablet ? 48 : 32),
-                        HomeActionButtons(isTablet: isTablet),
-                      ],
-                    ),
-                  ),
-                ),
+              child: BlocConsumer<HomeCubit, HomeState>(
+                listener: (context, state) {
+                  if (state is HomeSignedOut) {
+                    context.go('/auth');
+                  }
+                },
+                builder: (context, state) {
+                  if (state is HomeLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (state is HomeError) {
+                    return Center(
+                      child: Text(
+                        'Error: ${state.message}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
+
+                  if (state is HomeLoaded) {
+                    return Center(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? size.width * 0.15 : 24,
+                          vertical: 24,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 600),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              WelcomeSection(
+                                username: state.userInfo.username,
+                                isTablet: isTablet,
+                              ),
+                              SizedBox(height: isTablet ? 48 : 32),
+                              HomeActionButtons(isTablet: isTablet),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return const SizedBox.shrink();
+                },
               ),
             ),
           ],
