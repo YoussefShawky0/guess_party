@@ -97,16 +97,18 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
             final currentUser = Supabase.instance.client.auth.currentUser;
             final players = state.players ?? [];
 
-            // Find current player safely
+            // Find current player safely - avoid firstWhere type mismatch
             Player? currentPlayer;
             if (players.isNotEmpty && currentUser != null) {
-              try {
-                currentPlayer = players.firstWhere(
-                  (p) => p.userId == currentUser.id,
-                );
-              } catch (e) {
-                currentPlayer = players.isNotEmpty ? players.first : null;
+              // Use loop instead of firstWhere to avoid Player/PlayerModel generic issue
+              for (final player in players) {
+                if (player.userId == currentUser.id) {
+                  currentPlayer = player;
+                  break;
+                }
               }
+              // Fallback to first player if current user not found
+              currentPlayer ??= players.first;
             }
 
             // Update player info for lifecycle management

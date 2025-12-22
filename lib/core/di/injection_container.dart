@@ -6,6 +6,15 @@ import 'package:guess_party/features/auth/domain/usecases/sign_in_guest.dart';
 import 'package:guess_party/features/auth/domain/usecases/sign_in_with_password.dart';
 import 'package:guess_party/features/auth/domain/usecases/sign_up_with_password.dart';
 import 'package:guess_party/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:guess_party/features/game/data/datasources/game_remote_data_source.dart';
+import 'package:guess_party/features/game/data/repositories/game_repository_impl.dart';
+import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
+import 'package:guess_party/features/game/domain/usecases/advance_phase.dart';
+import 'package:guess_party/features/game/domain/usecases/get_current_round.dart';
+import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
+import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
+import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
+import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/home/data/datasources/home_remote_data_source.dart';
 import 'package:guess_party/features/home/data/repositories/home_repository_impl.dart';
 import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
@@ -101,6 +110,36 @@ Future<void> init() async {
       startGame: sl(),
       updatePlayerStatus: sl(),
       leaveRoom: sl(),
+    ),
+  );
+
+  // ============= Game Feature =============
+
+  sl.registerLazySingleton<GameRemoteDataSource>(
+    () => GameRemoteDataSourceImpl(client: sl()),
+  );
+
+  sl.registerLazySingleton<GameRepository>(
+    () => GameRepositoryImpl(
+      remoteDataSource: sl(),
+      roomRemoteDataSource: sl(),
+      client: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(() => GetCurrentRound(sl()));
+  sl.registerLazySingleton(() => SubmitHint(sl()));
+  sl.registerLazySingleton(() => SubmitVote(sl()));
+  sl.registerLazySingleton(() => GetGameState(repository: sl()));
+  sl.registerLazySingleton(() => AdvancePhase(repository: sl()));
+
+  sl.registerFactory(
+    () => GameCubit(
+      getGameState: sl(),
+      submitHint: sl(),
+      submitVote: sl(),
+      advancePhase: sl(),
+      gameRepository: sl(),
     ),
   );
 }

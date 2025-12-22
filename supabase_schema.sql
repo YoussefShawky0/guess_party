@@ -11,6 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS characters (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL UNIQUE,
+  emoji TEXT NOT NULL DEFAULT '❓',
   category TEXT NOT NULL,
   difficulty TEXT DEFAULT 'medium' CHECK (difficulty IN ('easy', 'medium', 'hard')),
   is_active BOOLEAN DEFAULT true,
@@ -142,7 +143,7 @@ CREATE POLICY "Anyone can create room" ON rooms
 
 -- Rooms: الـ HOST بس يقدر يعدل
 CREATE POLICY "Only host can update room" ON rooms
-  FOR UPDATE USING (host_id = auth.uid());
+  FOR UPDATE USING (host_id = (SELECT auth.uid()));
 
 -- Players: الكل يقدر يقرأهم
 CREATE POLICY "Anyone can view players" ON players
@@ -154,20 +155,42 @@ CREATE POLICY "Anyone can join as player" ON players
 
 -- Players: كل لاعب يعدل بياناته بس
 CREATE POLICY "Players can update themselves" ON players
-  FOR UPDATE USING (user_id = auth.uid());
+  FOR UPDATE USING (user_id = (SELECT auth.uid()));
 
 -- Rounds: الكل يقدر يقرأها
 CREATE POLICY "Anyone can view rounds" ON rounds
   FOR SELECT USING (true);
 
--- Rounds: الـ HOST بس يقدر يديرها
+-- Rounds: الـ HOST بس يقدر يديرها (INSERT, UPDATE, DELETE)
 CREATE POLICY "Only host can manage rounds" ON rounds
-  FOR ALL USING (
+  FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM rooms r
       JOIN players p ON p.room_id = r.id
       WHERE r.id = rounds.room_id 
-      AND p.user_id = auth.uid()
+      AND p.user_id = (SELECT auth.uid())
+      AND p.is_host = true
+    )
+  );
+
+CREATE POLICY "Only host can modify rounds" ON rounds
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM rooms r
+      JOIN players p ON p.room_id = r.id
+      WHERE r.id = rounds.room_id 
+      AND p.user_id = (SELECT auth.uid())
+      AND p.is_host = true
+    )
+  );
+
+CREATE POLICY "Only host can delete rounds" ON rounds
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM rooms r
+      JOIN players p ON p.room_id = r.id
+      WHERE r.id = rounds.room_id 
+      AND p.user_id = (SELECT auth.uid())
       AND p.is_host = true
     )
   );
@@ -182,7 +205,7 @@ CREATE POLICY "Players can add hints" ON hints
     EXISTS (
       SELECT 1 FROM players p
       WHERE p.id = hints.player_id
-      AND p.user_id = auth.uid()
+      AND p.user_id = (SELECT auth.uid())
     )
   );
 
@@ -196,7 +219,7 @@ CREATE POLICY "Players can vote" ON votes
     EXISTS (
       SELECT 1 FROM players p
       WHERE p.id = votes.voter_player_id
-      AND p.user_id = auth.uid()
+      AND p.user_id = (SELECT auth.uid())
     )
   );
 

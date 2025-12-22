@@ -1,0 +1,77 @@
+import 'package:equatable/equatable.dart';
+import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/features/game/domain/entities/round_info.dart';
+
+class GameState extends Equatable {
+  final String roomId;
+  final RoundInfo currentRound;
+  final List<Player> players;
+  final String currentPlayerId;
+  final int totalRounds;
+  final Map<String, int> playerScores; // playerId -> score
+
+  const GameState({
+    required this.roomId,
+    required this.currentRound,
+    required this.players,
+    required this.currentPlayerId,
+    required this.totalRounds,
+    required this.playerScores,
+  });
+
+  bool get isImposter => currentRound.isImposter(currentPlayerId);
+
+  bool get canSubmitHint =>
+      currentRound.phase == GamePhase.hints &&
+      currentRound.getPlayerHint(currentPlayerId) == null;
+
+  bool get canVote =>
+      currentRound.phase == GamePhase.voting &&
+      currentRound.getPlayerVote(currentPlayerId) == null;
+
+  Player? getPlayer(String playerId) {
+    try {
+      return players.firstWhere((p) => p.id == playerId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  int getPlayerScore(String playerId) => playerScores[playerId] ?? 0;
+
+  List<Player> get sortedPlayers {
+    final sorted = List<Player>.from(players);
+    sorted.sort((a, b) => getPlayerScore(b.id).compareTo(getPlayerScore(a.id)));
+    return sorted;
+  }
+
+  bool get isLastRound => currentRound.roundNumber >= totalRounds;
+
+  GameState copyWith({
+    String? roomId,
+    RoundInfo? currentRound,
+    List<Player>? players,
+    String? currentPlayerId,
+    int? totalRounds,
+    Map<String, int>? playerScores,
+  }) {
+    return GameState(
+      roomId: roomId ?? this.roomId,
+      currentRound: currentRound ?? this.currentRound,
+      players: players ?? this.players,
+      currentPlayerId: currentPlayerId ?? this.currentPlayerId,
+      totalRounds: totalRounds ?? this.totalRounds,
+      playerScores: playerScores ?? this.playerScores,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+        roomId,
+        currentRound,
+        players,
+        currentPlayerId,
+        totalRounds,
+        playerScores,
+      ];
+}

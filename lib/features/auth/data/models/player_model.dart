@@ -11,6 +11,16 @@ class PlayerModel extends Player {
     super.isOnline,
   });
 
+  Player toEntity() => Player(
+    id: id,
+    roomId: roomId,
+    userId: userId,
+    username: username,
+    score: score,
+    isHost: isHost,
+    isOnline: isOnline,
+  );
+
   factory PlayerModel.fromJson(Map<String, dynamic> json) {
     return PlayerModel(
       id: json['id'] as String,

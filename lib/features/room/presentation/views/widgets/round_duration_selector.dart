@@ -14,7 +14,12 @@ class RoundDurationSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
-    final durationOptions = [300, 420, 600, 900]; // in seconds
+    final durationOptions = [
+      300,
+      420,
+      600,
+      900,
+    ]; // 5, 7, 10, 15 minutes in seconds
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
