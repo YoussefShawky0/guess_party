@@ -168,8 +168,8 @@ class _PlayersListState extends State<PlayersList> {
                               ),
                               decoration: BoxDecoration(
                                 color: player.isOnline
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.grey.withOpacity(0.2),
+                                    ? Colors.green.withValues(alpha: 0.2)
+                                    : Colors.grey.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(

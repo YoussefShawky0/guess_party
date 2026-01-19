@@ -2,7 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/features/auth/presentation/views/auth_view.dart';
 import 'package:guess_party/features/auth/presentation/views/login_view.dart';
 import 'package:guess_party/features/home/presentation/views/home_view.dart';
-import 'package:guess_party/features/room/presentation/views/countdown_screen.dart';
+import 'package:guess_party/features/room/presentation/views/countdown_view.dart';
 import 'package:guess_party/features/room/presentation/views/create_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/join_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/waiting_room_view.dart';
