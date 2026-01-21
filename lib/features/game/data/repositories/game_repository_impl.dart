@@ -37,17 +37,30 @@ class GameRepositoryImpl implements GameRepository {
     required String currentPlayerId,
   }) async {
     try {
-      final roundModel = await remoteDataSource.getCurrentRound(roomId: roomId);
+      print('📥 Fetching game state for room: $roomId');
 
+      print('  1️⃣ Getting current round...');
+      final roundModel = await remoteDataSource.getCurrentRound(roomId: roomId);
+      print(
+        '  ✅ Round fetched: ${roundModel.roundNumber}, Phase: ${roundModel.phase}',
+      );
+
+      print('  2️⃣ Getting room players...');
       final playerModels = await remoteDataSource.getRoomPlayers(
         roomId: roomId,
       );
       final players = playerModels.map((m) => m.toEntity()).toList();
+      print('  ✅ ${players.length} players fetched');
 
+      print('  3️⃣ Getting player scores...');
       final scores = await remoteDataSource.getPlayerScores(roomId: roomId);
+      print('  ✅ Scores fetched for ${scores.length} players');
 
-      // جلب معلومات الغرفة للحصول على maxRounds
+      print('  4️⃣ Getting room details...');
       final room = await roomRemoteDataSource.getRoomDetails(roomId: roomId);
+      print(
+        '  ✅ Room details fetched: maxRounds=${room.maxRounds}, gameMode=${room.gameMode}',
+      );
 
       final gameState = GameState(
         roomId: roomId,
@@ -56,10 +69,13 @@ class GameRepositoryImpl implements GameRepository {
         currentPlayerId: currentPlayerId,
         totalRounds: room.maxRounds,
         playerScores: scores,
+        gameMode: room.gameMode,
       );
 
+      print('✅ Game state created successfully');
       return Right(gameState);
     } catch (e) {
+      print('❌ Error getting game state: $e');
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -108,23 +124,25 @@ class GameRepositoryImpl implements GameRepository {
       // جلب الجولة الحالية
       final currentRoundResponse = await client
           .from('rounds')
-          .select()
+          .select('*, rooms!inner(round_duration)')
           .eq('id', roundId)
           .single();
 
       final currentPhase = currentRoundResponse['phase'] as String;
+      final roomDuration =
+          currentRoundResponse['rooms']['round_duration'] as int;
       String newPhase;
       int phaseDuration;
 
-      // تحديد المرحلة التالية
+      // تحديد المرحلة التالية - use room's round_duration for all phases
       switch (currentPhase) {
         case 'hints':
           newPhase = 'voting';
-          phaseDuration = 60; // 1 minute for voting
+          phaseDuration = roomDuration; // Use room duration for voting
           break;
         case 'voting':
           newPhase = 'results';
-          phaseDuration = 30; // 30 seconds for results
+          phaseDuration = 30; // Keep 30 seconds for results
           break;
         default:
           throw Exception('Cannot advance from results phase');

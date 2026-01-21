@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class StartGameButton extends StatelessWidget {
   final String roomId;
@@ -29,7 +28,7 @@ class StartGameButton extends StatelessWidget {
           onPressed: isEnabled && !needMorePlayers
               ? () {
                   onPressed();
-                  context.go('/room/$roomId/countdown');
+                  // Navigation is handled by RoomStatusListener via realtime updates
                 }
               : null,
           style: ElevatedButton.styleFrom(

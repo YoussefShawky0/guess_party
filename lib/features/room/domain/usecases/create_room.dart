@@ -12,12 +12,14 @@ class CreateRoom {
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
+    required String gameMode,
   }) async {
     return repository.createRoom(
       category: category,
       maxRounds: maxRounds,
       maxPlayers: maxPlayers,
       roundDuration: roundDuration,
+      gameMode: gameMode,
     );
   }
 }

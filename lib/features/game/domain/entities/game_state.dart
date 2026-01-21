@@ -9,6 +9,7 @@ class GameState extends Equatable {
   final String currentPlayerId;
   final int totalRounds;
   final Map<String, int> playerScores; // playerId -> score
+  final String gameMode; // 'online' or 'local'
 
   const GameState({
     required this.roomId,
@@ -17,6 +18,7 @@ class GameState extends Equatable {
     required this.currentPlayerId,
     required this.totalRounds,
     required this.playerScores,
+    required this.gameMode,
   });
 
   bool get isImposter => currentRound.isImposter(currentPlayerId);
@@ -54,6 +56,7 @@ class GameState extends Equatable {
     String? currentPlayerId,
     int? totalRounds,
     Map<String, int>? playerScores,
+    String? gameMode,
   }) {
     return GameState(
       roomId: roomId ?? this.roomId,
@@ -62,16 +65,18 @@ class GameState extends Equatable {
       currentPlayerId: currentPlayerId ?? this.currentPlayerId,
       totalRounds: totalRounds ?? this.totalRounds,
       playerScores: playerScores ?? this.playerScores,
+      gameMode: gameMode ?? this.gameMode,
     );
   }
 
   @override
   List<Object?> get props => [
-        roomId,
-        currentRound,
-        players,
-        currentPlayerId,
-        totalRounds,
-        playerScores,
-      ];
+    roomId,
+    currentRound,
+    players,
+    currentPlayerId,
+    totalRounds,
+    playerScores,
+    gameMode,
+  ];
 }

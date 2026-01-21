@@ -6,8 +6,8 @@ import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_button.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_header.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/room_code_input.dart';
-import 'package:guess_party/shared/presentation/widgets/app_bar_title.dart';
-import 'package:guess_party/shared/presentation/widgets/error_snackbar.dart';
+import 'package:guess_party/shared/widgets/app_bar_title.dart';
+import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class JoinRoomView extends StatelessWidget {

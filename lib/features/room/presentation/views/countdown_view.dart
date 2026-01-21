@@ -56,8 +56,8 @@ class _CountdownScreenState extends State<CountdownScreen>
 
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
-        // Go back to waiting room for now (game screen not implemented yet)
-        context.go('/room/${widget.roomId}/waiting');
+        // Navigate to game screen after countdown
+        context.go('/room/${widget.roomId}/game');
       }
     });
   }

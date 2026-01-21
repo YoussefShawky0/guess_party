@@ -40,6 +40,8 @@ class RoomCubit extends Cubit<RoomState> {
     required String username,
     required int maxPlayers,
     required int roundDuration,
+    required String gameMode,
+    List<String>? localPlayerNames,
   }) async {
     emit(RoomLoading());
 
@@ -48,21 +50,50 @@ class RoomCubit extends Cubit<RoomState> {
       maxRounds: maxRounds,
       maxPlayers: maxPlayers,
       roundDuration: roundDuration,
+      gameMode: gameMode,
     );
 
     await roomResult.fold((failure) async => emit(RoomError(failure.message)), (
       room,
     ) async {
-      final playerResult = await addPlayerToRoom(
-        roomId: room.id,
-        username: username,
-        isHost: true,
-      );
+      // For local mode, add all players at once
+      if (gameMode == 'local' &&
+          localPlayerNames != null &&
+          localPlayerNames.isNotEmpty) {
+        // Add host as first player
+        final hostResult = await addPlayerToRoom(
+          roomId: room.id,
+          username: localPlayerNames.first,
+          isHost: true,
+        );
 
-      playerResult.fold(
-        (failure) => emit(RoomError(failure.message)),
-        (player) => emit(RoomWithPlayerCreated(room: room, player: player)),
-      );
+        await hostResult.fold(
+          (failure) async => emit(RoomError(failure.message)),
+          (hostPlayer) async {
+            // Add remaining players
+            for (int i = 1; i < localPlayerNames.length; i++) {
+              await addPlayerToRoom(
+                roomId: room.id,
+                username: localPlayerNames[i],
+                isHost: false,
+              );
+            }
+            emit(RoomWithPlayerCreated(room: room, player: hostPlayer));
+          },
+        );
+      } else {
+        // Online mode - add only host
+        final playerResult = await addPlayerToRoom(
+          roomId: room.id,
+          username: username,
+          isHost: true,
+        );
+
+        playerResult.fold(
+          (failure) => emit(RoomError(failure.message)),
+          (player) => emit(RoomWithPlayerCreated(room: room, player: player)),
+        );
+      }
     });
   }
 
@@ -78,7 +109,13 @@ class RoomCubit extends Cubit<RoomState> {
   }
 
   Future<void> loadRoomPlayers({required String roomId}) async {
+    // Guard against emitting after cubit is closed
+    if (isClosed) return;
+
     final result = await getRoomPlayers(roomId: roomId);
+
+    // Check again after async operation
+    if (isClosed) return;
 
     result.fold((failure) => emit(RoomError(failure.message)), (players) {
       final currentState = state;
@@ -89,10 +126,18 @@ class RoomCubit extends Cubit<RoomState> {
   }
 
   Future<void> startGameSession(String roomId) async {
+    print('🎮 Starting game session for room: $roomId');
     final result = await startGame(roomId);
-    result.fold((failure) => emit(RoomError(failure.message)), (_) {
-      // Game started successfully, state will update via Realtime
-    });
+    result.fold(
+      (failure) {
+        print('❌ Failed to start game: ${failure.message}');
+        emit(RoomError(failure.message));
+      },
+      (_) {
+        print('✅ Game started successfully, waiting for Realtime update');
+        // Game started successfully, state will update via Realtime
+      },
+    );
   }
 
   Future<void> setPlayerStatus({
@@ -117,7 +162,7 @@ class RoomCubit extends Cubit<RoomState> {
   }) async {
     emit(RoomLoading());
 
-    final roomResult = await this.getRoomByCode(roomCode: roomCode);
+    final roomResult = await getRoomByCode(roomCode: roomCode);
 
     await roomResult.fold((failure) async => emit(RoomError(failure.message)), (
       room,

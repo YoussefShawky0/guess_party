@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
-import 'package:guess_party/shared/presentation/widgets/app_bar_title.dart';
+import 'package:guess_party/shared/widgets/app_bar_title.dart';
 
 import 'widgets/home_action_buttons.dart';
 import 'widgets/welcome_section.dart';

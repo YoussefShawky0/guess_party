@@ -11,6 +11,7 @@ class Room extends Equatable {
   final List<String> usedCharacterIds;
   final int maxPlayers;
   final int roundDuration; // in seconds
+  final String gameMode; // 'online' or 'local'
   final DateTime? createdAt;
 
   const Room({
@@ -24,6 +25,7 @@ class Room extends Equatable {
     required this.usedCharacterIds,
     required this.maxPlayers,
     required this.roundDuration,
+    required this.gameMode,
     this.createdAt,
   });
 
@@ -39,6 +41,7 @@ class Room extends Equatable {
     usedCharacterIds,
     maxPlayers,
     roundDuration,
+    gameMode,
     createdAt,
   ];
 }

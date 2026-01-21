@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/utils/validators.dart';
-import '../../../../shared/presentation/widgets/error_snackbar.dart';
+import '../../../../shared/widgets/error_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 

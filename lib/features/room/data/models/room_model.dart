@@ -12,6 +12,7 @@ class RoomModel extends Room {
     required super.usedCharacterIds,
     required super.maxPlayers,
     required super.roundDuration,
+    required super.gameMode,
     super.createdAt,
   });
 
@@ -31,6 +32,7 @@ class RoomModel extends Room {
           [],
       maxPlayers: json['max_players'] as int? ?? 6,
       roundDuration: json['round_duration'] as int? ?? 60,
+      gameMode: json['game_mode'] as String? ?? 'online',
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,
@@ -49,6 +51,7 @@ class RoomModel extends Room {
       'used_character_ids': usedCharacterIds,
       'max_players': maxPlayers,
       'round_duration': roundDuration,
+      'game_mode': gameMode,
       if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
     };
   }
@@ -64,6 +67,7 @@ class RoomModel extends Room {
     List<String>? usedCharacterIds,
     int? maxPlayers,
     int? roundDuration,
+    String? gameMode,
     DateTime? createdAt,
   }) {
     return RoomModel(
@@ -77,6 +81,7 @@ class RoomModel extends Room {
       usedCharacterIds: usedCharacterIds ?? this.usedCharacterIds,
       maxPlayers: maxPlayers ?? this.maxPlayers,
       roundDuration: roundDuration ?? this.roundDuration,
+      gameMode: gameMode ?? this.gameMode,
       createdAt: createdAt ?? this.createdAt,
     );
   }

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
-import 'package:guess_party/shared/presentation/widgets/error_snackbar.dart';
+import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'widgets/room_lifecycle_manager.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
-import 'package:guess_party/shared/presentation/widgets/app_bar_title.dart';
+import 'package:guess_party/shared/widgets/app_bar_title.dart';
 
 class WaitingRoomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? currentPlayerId;

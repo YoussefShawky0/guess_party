@@ -23,6 +23,20 @@ class RoundInfoModel extends RoundInfo {
     Map<String, String?> hints,
     Map<String, String?> votes,
   ) {
+    // Parse as UTC and convert to local time
+    final phaseEndTimeString = json['phase_end_time'] as String;
+    DateTime phaseEndTime;
+
+    // If the string doesn't have timezone info, assume it's UTC
+    if (!phaseEndTimeString.endsWith('Z') &&
+        !phaseEndTimeString.contains('+')) {
+      phaseEndTime = DateTime.parse('${phaseEndTimeString}Z').toLocal();
+    } else {
+      phaseEndTime = DateTime.parse(phaseEndTimeString).toLocal();
+    }
+
+    print('🕒 Parsing phase_end_time: $phaseEndTimeString → $phaseEndTime');
+
     return RoundInfoModel(
       id: json['id'] as String,
       roomId: json['room_id'] as String,
@@ -30,7 +44,7 @@ class RoundInfoModel extends RoundInfo {
       character: character,
       roundNumber: json['round_number'] as int,
       phase: _parsePhase(json['phase'] as String),
-      phaseEndTime: DateTime.parse(json['phase_end_time'] as String),
+      phaseEndTime: phaseEndTime,
       imposterRevealed: json['imposter_revealed'] as bool? ?? false,
       playerIds: playerIds,
       playerHints: hints,

@@ -8,6 +8,7 @@ abstract class RoomRepository {
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
+    required String gameMode,
   });
 
   ResultFuture<Player> addPlayerToRoom({

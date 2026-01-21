@@ -17,6 +17,7 @@ class RoomRepositoryImpl implements RoomRepository {
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
+    required String gameMode,
   }) async {
     try {
       final room = await remoteDataSource.createRoom(
@@ -24,6 +25,7 @@ class RoomRepositoryImpl implements RoomRepository {
         maxRounds: maxRounds,
         maxPlayers: maxPlayers,
         roundDuration: roundDuration,
+        gameMode: gameMode,
       );
       return Right(room);
     } catch (e) {

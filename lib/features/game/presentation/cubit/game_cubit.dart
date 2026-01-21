@@ -39,6 +39,7 @@ class GameCubit extends Cubit<GameState> {
     required String currentPlayerId,
   }) async {
     if (isClosed) return;
+    print('🎮 Loading game state for room: $roomId');
     emit(GameLoading());
 
     final result = await getGameState(
@@ -47,10 +48,20 @@ class GameCubit extends Cubit<GameState> {
     );
 
     if (isClosed) return;
-    result.fold((failure) => emit(GameError(failure.message)), (gameState) {
-      emit(GameLoaded(gameState));
-      _subscribeToGameUpdates(gameState.currentRound.id);
-    });
+    result.fold(
+      (failure) {
+        print('❌ Failed to load game state: ${failure.message}');
+        emit(GameError(failure.message));
+      },
+      (gameState) {
+        print('✅ Game state loaded successfully');
+        print(
+          '📊 Round: ${gameState.currentRound.roundNumber}, Phase: ${gameState.currentRound.phase}',
+        );
+        emit(GameLoaded(gameState));
+        _subscribeToGameUpdates(gameState.currentRound.id);
+      },
+    );
   }
 
   // Subscribe to real-time game updates
@@ -127,10 +138,10 @@ class GameCubit extends Cubit<GameState> {
     );
 
     if (isClosed) return;
-    result.fold(
-      (failure) => emit(GameError(failure.message)),
-      (_) => emit(const GameHintSubmitted('تم إرسال التلميح بنجاح')),
-    );
+    result.fold((failure) => emit(GameError(failure.message)), (_) {
+      // Hint submitted successfully - realtime will update the state
+      // No need to emit here, the _hintsSubscription will handle it
+    });
   }
 
   // Submit a vote for a player
@@ -148,10 +159,10 @@ class GameCubit extends Cubit<GameState> {
     );
 
     if (isClosed) return;
-    result.fold(
-      (failure) => emit(GameError(failure.message)),
-      (_) => emit(const GameVoteSubmitted('تم التصويت بنجاح')),
-    );
+    result.fold((failure) => emit(GameError(failure.message)), (_) {
+      // Vote submitted successfully - realtime will update the state
+      // No need to emit here, the _votesSubscription will handle it
+    });
   }
 
   // Advance to next phase (Host only)
@@ -204,7 +215,7 @@ class GameCubit extends Cubit<GameState> {
 
     if (isClosed) return;
     result.fold((failure) => emit(GameError(failure.message)), (newRound) {
-      emit(const GameRoundCreated('تم بدء جولة جديدة'));
+      emit(const GameRoundCreated('New round started'));
       // Re-subscribe to updates for the new round
       _subscribeToGameUpdates(newRound.id);
     });

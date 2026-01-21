@@ -13,6 +13,7 @@ abstract class RoomRemoteDataSource {
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
+    required String gameMode,
   });
 
   Future<Player> addPlayerToRoom({
@@ -51,6 +52,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
+    required String gameMode,
   }) async {
     try {
       final user = client.auth.currentUser;
@@ -64,7 +66,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
       final roomId = uuid.v4();
 
       print(
-        'Creating room with: category=$category, maxRounds=$maxRounds, maxPlayers=$maxPlayers, roundDuration=$roundDuration',
+        'Creating room with: category=$category, maxRounds=$maxRounds, maxPlayers=$maxPlayers, roundDuration=$roundDuration, gameMode=$gameMode',
       );
       print('User ID: ${user.id}');
 
@@ -81,6 +83,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
             'used_character_ids': [],
             'max_players': maxPlayers,
             'round_duration': roundDuration,
+            'game_mode': gameMode,
           })
           .select()
           .single();
@@ -176,8 +179,26 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   @override
   Future<void> startGame(String roomId) async {
     try {
-      await client.from('rooms').update({'status': 'active'}).eq('id', roomId);
+      print('🔵 Updating room $roomId status to active');
+
+      // Update room status to active
+      final response = await client
+          .from('rooms')
+          .update({'status': 'active'})
+          .eq('id', roomId)
+          .select();
+
+      print('🔵 Room update response: $response');
+
+      // TODO: Create first round automatically
+      // Currently, the first round needs to be created manually via GameRepository.createNextRound()
+      // Options to fix this:
+      // 1. Create a Supabase Edge Function that triggers on room status change
+      // 2. Call GameRepository.createNextRound() from the host's device after countdown
+      // 3. Add a database trigger to auto-create first round
+      // For now, the game will show an error until the first round is created
     } catch (e) {
+      print('❌ Error updating room status: $e');
       rethrow;
     }
   }
