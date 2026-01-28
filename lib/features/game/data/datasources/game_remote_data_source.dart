@@ -5,39 +5,37 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract class GameRemoteDataSource {
   Future<RoundInfoModel> getCurrentRound({required String roomId});
-  
+
   Future<List<PlayerModel>> getRoomPlayers({required String roomId});
-  
+
   Future<CharacterModel> getCharacter({required String characterId});
-  
+
   Future<Map<String, String>> getHintsForRound({required String roundId});
-  
+
   Future<Map<String, String>> getVotesForRound({required String roundId});
-  
+
   Future<Map<String, int>> getPlayerScores({required String roomId});
-  
+
   Future<void> submitHint({
     required String roundId,
     required String playerId,
     required String hint,
   });
-  
+
   Future<void> submitVote({
     required String roundId,
     required String voterId,
     required String votedPlayerId,
   });
-  
+
   Future<RoundInfoModel> updateRoundPhase({
     required String roundId,
     required String newPhase,
     required DateTime phaseEndTime,
   });
-  
-  Future<void> updatePlayerScores({
-    required Map<String, int> scores,
-  });
-  
+
+  Future<void> updatePlayerScores({required Map<String, int> scores});
+
   Future<RoundInfoModel> createRound({
     required String roomId,
     required String imposterPlayerId,
@@ -45,16 +43,16 @@ abstract class GameRemoteDataSource {
     required int roundNumber,
     required int roundDurationSeconds,
   });
-  
+
   Future<void> updateRoomStatus({
     required String roomId,
     required String status,
   });
-  
+
   Stream<Map<String, dynamic>> watchRoundChanges({required String roundId});
-  
+
   Stream<Map<String, dynamic>> watchHintsChanges({required String roundId});
-  
+
   Stream<Map<String, dynamic>> watchVotesChanges({required String roundId});
 }
 
@@ -66,13 +64,57 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
   @override
   Future<RoundInfoModel> getCurrentRound({required String roomId}) async {
     try {
-      final response = await client
+      // Get all rounds for this room, ordered by round_number descending
+      final validRounds = await client
           .from('rounds')
           .select('*')
           .eq('room_id', roomId)
-          .order('round_number', ascending: false)
-          .limit(1)
-          .single();
+          .order('round_number', ascending: false);
+
+      if (validRounds.isEmpty) {
+        throw Exception(
+          'No rounds found for room $roomId. Please wait for round creation.',
+        );
+      }
+
+      // Filter in Dart to find the first valid round
+      Map<String, dynamic>? response;
+      Map<String, dynamic>? latestRound = validRounds.first;
+      final now = DateTime.now();
+
+      for (final round in validRounds) {
+        final phaseEndTimeStr = round['phase_end_time'] as String;
+        DateTime phaseEndTime;
+
+        // Parse the timestamp
+        if (phaseEndTimeStr.endsWith('Z')) {
+          phaseEndTime = DateTime.parse(phaseEndTimeStr).toLocal();
+        } else if (phaseEndTimeStr.contains('+') ||
+            phaseEndTimeStr.contains('T')) {
+          phaseEndTime = DateTime.parse(phaseEndTimeStr).toLocal();
+        } else {
+          phaseEndTime = DateTime.parse('${phaseEndTimeStr}Z').toLocal();
+        }
+
+        // Check if this round is still valid (not expired)
+        if (phaseEndTime.isAfter(now)) {
+          print(
+            '✅ Found valid round: ${round['id']} (expires in ${phaseEndTime.difference(now).inSeconds}s)',
+          );
+          response = round;
+          break;
+        } else {
+          print(
+            '⏭️ Skipping expired round: ${round['id']} (expired ${now.difference(phaseEndTime).inSeconds}s ago)',
+          );
+        }
+      }
+
+      // If no valid round found, use the latest round as fallback
+      if (response == null) {
+        print('⚠️ No valid round found, using latest round as fallback');
+        response = latestRound;
+      }
 
       final character = await getCharacter(
         characterId: response['character_id'] as String,
@@ -194,11 +236,29 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     required String hint,
   }) async {
     try {
-      await client.from('hints').insert({
-        'round_id': roundId,
-        'player_id': playerId,
-        'content': hint,
-      });
+      // First, check if hint already exists
+      final existing = await client
+          .from('hints')
+          .select('id')
+          .eq('round_id', roundId)
+          .eq('player_id', playerId)
+          .maybeSingle();
+
+      if (existing != null) {
+        // Update existing hint
+        await client
+            .from('hints')
+            .update({'content': hint})
+            .eq('round_id', roundId)
+            .eq('player_id', playerId);
+      } else {
+        // Insert new hint
+        await client.from('hints').insert({
+          'round_id': roundId,
+          'player_id': playerId,
+          'content': hint,
+        });
+      }
     } catch (e) {
       throw Exception('Failed to submit hint: $e');
     }
@@ -211,11 +271,29 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     required String votedPlayerId,
   }) async {
     try {
-      await client.from('votes').insert({
-        'round_id': roundId,
-        'voter_player_id': voterId,
-        'voted_player_id': votedPlayerId,
-      });
+      // Check if vote already exists
+      final existing = await client
+          .from('votes')
+          .select('id')
+          .eq('round_id', roundId)
+          .eq('voter_player_id', voterId)
+          .maybeSingle();
+
+      if (existing != null) {
+        // Update existing vote
+        await client
+            .from('votes')
+            .update({'voted_player_id': votedPlayerId})
+            .eq('round_id', roundId)
+            .eq('voter_player_id', voterId);
+      } else {
+        // Insert new vote
+        await client.from('votes').insert({
+          'round_id': roundId,
+          'voter_player_id': voterId,
+          'voted_player_id': votedPlayerId,
+        });
+      }
     } catch (e) {
       throw Exception('Failed to submit vote: $e');
     }
@@ -228,10 +306,13 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     required DateTime phaseEndTime,
   }) async {
     try {
-      await client.from('rounds').update({
-        'phase': newPhase,
-        'phase_end_time': phaseEndTime.toIso8601String(),
-      }).eq('id', roundId);
+      await client
+          .from('rounds')
+          .update({
+            'phase': newPhase,
+            'phase_end_time': phaseEndTime.toIso8601String(),
+          })
+          .eq('id', roundId);
 
       // Get updated round
       final response = await client
@@ -265,14 +346,13 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
   }
 
   @override
-  Future<void> updatePlayerScores({
-    required Map<String, int> scores,
-  }) async {
+  Future<void> updatePlayerScores({required Map<String, int> scores}) async {
     try {
       for (final entry in scores.entries) {
         await client
             .from('players')
-            .update({'score': entry.value}).eq('id', entry.key);
+            .update({'score': entry.value})
+            .eq('id', entry.key);
       }
     } catch (e) {
       throw Exception('Failed to update player scores: $e');
@@ -292,15 +372,19 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
         Duration(seconds: roundDurationSeconds),
       );
 
-      final response = await client.from('rounds').insert({
-        'room_id': roomId,
-        'imposter_player_id': imposterPlayerId,
-        'character_id': characterId,
-        'round_number': roundNumber,
-        'phase': 'hints',
-        'phase_end_time': phaseEndTime.toIso8601String(),
-        'imposter_revealed': false,
-      }).select().single();
+      final response = await client
+          .from('rounds')
+          .insert({
+            'room_id': roomId,
+            'imposter_player_id': imposterPlayerId,
+            'character_id': characterId,
+            'round_number': roundNumber,
+            'phase': 'hints',
+            'phase_end_time': phaseEndTime.toIso8601String(),
+            'imposter_revealed': false,
+          })
+          .select()
+          .single();
 
       final character = await getCharacter(characterId: characterId);
       final players = await getRoomPlayers(roomId: roomId);
@@ -331,9 +415,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
   }
 
   @override
-  Stream<Map<String, dynamic>> watchRoundChanges({
-    required String roundId,
-  }) {
+  Stream<Map<String, dynamic>> watchRoundChanges({required String roundId}) {
     return client
         .from('rounds')
         .stream(primaryKey: ['id'])
@@ -342,9 +424,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
   }
 
   @override
-  Stream<Map<String, dynamic>> watchHintsChanges({
-    required String roundId,
-  }) {
+  Stream<Map<String, dynamic>> watchHintsChanges({required String roundId}) {
     return client
         .from('hints')
         .stream(primaryKey: ['id'])
@@ -353,9 +433,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
   }
 
   @override
-  Stream<Map<String, dynamic>> watchVotesChanges({
-    required String roundId,
-  }) {
+  Stream<Map<String, dynamic>> watchVotesChanges({required String roundId}) {
     return client
         .from('votes')
         .stream(primaryKey: ['id'])

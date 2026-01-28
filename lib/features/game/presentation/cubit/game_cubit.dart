@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart'
     as entity;
+import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
 import 'package:guess_party/features/game/domain/usecases/advance_phase.dart';
 import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
@@ -168,36 +169,67 @@ class GameCubit extends Cubit<GameState> {
   // Advance to next phase (Host only)
   Future<void> progressPhase(String roundId) async {
     if (isClosed) return;
+    
+    print('🔄 Progressing phase for round: $roundId');
 
     final result = await advancePhase(roundId: roundId);
 
     if (isClosed) return;
-    result.fold((failure) => emit(GameError(failure.message)), (updatedRound) {
-      final phaseNames = {
-        'hints': 'التلميحات',
-        'voting': 'التصويت',
-        'results': 'النتائج',
-      };
-      emit(
-        GamePhaseChanged(
-          newPhase: updatedRound.phase.toString(),
-          message:
-              'انتقلنا إلى مرحلة ${phaseNames[updatedRound.phase.toString().split('.').last]}',
-        ),
-      );
-    });
+    result.fold(
+      (failure) {
+        print('❌ Failed to progress phase: ${failure.message}');
+        emit(GameError(failure.message));
+      },
+      (updatedRound) {
+        print('✅ Phase progressed to: ${updatedRound.phase}');
+        
+        // Update the current state with new round info
+        if (state is GameLoaded) {
+          final currentState = (state as GameLoaded).gameState;
+          final updatedGameState = currentState.copyWith(
+            currentRound: updatedRound,
+          );
+          emit(GameLoaded(updatedGameState));
+        }
+        
+        final phaseNames = {
+          GamePhase.hints: 'Hints',
+          GamePhase.voting: 'Voting',
+          GamePhase.results: 'Results',
+        };
+        
+        // Also emit phase changed for UI updates if needed
+        final phaseName = phaseNames[updatedRound.phase] ?? updatedRound.phase.toString();
+        print('📢 Phase changed to: $phaseName');
+      },
+    );
   }
 
   // Calculate scores after voting (Host only)
   Future<void> calculateRoundScores(String roundId) async {
     if (isClosed) return;
+    
+    print('🧮 Calculating scores for round: $roundId');
 
     final result = await gameRepository.calculateScores(roundId: roundId);
 
     if (isClosed) return;
     result.fold(
-      (failure) => emit(GameError(failure.message)),
-      (scores) => emit(GameScoresUpdated(scores)),
+      (failure) {
+        print('❌ Failed to calculate scores: ${failure.message}');
+        emit(GameError(failure.message));
+      },
+      (scores) {
+        print('✅ Scores calculated successfully');
+        // Update the game state with new scores
+        if (state is GameLoaded) {
+          final currentState = (state as GameLoaded).gameState;
+          final updatedGameState = currentState.copyWith(
+            playerScores: scores,
+          );
+          emit(GameLoaded(updatedGameState));
+        }
+      },
     );
   }
 
@@ -207,6 +239,8 @@ class GameCubit extends Cubit<GameState> {
     required int roundNumber,
   }) async {
     if (isClosed) return;
+    
+    print('🔄 Creating new round $roundNumber for room: $roomId');
 
     final result = await gameRepository.createNextRound(
       roomId: roomId,
@@ -214,11 +248,29 @@ class GameCubit extends Cubit<GameState> {
     );
 
     if (isClosed) return;
-    result.fold((failure) => emit(GameError(failure.message)), (newRound) {
-      emit(const GameRoundCreated('New round started'));
-      // Re-subscribe to updates for the new round
-      _subscribeToGameUpdates(newRound.id);
-    });
+    result.fold(
+      (failure) {
+        print('❌ Failed to create new round: ${failure.message}');
+        emit(GameError(failure.message));
+      },
+      (newRound) {
+        print('✅ New round created: ${newRound.roundNumber}');
+        
+        // Cancel old subscriptions
+        _roundSubscription?.cancel();
+        _hintsSubscription?.cancel();
+        _votesSubscription?.cancel();
+        
+        // Reload the entire game state with the new round
+        if (state is GameLoaded) {
+          final currentState = (state as GameLoaded).gameState;
+          loadGameState(
+            roomId: roomId,
+            currentPlayerId: currentState.currentPlayerId,
+          );
+        }
+      },
+    );
   }
 
   // End the game (Host only)

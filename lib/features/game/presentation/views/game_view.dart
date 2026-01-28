@@ -5,6 +5,7 @@ import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'widgets/phase_timer_widget.dart';
+import 'widgets/results_phase_content.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class GameView extends StatelessWidget {
@@ -40,7 +41,34 @@ class GameViewContent extends StatelessWidget {
           onPressed: () => context.go('/home'),
         ),
       ),
-      body: BlocBuilder<GameCubit, GameState>(
+      body: BlocConsumer<GameCubit, GameState>(
+        listener: (context, state) {
+          // Show error messages with better styling
+          if (state is GameError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        state.message,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           if (state is GameLoading) {
             return const Center(
@@ -279,7 +307,7 @@ class GameViewContent extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 16),
-          _buildHintsList(context, round),
+          _buildHintsList(context, state, round),
         ],
       ],
     );
@@ -336,7 +364,7 @@ class GameViewContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHintsList(BuildContext context, RoundInfo round) {
+  Widget _buildHintsList(BuildContext context, GameLoaded state, RoundInfo round) {
     if (round.playerHints.isEmpty) {
       return const Card(
         child: Padding(
@@ -358,6 +386,15 @@ class GameViewContent extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             ...round.playerHints.entries.map((entry) {
+              final playerId = entry.key;
+              final hint = entry.value;
+              
+              // Find player by ID to get username
+              final player = state.gameState.players.firstWhere(
+                (p) => p.id == playerId,
+                orElse: () => state.gameState.players.first,
+              );
+              
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -365,7 +402,22 @@ class GameViewContent extends StatelessWidget {
                   children: [
                     const Icon(Icons.lightbulb, size: 20, color: Colors.amber),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(entry.value ?? 'Hidden hint')),
+                    Expanded(
+                      child: RichText(
+                        text: TextSpan(
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          children: [
+                            TextSpan(
+                              text: '${player.username}: ',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(text: hint ?? 'Hidden hint'),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -419,47 +471,87 @@ class GameViewContent extends StatelessWidget {
                       return const SizedBox.shrink();
                     }
 
+                    // Check if current user already voted for this player
+                    final currentPlayer = players.firstWhere(
+                      (p) => p.userId == currentUserId,
+                      orElse: () => players.first,
+                    );
+                    final hasVotedForThisPlayer = gameMode == 'online' &&
+                        round.playerVotes[currentPlayer.id] == player.id;
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
-                        leading: CircleAvatar(child: Text(player.username[0])),
-                        title: Text(player.username),
-                        trailing: ElevatedButton(
-                          onPressed: () {
-                            final cubit = context.read<GameCubit>();
-                            final state = cubit.state;
-                            if (state is GameLoaded) {
-                              // In local mode, need to select which player is voting
-                              if (gameMode == 'local') {
-                                _showVoterSelectionDialog(
-                                  context,
-                                  player.id,
-                                  state,
-                                );
-                              } else {
-                                // Online mode - current user votes
-                                // Find the actual player_id from players list using user_id
-                                final currentPlayer = state.gameState.players
-                                    .firstWhere(
-                                      (p) => p.userId == currentUserId,
-                                      orElse: () =>
-                                          state.gameState.players.first,
-                                    );
-
-                                cubit.sendVote(
-                                  roundId: state.gameState.currentRound.id,
-                                  voterId: currentPlayer
-                                      .id, // Use player.id not user.id
-                                  votedPlayerId: player.id,
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('Vote'),
+                        leading: CircleAvatar(
+                          child: Text(player.username[0].toUpperCase()),
                         ),
-                        tileColor: Colors.grey.shade100,
+                        title: Text(player.username),
+                        trailing: hasVotedForThisPlayer
+                            ? const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                                size: 32,
+                              )
+                            : ElevatedButton(
+                                onPressed: () {
+                                  final cubit = context.read<GameCubit>();
+                                  final state = cubit.state;
+                                  if (state is GameLoaded) {
+                                    if (gameMode == 'local') {
+                                      _showVoterSelectionDialog(
+                                        context,
+                                        player.id,
+                                        state,
+                                      );
+                                    } else {
+                                      // Check if trying to vote for self
+                                      if (player.userId == currentUserId) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              '❌ You cannot vote for yourself!',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      // Check if already voted for someone else
+                                      if (hasVoted && !hasVotedForThisPlayer) {
+                                        _showChangeVoteDialog(
+                                          context,
+                                          cubit,
+                                          state,
+                                          currentPlayer.id,
+                                          player,
+                                        );
+                                      } else {
+                                        // First time voting
+                                        cubit.sendVote(
+                                          roundId: round.id,
+                                          voterId: currentPlayer.id,
+                                          votedPlayerId: player.id,
+                                        );
+                                      }
+                                    }
+                                  }
+                                },
+                                child: const Text('Vote'),
+                              ),
+                        tileColor: hasVotedForThisPlayer
+                            ? Colors.green.shade50
+                            : Colors.grey.shade100,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
+                          side: hasVotedForThisPlayer
+                              ? const BorderSide(
+                                  color: Colors.green,
+                                  width: 2,
+                                )
+                              : BorderSide.none,
                         ),
                       ),
                     );
@@ -506,24 +598,38 @@ class GameViewContent extends StatelessWidget {
   }
 
   Widget _buildResultsPhase(BuildContext context, GameLoaded state) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            const Icon(Icons.emoji_events, size: 64, color: Colors.amber),
-            const SizedBox(height: 16),
-            Text(
-              'Round Results',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            const Text('Please wait while calculating results...'),
-            const SizedBox(height: 24),
-            const CircularProgressIndicator(),
-          ],
-        ),
-      ),
+    final round = state.gameState.currentRound;
+    final players = state.gameState.players;
+    
+    // Count votes
+    final voteCounts = <String, int>{};
+    for (final votedPlayerId in round.playerVotes.values) {
+      if (votedPlayerId != null) {
+        voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] ?? 0) + 1;
+      }
+    }
+
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentPlayer = players.firstWhere(
+      (p) => p.userId == currentUserId,
+      orElse: () => players.first,
+    );
+    // في Local mode، أول player يعتبر host
+    final isHost = currentPlayer.id == players.first.id;
+
+    return ResultsPhaseContent(
+      roundInfo: round,
+      players: players,
+      playerScores: state.gameState.playerScores,
+      voteCounts: voteCounts,
+      onNextRound: () {
+        final nextRoundNumber = round.roundNumber + 1;
+        context.read<GameCubit>().createNewRound(
+          roomId: roomId,
+          roundNumber: nextRoundNumber,
+        );
+      },
+      isHost: isHost,
     );
   }
 
@@ -536,6 +642,44 @@ class GameViewContent extends StatelessWidget {
       case GamePhase.results:
         return 'Results 🏆';
     }
+  }
+
+  void _showChangeVoteDialog(
+    BuildContext context,
+    GameCubit cubit,
+    GameLoaded state,
+    String voterId,
+    dynamic newPlayer,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change Vote?'),
+        content: Text(
+          'Are you sure you want to change your vote to ${newPlayer.username}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              cubit.sendVote(
+                roundId: state.gameState.currentRound.id,
+                voterId: voterId,
+                votedPlayerId: newPlayer.id,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showVoterSelectionDialog(
@@ -585,6 +729,8 @@ class GameViewContent extends StatelessWidget {
   }
 
   void _handlePhaseTimeUp(BuildContext context, GameLoaded state) {
+    print('⏰ Phase time is up!');
+    
     final round = state.gameState.currentRound;
     final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
     final hostUserId = state.gameState.players
@@ -592,27 +738,43 @@ class GameViewContent extends StatelessWidget {
         .userId;
     final isHost = currentUserId == hostUserId;
 
+    print('👤 Current user: $currentUserId');
+    print('👑 Host user: $hostUserId');
+    print('🎭 Is host: $isHost');
+    print('📍 Current phase: ${round.phase}');
+
     // Only host can advance phase
-    if (!isHost) return;
+    if (!isHost) {
+      print('⏭️ Not host, skipping phase advance');
+      return;
+    }
 
     final phase = round.phase;
 
     if (phase == GamePhase.hints) {
-      // Move from hints to voting
+      print('🔄 Moving from Hints → Voting');
       context.read<GameCubit>().progressPhase(round.id);
     } else if (phase == GamePhase.voting) {
-      // Calculate scores then move to results
+      print('🔄 Moving from Voting → Results (calculating scores)');
+      // Calculate scores first
       context.read<GameCubit>().calculateRoundScores(round.id);
-      context.read<GameCubit>().progressPhase(round.id);
+      // Then progress to results phase after a short delay
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (context.mounted) {
+          print('🔄 Advancing to Results phase');
+          context.read<GameCubit>().progressPhase(round.id);
+        }
+      });
     } else if (phase == GamePhase.results) {
+      print('🔄 Results phase complete');
       // Check if this is the last round
       if (state.gameState.isLastRound) {
-        // End game
+        print('🏁 Last round - ending game');
         context.read<GameCubit>().finishGame(state.gameState.roomId);
         // Navigate to results screen (to be implemented)
         context.go('/home');
       } else {
-        // Create next round
+        print('➡️ Creating next round: ${round.roundNumber + 1}');
         context.read<GameCubit>().createNewRound(
           roomId: state.gameState.roomId,
           roundNumber: round.roundNumber + 1,

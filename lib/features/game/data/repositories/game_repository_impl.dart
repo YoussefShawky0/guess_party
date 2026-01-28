@@ -134,11 +134,11 @@ class GameRepositoryImpl implements GameRepository {
       String newPhase;
       int phaseDuration;
 
-      // تحديد المرحلة التالية - use room's round_duration for all phases
+      // تحديد المرحلة التالية - fixed durations for consistency
       switch (currentPhase) {
         case 'hints':
           newPhase = 'voting';
-          phaseDuration = roomDuration; // Use room duration for voting
+          phaseDuration = 60; // Fixed 1 minute for voting
           break;
         case 'voting':
           newPhase = 'results';
@@ -148,7 +148,9 @@ class GameRepositoryImpl implements GameRepository {
           throw Exception('Cannot advance from results phase');
       }
 
-      final phaseEndTime = DateTime.now().add(Duration(seconds: phaseDuration));
+      // Use UTC time for consistency
+      final phaseEndTime = DateTime.now().toUtc().add(Duration(seconds: phaseDuration));
+      print('🕐 Setting phase_end_time (UTC): $phaseEndTime');
 
       final updatedRound = await remoteDataSource.updateRoundPhase(
         roundId: roundId,

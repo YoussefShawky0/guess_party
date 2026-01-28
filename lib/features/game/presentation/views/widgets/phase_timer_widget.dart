@@ -39,10 +39,10 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
 
   void _startTimer() {
     _timer?.cancel();
-    print('⏱️ Starting timer. Phase end time: ${widget.phaseEndTime}');
-    print('⏱️ Current time: ${DateTime.now()}');
+    print('⏱️ Starting timer. Phase end time (UTC): ${widget.phaseEndTime}');
+    print('⏱️ Current time (UTC): ${DateTime.now().toUtc()}');
     print(
-      '⏱️ Difference: ${widget.phaseEndTime.difference(DateTime.now()).inSeconds} seconds',
+      '⏱️ Difference: ${widget.phaseEndTime.difference(DateTime.now().toUtc()).inSeconds} seconds',
     );
     _updateTime();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -53,7 +53,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
   void _updateTime() {
     if (!mounted) return;
 
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final difference = widget.phaseEndTime.difference(now);
     final newSeconds = difference.inSeconds > 0 ? difference.inSeconds : 0;
 
