@@ -25,19 +25,20 @@ class RoundInfoModel extends RoundInfo {
   ) {
     // Parse UTC timestamp and keep as UTC for comparison
     final phaseEndTimeString = json['phase_end_time'] as String;
-    
+
     // Parse as UTC - database stores TIMESTAMPTZ which is UTC
     DateTime phaseEndTime;
-    if (!phaseEndTimeString.endsWith('Z') && !phaseEndTimeString.contains('+')) {
+    if (!phaseEndTimeString.endsWith('Z') &&
+        !phaseEndTimeString.contains('+')) {
       // No timezone marker, treat as UTC
       phaseEndTime = DateTime.parse('${phaseEndTimeString}Z');
     } else {
       phaseEndTime = DateTime.parse(phaseEndTimeString);
     }
-    
+
     // Convert to UTC explicitly
     phaseEndTime = phaseEndTime.toUtc();
-    
+
     print('🕒 Parsed phase_end_time (UTC): $phaseEndTime');
     print('🕒 Local equivalent: ${phaseEndTime.toLocal()}');
 

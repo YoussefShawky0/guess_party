@@ -364,7 +364,11 @@ class GameViewContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHintsList(BuildContext context, GameLoaded state, RoundInfo round) {
+  Widget _buildHintsList(
+    BuildContext context,
+    GameLoaded state,
+    RoundInfo round,
+  ) {
     if (round.playerHints.isEmpty) {
       return const Card(
         child: Padding(
@@ -388,13 +392,13 @@ class GameViewContent extends StatelessWidget {
             ...round.playerHints.entries.map((entry) {
               final playerId = entry.key;
               final hint = entry.value;
-              
+
               // Find player by ID to get username
               final player = state.gameState.players.firstWhere(
                 (p) => p.id == playerId,
                 orElse: () => state.gameState.players.first,
               );
-              
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
@@ -476,7 +480,8 @@ class GameViewContent extends StatelessWidget {
                       (p) => p.userId == currentUserId,
                       orElse: () => players.first,
                     );
-                    final hasVotedForThisPlayer = gameMode == 'online' &&
+                    final hasVotedForThisPlayer =
+                        gameMode == 'online' &&
                         round.playerVotes[currentPlayer.id] == player.id;
 
                     return Padding(
@@ -506,8 +511,9 @@ class GameViewContent extends StatelessWidget {
                                     } else {
                                       // Check if trying to vote for self
                                       if (player.userId == currentUserId) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           const SnackBar(
                                             content: Text(
                                               '❌ You cannot vote for yourself!',
@@ -547,10 +553,7 @@ class GameViewContent extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                           side: hasVotedForThisPlayer
-                              ? const BorderSide(
-                                  color: Colors.green,
-                                  width: 2,
-                                )
+                              ? const BorderSide(color: Colors.green, width: 2)
                               : BorderSide.none,
                         ),
                       ),
@@ -600,7 +603,7 @@ class GameViewContent extends StatelessWidget {
   Widget _buildResultsPhase(BuildContext context, GameLoaded state) {
     final round = state.gameState.currentRound;
     final players = state.gameState.players;
-    
+
     // Count votes
     final voteCounts = <String, int>{};
     for (final votedPlayerId in round.playerVotes.values) {
@@ -672,9 +675,7 @@ class GameViewContent extends StatelessWidget {
                 votedPlayerId: newPlayer.id,
               );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
             child: const Text('Confirm'),
           ),
         ],
@@ -730,7 +731,7 @@ class GameViewContent extends StatelessWidget {
 
   void _handlePhaseTimeUp(BuildContext context, GameLoaded state) {
     print('⏰ Phase time is up!');
-    
+
     final round = state.gameState.currentRound;
     final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
     final hostUserId = state.gameState.players

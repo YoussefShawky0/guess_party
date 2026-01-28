@@ -169,7 +169,7 @@ class GameCubit extends Cubit<GameState> {
   // Advance to next phase (Host only)
   Future<void> progressPhase(String roundId) async {
     if (isClosed) return;
-    
+
     print('🔄 Progressing phase for round: $roundId');
 
     final result = await advancePhase(roundId: roundId);
@@ -182,7 +182,7 @@ class GameCubit extends Cubit<GameState> {
       },
       (updatedRound) {
         print('✅ Phase progressed to: ${updatedRound.phase}');
-        
+
         // Update the current state with new round info
         if (state is GameLoaded) {
           final currentState = (state as GameLoaded).gameState;
@@ -191,15 +191,16 @@ class GameCubit extends Cubit<GameState> {
           );
           emit(GameLoaded(updatedGameState));
         }
-        
+
         final phaseNames = {
           GamePhase.hints: 'Hints',
           GamePhase.voting: 'Voting',
           GamePhase.results: 'Results',
         };
-        
+
         // Also emit phase changed for UI updates if needed
-        final phaseName = phaseNames[updatedRound.phase] ?? updatedRound.phase.toString();
+        final phaseName =
+            phaseNames[updatedRound.phase] ?? updatedRound.phase.toString();
         print('📢 Phase changed to: $phaseName');
       },
     );
@@ -208,7 +209,7 @@ class GameCubit extends Cubit<GameState> {
   // Calculate scores after voting (Host only)
   Future<void> calculateRoundScores(String roundId) async {
     if (isClosed) return;
-    
+
     print('🧮 Calculating scores for round: $roundId');
 
     final result = await gameRepository.calculateScores(roundId: roundId);
@@ -224,9 +225,7 @@ class GameCubit extends Cubit<GameState> {
         // Update the game state with new scores
         if (state is GameLoaded) {
           final currentState = (state as GameLoaded).gameState;
-          final updatedGameState = currentState.copyWith(
-            playerScores: scores,
-          );
+          final updatedGameState = currentState.copyWith(playerScores: scores);
           emit(GameLoaded(updatedGameState));
         }
       },
@@ -239,7 +238,7 @@ class GameCubit extends Cubit<GameState> {
     required int roundNumber,
   }) async {
     if (isClosed) return;
-    
+
     print('🔄 Creating new round $roundNumber for room: $roomId');
 
     final result = await gameRepository.createNextRound(
@@ -255,12 +254,12 @@ class GameCubit extends Cubit<GameState> {
       },
       (newRound) {
         print('✅ New round created: ${newRound.roundNumber}');
-        
+
         // Cancel old subscriptions
         _roundSubscription?.cancel();
         _hintsSubscription?.cancel();
         _votesSubscription?.cancel();
-        
+
         // Reload the entire game state with the new round
         if (state is GameLoaded) {
           final currentState = (state as GameLoaded).gameState;

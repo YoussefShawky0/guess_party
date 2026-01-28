@@ -97,8 +97,9 @@ class _VoteResultRow extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: isTablet ? 20 : 16,
-                backgroundColor:
-                    isImposter ? Colors.red.shade100 : Colors.blue.shade100,
+                backgroundColor: isImposter
+                    ? Colors.red.shade100
+                    : Colors.blue.shade100,
                 child: Text(
                   player.username[0].toUpperCase(),
                   style: TextStyle(
@@ -112,7 +113,9 @@ class _VoteResultRow extends StatelessWidget {
                 child: Text(
                   player.username,
                   style: TextStyle(
-                    fontWeight: isImposter ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isImposter
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                     fontSize: isTablet ? 18 : 16,
                   ),
                   overflow: TextOverflow.ellipsis,

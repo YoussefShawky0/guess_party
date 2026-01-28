@@ -149,7 +149,9 @@ class GameRepositoryImpl implements GameRepository {
       }
 
       // Use UTC time for consistency
-      final phaseEndTime = DateTime.now().toUtc().add(Duration(seconds: phaseDuration));
+      final phaseEndTime = DateTime.now().toUtc().add(
+        Duration(seconds: phaseDuration),
+      );
       print('🕐 Setting phase_end_time (UTC): $phaseEndTime');
 
       final updatedRound = await remoteDataSource.updateRoundPhase(

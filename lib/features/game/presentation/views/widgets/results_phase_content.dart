@@ -26,7 +26,7 @@ class ResultsPhaseContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
-    
+
     // Find imposter
     final imposter = players.firstWhere(
       (p) => p.id == roundInfo.imposterPlayerId,
@@ -34,14 +34,23 @@ class ResultsPhaseContent extends StatelessWidget {
     );
 
     // Calculate if imposter was caught
-    final maxVotes = voteCounts.values.fold<int>(0, (max, count) => count > max ? count : max);
+    final maxVotes = voteCounts.values.fold<int>(
+      0,
+      (max, count) => count > max ? count : max,
+    );
     final mostVotedPlayerId = voteCounts.entries
-        .firstWhere((entry) => entry.value == maxVotes, orElse: () => const MapEntry('', 0))
+        .firstWhere(
+          (entry) => entry.value == maxVotes,
+          orElse: () => const MapEntry('', 0),
+        )
         .key;
     final imposterCaught = mostVotedPlayerId == roundInfo.imposterPlayerId;
-    
+
     final mostVotedPlayer = mostVotedPlayerId.isNotEmpty
-        ? players.firstWhere((p) => p.id == mostVotedPlayerId, orElse: () => players.first)
+        ? players.firstWhere(
+            (p) => p.id == mostVotedPlayerId,
+            orElse: () => players.first,
+          )
         : null;
 
     return SingleChildScrollView(
@@ -81,9 +90,7 @@ class ResultsPhaseContent extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  vertical: isTablet ? 20 : 16,
-                ),
+                padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
