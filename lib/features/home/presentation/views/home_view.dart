@@ -61,10 +61,13 @@ class HomeContent extends StatelessWidget {
                       color: AppColors.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Image.asset(
-                      'assets/images/Due.png',
-                      height: 28,
-                      fit: BoxFit.contain,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        'assets/images/Front_Imposter_ingroup.png',
+                        height: 28,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -81,7 +84,10 @@ class HomeContent extends StatelessWidget {
                   ),
                   // Logout Button
                   IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.rightFromBracket, size: 18),
+                    icon: const FaIcon(
+                      FontAwesomeIcons.rightFromBracket,
+                      size: 18,
+                    ),
                     color: AppColors.error,
                     tooltip: 'Logout',
                     onPressed: () {
