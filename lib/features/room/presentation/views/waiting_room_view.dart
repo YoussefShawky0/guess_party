@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
@@ -60,6 +61,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
 
   Widget _buildScaffold() {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: WaitingRoomAppBar(
         currentPlayerId: _currentPlayerId ?? '',
         roomId: widget.roomId,
@@ -75,9 +77,9 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
           if (state is RoomDetailsLoaded && state.room.status == 'finished') {
             if (_isHost != true) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('المضيف غادر الغرفة. تم إغلاق الغرفة.'),
-                  backgroundColor: Colors.red,
+                SnackBar(
+                  content: const Text('المضيف غادر الغرفة. تم إغلاق الغرفة.'),
+                  backgroundColor: AppColors.error,
                 ),
               );
               Future.delayed(const Duration(seconds: 2), () {
@@ -90,7 +92,9 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
         },
         builder: (context, state) {
           if (state is RoomLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
           }
 
           if (state is RoomDetailsLoaded) {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class GameModeSelector extends StatelessWidget {
   final String selectedMode;
@@ -23,7 +25,7 @@ class GameModeSelector extends StatelessWidget {
           style: TextStyle(
             fontSize: isTablet ? 18 : 16,
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).primaryColor,
+            color: AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 12),
@@ -35,7 +37,7 @@ class GameModeSelector extends StatelessWidget {
                 mode: 'online',
                 title: 'Online',
                 subtitle: 'Each player joins from their own device',
-                icon: Icons.devices,
+                icon: FontAwesomeIcons.towerBroadcast,
                 isSelected: selectedMode == 'online',
                 isTablet: isTablet,
               ),
@@ -47,7 +49,7 @@ class GameModeSelector extends StatelessWidget {
                 mode: 'local',
                 title: 'Local',
                 subtitle: 'Pass & play on one device',
-                icon: Icons.phone_android,
+                icon: FontAwesomeIcons.mobile,
                 isSelected: selectedMode == 'local',
                 isTablet: isTablet,
               ),
@@ -73,12 +75,12 @@ class GameModeSelector extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).primaryColor.withOpacity(0.1)
-              : Colors.grey.shade100,
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.surface,
           border: Border.all(
             color: isSelected
-                ? Theme.of(context).primaryColor
-                : Colors.grey.shade300,
+                ? AppColors.primary
+                : AppColors.primary.withValues(alpha: 0.3),
             width: isSelected ? 3 : 1,
           ),
           borderRadius: BorderRadius.circular(16),
@@ -88,12 +90,10 @@ class GameModeSelector extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              FaIcon(
                 icon,
-                size: isTablet ? 48 : 40,
-                color: isSelected
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey.shade600,
+                size: isTablet ? 40 : 32,
+                color: isSelected ? AppColors.primary : AppColors.textSecondary,
               ),
               SizedBox(height: isTablet ? 12 : 8),
               Text(
@@ -101,9 +101,7 @@ class GameModeSelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 18 : 16,
                   fontWeight: FontWeight.bold,
-                  color: isSelected
-                      ? Theme.of(context).primaryColor
-                      : Colors.black87,
+                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
                 ),
               ),
               SizedBox(height: isTablet ? 6 : 4),
@@ -112,15 +110,15 @@ class GameModeSelector extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: isTablet ? 13 : 11,
-                  color: Colors.grey.shade700,
+                  color: AppColors.textSecondary,
                 ),
               ),
               if (isSelected) ...[
                 SizedBox(height: isTablet ? 8 : 6),
-                Icon(
-                  Icons.check_circle,
-                  color: Theme.of(context).primaryColor,
-                  size: isTablet ? 24 : 20,
+                FaIcon(
+                  FontAwesomeIcons.circleCheck,
+                  color: AppColors.primary,
+                  size: isTablet ? 20 : 16,
                 ),
               ],
             ],

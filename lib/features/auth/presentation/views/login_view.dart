@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/utils/validators.dart';
@@ -95,10 +96,11 @@ class _LoginViewState extends State<LoginView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Icon(
-                        Icons.psychology_rounded,
-                        size: isTablet ? 80 : 64,
-                        color: Theme.of(context).primaryColor,
+                      Image.asset(
+                        'assets/images/Figures.png',
+                        width: isTablet ? 200 : 150,
+                        height: isTablet ? 140 : 100,
+                        fit: BoxFit.contain,
                       ),
                       SizedBox(height: isTablet ? 24 : 16),
                       Text(
@@ -106,6 +108,7 @@ class _LoginViewState extends State<LoginView> {
                         style: TextStyle(
                           fontSize: isTablet ? 36 : 32,
                           fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -115,12 +118,13 @@ class _LoginViewState extends State<LoginView> {
                       TextFormField(
                         controller: _usernameController,
                         enabled: state is! AuthLoading,
-                        style: TextStyle(fontSize: isTablet ? 18 : 16),
+                        style: TextStyle(fontSize: isTablet ? 18 : 16, color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'Username',
-                          prefixIcon: const Icon(Icons.person_outline),
+                          labelStyle: TextStyle(color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary),
                           filled: true,
-                          fillColor: Theme.of(context).colorScheme.surface,
+                          fillColor: AppColors.surface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
@@ -128,7 +132,7 @@ class _LoginViewState extends State<LoginView> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
+                              color: AppColors.primary,
                               width: 2,
                             ),
                           ),
@@ -146,12 +150,13 @@ class _LoginViewState extends State<LoginView> {
                         controller: _passwordController,
                         enabled: state is! AuthLoading,
                         obscureText: true,
-                        style: TextStyle(fontSize: isTablet ? 18 : 16),
+                        style: TextStyle(fontSize: isTablet ? 18 : 16, color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: const Icon(Icons.lock_outline),
+                          labelStyle: TextStyle(color: AppColors.textSecondary),
+                          prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
                           filled: true,
-                          fillColor: Theme.of(context).colorScheme.surface,
+                          fillColor: AppColors.surface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
@@ -159,7 +164,7 @@ class _LoginViewState extends State<LoginView> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                              color: Theme.of(context).primaryColor,
+                              color: AppColors.primary,
                               width: 2,
                             ),
                           ),
@@ -176,6 +181,8 @@ class _LoginViewState extends State<LoginView> {
                       ElevatedButton(
                         onPressed: state is AuthLoading ? null : _handleSubmit,
                         style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.buttonPrimary,
+                          foregroundColor: AppColors.textPrimary,
                           padding: EdgeInsets.symmetric(
                             vertical: isTablet ? 20 : 16,
                           ),
@@ -187,10 +194,10 @@ class _LoginViewState extends State<LoginView> {
                             ? SizedBox(
                                 height: isTablet ? 28 : 24,
                                 width: isTablet ? 28 : 24,
-                                child: const CircularProgressIndicator(
+                                child: CircularProgressIndicator(
                                   strokeWidth: 3,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                                    AppColors.textPrimary,
                                   ),
                                 ),
                               )
@@ -217,7 +224,7 @@ class _LoginViewState extends State<LoginView> {
                               : "Don't have an account? Sign Up",
                           style: TextStyle(
                             fontSize: isTablet ? 16 : 14,
-                            color: Theme.of(context).primaryColor,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),

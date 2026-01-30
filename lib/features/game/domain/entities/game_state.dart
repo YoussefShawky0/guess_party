@@ -8,6 +8,7 @@ class GameState extends Equatable {
   final List<Player> players;
   final String currentPlayerId;
   final int totalRounds;
+  final int roundDuration; // in seconds
   final Map<String, int> playerScores; // playerId -> score
   final String gameMode; // 'online' or 'local'
 
@@ -17,6 +18,7 @@ class GameState extends Equatable {
     required this.players,
     required this.currentPlayerId,
     required this.totalRounds,
+    required this.roundDuration,
     required this.playerScores,
     required this.gameMode,
   });
@@ -55,6 +57,7 @@ class GameState extends Equatable {
     List<Player>? players,
     String? currentPlayerId,
     int? totalRounds,
+    int? roundDuration,
     Map<String, int>? playerScores,
     String? gameMode,
   }) {
@@ -64,6 +67,7 @@ class GameState extends Equatable {
       players: players ?? this.players,
       currentPlayerId: currentPlayerId ?? this.currentPlayerId,
       totalRounds: totalRounds ?? this.totalRounds,
+      roundDuration: roundDuration ?? this.roundDuration,
       playerScores: playerScores ?? this.playerScores,
       gameMode: gameMode ?? this.gameMode,
     );
@@ -76,6 +80,7 @@ class GameState extends Equatable {
     players,
     currentPlayerId,
     totalRounds,
+    roundDuration,
     playerScores,
     gameMode,
   ];

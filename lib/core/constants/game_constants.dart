@@ -6,14 +6,16 @@ class GameConstants {
   static const int votingPhaseDurationSeconds = 60;
 
   static const List<String> categories = [
+    'mix',
     'football_players',
     'islamic_figures',
     'daily_products',
   ];
 
   static const Map<String, String> categoryNames = {
-    'football_players': 'لاعيبة كورة',
-    'islamic_figures': 'شخصيات إسلامية',
-    'daily_products': 'منتجات يومية',
+    'mix': 'Mix (All)',
+    'football_players': 'Football Players',
+    'islamic_figures': 'Islamic Figures',
+    'daily_products': 'Daily Products',
   };
 }

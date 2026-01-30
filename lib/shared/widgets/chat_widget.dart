@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatWidget extends StatefulWidget {
@@ -52,7 +54,6 @@ class _ChatWidgetState extends State<ChatWidget> {
       });
       _scrollToBottom();
     } catch (e) {
-      debugPrint('Error loading messages: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -86,14 +87,11 @@ class _ChatWidgetState extends State<ChatWidget> {
           .single();
 
       setState(() {
-        _messages.add({
-          ...newMessage,
-          'players': playerData,
-        });
+        _messages.add({...newMessage, 'players': playerData});
       });
       _scrollToBottom();
     } catch (e) {
-      debugPrint('Error handling new message: $e');
+      // Error handling new message
     }
   }
 
@@ -122,28 +120,26 @@ class _ChatWidgetState extends State<ChatWidget> {
 
       _messageController.clear();
     } catch (e) {
-      debugPrint('Error sending message: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send message: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
 
     return Container(
       height: isTablet ? 400 : 300,
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: AppColors.surfaceLight.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -152,24 +148,25 @@ class _ChatWidgetState extends State<ChatWidget> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+              color: AppColors.primary.withValues(alpha: 0.3),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.chat_rounded,
-                  color: theme.colorScheme.primary,
-                  size: isTablet ? 24 : 20,
+                FaIcon(
+                  FontAwesomeIcons.comments,
+                  color: AppColors.primary,
+                  size: isTablet ? 20 : 16,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   'Chat',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: isTablet ? 18 : 16,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -179,42 +176,41 @@ class _ChatWidgetState extends State<ChatWidget> {
           // Messages List
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  )
                 : _messages.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No messages yet',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _messages[index];
-                          final isCurrentUser =
-                              message['player_id'] == widget.currentPlayerId;
-                          final username = message['players']['username'];
+                ? Center(
+                    child: Text(
+                      'No messages yet',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final message = _messages[index];
+                      final isCurrentUser =
+                          message['player_id'] == widget.currentPlayerId;
+                      final username = message['players']['username'];
 
-                          return _MessageBubble(
-                            content: message['content'],
-                            username: username,
-                            isCurrentUser: isCurrentUser,
-                            isTablet: isTablet,
-                            theme: theme,
-                          );
-                        },
-                      ),
+                      return _MessageBubble(
+                        content: message['content'],
+                        username: username,
+                        isCurrentUser: isCurrentUser,
+                        isTablet: isTablet,
+                      );
+                    },
+                  ),
           ),
 
           // Input Field
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
+              color: AppColors.surfaceLight,
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(16),
               ),
@@ -224,14 +220,16 @@ class _ChatWidgetState extends State<ChatWidget> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    style: TextStyle(color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
+                      hintStyle: TextStyle(color: AppColors.textMuted),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: theme.colorScheme.surface,
+                      fillColor: AppColors.surface,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -245,10 +243,10 @@ class _ChatWidgetState extends State<ChatWidget> {
                 const SizedBox(width: 12),
                 IconButton(
                   onPressed: _sendMessage,
-                  icon: const Icon(Icons.send_rounded),
+                  icon: const FaIcon(FontAwesomeIcons.paperPlane, size: 18),
                   style: IconButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
                     padding: const EdgeInsets.all(12),
                   ),
                 ),
@@ -266,14 +264,12 @@ class _MessageBubble extends StatelessWidget {
   final String username;
   final bool isCurrentUser;
   final bool isTablet;
-  final ThemeData theme;
 
   const _MessageBubble({
     required this.content,
     required this.username,
     required this.isCurrentUser,
     required this.isTablet,
-    required this.theme,
   });
 
   @override
@@ -282,17 +278,12 @@ class _MessageBubble extends StatelessWidget {
       alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
-          color: isCurrentUser
-              ? theme.colorScheme.primary
-              : theme.colorScheme.surfaceContainerHighest,
+          color: isCurrentUser ? AppColors.primary : AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -301,8 +292,8 @@ class _MessageBubble extends StatelessWidget {
             if (!isCurrentUser)
               Text(
                 username,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.primary,
+                style: TextStyle(
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: isTablet ? 13 : 12,
                 ),
@@ -310,10 +301,10 @@ class _MessageBubble extends StatelessWidget {
             if (!isCurrentUser) const SizedBox(height: 4),
             Text(
               content,
-              style: theme.textTheme.bodyMedium?.copyWith(
+              style: TextStyle(
                 color: isCurrentUser
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurface,
+                    ? AppColors.textPrimary
+                    : AppColors.textPrimary,
                 fontSize: isTablet ? 16 : 14,
               ),
             ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class CreateRoomHeader extends StatelessWidget {
   const CreateRoomHeader({super.key});
@@ -13,13 +15,13 @@ class CreateRoomHeader extends StatelessWidget {
         Container(
           padding: EdgeInsets.all(isTablet ? 24 : 20),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withAlpha(25),
+            color: AppColors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            Icons.meeting_room_rounded,
-            size: isTablet ? 64 : 48,
-            color: Theme.of(context).primaryColor,
+          child: FaIcon(
+            FontAwesomeIcons.igloo,
+            size: isTablet ? 48 : 36,
+            color: AppColors.primary,
           ),
         ),
         SizedBox(height: isTablet ? 24 : 20),
@@ -28,6 +30,7 @@ class CreateRoomHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: isTablet ? 32 : 28,
             fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
           ),
           textAlign: TextAlign.center,
         ),
@@ -36,7 +39,7 @@ class CreateRoomHeader extends StatelessWidget {
           'Choose category and rounds to start the game',
           style: TextStyle(
             fontSize: isTablet ? 16 : 14,
-            color: Colors.grey[600],
+            color: AppColors.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),

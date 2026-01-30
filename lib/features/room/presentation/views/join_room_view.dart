@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_button.dart';
@@ -57,7 +58,9 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
     final isTablet = size.width > 600;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.surface,
         title: const AppBarTitle(title: 'Join Room'),
         centerTitle: true,
       ),

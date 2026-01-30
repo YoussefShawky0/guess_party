@@ -80,41 +80,31 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
       // Filter in Dart to find the first valid round
       Map<String, dynamic>? response;
       Map<String, dynamic>? latestRound = validRounds.first;
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
 
       for (final round in validRounds) {
         final phaseEndTimeStr = round['phase_end_time'] as String;
         DateTime phaseEndTime;
 
-        // Parse the timestamp
+        // Parse the timestamp as UTC
         if (phaseEndTimeStr.endsWith('Z')) {
-          phaseEndTime = DateTime.parse(phaseEndTimeStr).toLocal();
+          phaseEndTime = DateTime.parse(phaseEndTimeStr).toUtc();
         } else if (phaseEndTimeStr.contains('+') ||
             phaseEndTimeStr.contains('T')) {
-          phaseEndTime = DateTime.parse(phaseEndTimeStr).toLocal();
+          phaseEndTime = DateTime.parse(phaseEndTimeStr).toUtc();
         } else {
-          phaseEndTime = DateTime.parse('${phaseEndTimeStr}Z').toLocal();
+          phaseEndTime = DateTime.parse('${phaseEndTimeStr}Z').toUtc();
         }
 
-        // Check if this round is still valid (not expired)
+        // Check if this round is still valid (not expired) - compare UTC to UTC
         if (phaseEndTime.isAfter(now)) {
-          print(
-            '✅ Found valid round: ${round['id']} (expires in ${phaseEndTime.difference(now).inSeconds}s)',
-          );
           response = round;
           break;
-        } else {
-          print(
-            '⏭️ Skipping expired round: ${round['id']} (expired ${now.difference(phaseEndTime).inSeconds}s ago)',
-          );
         }
       }
 
       // If no valid round found, use the latest round as fallback
-      if (response == null) {
-        print('⚠️ No valid round found, using latest round as fallback');
-        response = latestRound;
-      }
+      response ??= latestRound;
 
       final character = await getCharacter(
         characterId: response['character_id'] as String,
@@ -368,7 +358,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     required int roundDurationSeconds,
   }) async {
     try {
-      final phaseEndTime = DateTime.now().add(
+      final phaseEndTime = DateTime.now().toUtc().add(
         Duration(seconds: roundDurationSeconds),
       );
 

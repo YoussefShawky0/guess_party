@@ -37,30 +37,16 @@ class GameRepositoryImpl implements GameRepository {
     required String currentPlayerId,
   }) async {
     try {
-      print('📥 Fetching game state for room: $roomId');
-
-      print('  1️⃣ Getting current round...');
       final roundModel = await remoteDataSource.getCurrentRound(roomId: roomId);
-      print(
-        '  ✅ Round fetched: ${roundModel.roundNumber}, Phase: ${roundModel.phase}',
-      );
 
-      print('  2️⃣ Getting room players...');
       final playerModels = await remoteDataSource.getRoomPlayers(
         roomId: roomId,
       );
       final players = playerModels.map((m) => m.toEntity()).toList();
-      print('  ✅ ${players.length} players fetched');
 
-      print('  3️⃣ Getting player scores...');
       final scores = await remoteDataSource.getPlayerScores(roomId: roomId);
-      print('  ✅ Scores fetched for ${scores.length} players');
 
-      print('  4️⃣ Getting room details...');
       final room = await roomRemoteDataSource.getRoomDetails(roomId: roomId);
-      print(
-        '  ✅ Room details fetched: maxRounds=${room.maxRounds}, gameMode=${room.gameMode}',
-      );
 
       final gameState = GameState(
         roomId: roomId,
@@ -68,14 +54,13 @@ class GameRepositoryImpl implements GameRepository {
         players: players,
         currentPlayerId: currentPlayerId,
         totalRounds: room.maxRounds,
+        roundDuration: room.roundDuration,
         playerScores: scores,
         gameMode: room.gameMode,
       );
 
-      print('✅ Game state created successfully');
       return Right(gameState);
     } catch (e) {
-      print('❌ Error getting game state: $e');
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -132,7 +117,7 @@ class GameRepositoryImpl implements GameRepository {
       final roomDuration =
           currentRoundResponse['rooms']['round_duration'] as int;
       String newPhase;
-      int phaseDuration;
+      int phaseDuration = roomDuration; // استخدام مدة الراوند من الغرفة
 
       // تحديد المرحلة التالية - fixed durations for consistency
       switch (currentPhase) {
@@ -152,7 +137,6 @@ class GameRepositoryImpl implements GameRepository {
       final phaseEndTime = DateTime.now().toUtc().add(
         Duration(seconds: phaseDuration),
       );
-      print('🕐 Setting phase_end_time (UTC): $phaseEndTime');
 
       final updatedRound = await remoteDataSource.updateRoundPhase(
         roundId: roundId,
@@ -245,12 +229,19 @@ class GameRepositoryImpl implements GameRepository {
       // جلب معلومات الغرفة للحصول على roundDuration
       final room = await roomRemoteDataSource.getRoomDetails(roomId: roomId);
 
-      // جلب شخصية عشوائية
-      final charactersResponse = await client
+      // جلب شخصية عشوائية حسب كاتيجوري الغرفة
+      final isRoomMix = room.category == 'mix';
+      var charactersQuery = client
           .from('characters')
           .select()
-          .eq('is_active', true)
-          .limit(100);
+          .eq('is_active', true);
+      
+      // إذا مش mix، فلتر حسب الكاتيجوري
+      if (!isRoomMix) {
+        charactersQuery = charactersQuery.eq('category', room.category);
+      }
+      
+      final charactersResponse = await charactersQuery.limit(100);
 
       final characters = charactersResponse as List;
       if (characters.isEmpty) {

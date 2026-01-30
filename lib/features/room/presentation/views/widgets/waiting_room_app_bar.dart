@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
 
@@ -34,10 +36,11 @@ class WaitingRoomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      backgroundColor: AppColors.surface,
       title: const AppBarTitle(title: 'Waiting Room'),
       centerTitle: true,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: FaIcon(FontAwesomeIcons.arrowLeftLong, color: AppColors.textPrimary, size: 20),
         onPressed: () => _handleBackPress(context),
       ),
     );

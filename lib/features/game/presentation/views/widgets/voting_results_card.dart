@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 
 class VotingResultsCard extends StatelessWidget {
@@ -19,14 +20,18 @@ class VotingResultsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     if (mostVotedPlayer == null) {
       return const SizedBox.shrink();
     }
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.cardBorder, width: 1),
+      ),
       child: Padding(
         padding: EdgeInsets.all(isTablet ? 20 : 16),
         child: Column(
@@ -34,22 +39,27 @@ class VotingResultsCard extends StatelessWidget {
           children: [
             Text(
               'Voting Results',
-              style: theme.textTheme.titleLarge?.copyWith(
+              style: TextStyle(
                 fontSize: isTablet ? 24 : 20,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
               ),
             ),
             SizedBox(height: isTablet ? 16 : 12),
             Container(
+              width: double.infinity,
               padding: EdgeInsets.all(isTablet ? 16 : 12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.hintCardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.info, width: 1),
               ),
               child: Text(
-                'Most voted player: ${mostVotedPlayer!.username} ($maxVotes votes)',
-                style: theme.textTheme.titleMedium?.copyWith(
+                'Most voted: ${mostVotedPlayer!.username} ($maxVotes votes)',
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: isTablet ? 18 : 16,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -98,13 +108,14 @@ class _VoteResultRow extends StatelessWidget {
               CircleAvatar(
                 radius: isTablet ? 20 : 16,
                 backgroundColor: isImposter
-                    ? Colors.red.shade100
-                    : Colors.blue.shade100,
+                    ? AppColors.imposterCardBorder
+                    : AppColors.characterCardBorder,
                 child: Text(
                   player.username[0].toUpperCase(),
                   style: TextStyle(
-                    color: isImposter ? Colors.red : Colors.blue,
+                    color: AppColors.textPrimary,
                     fontSize: isTablet ? 18 : 14,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -117,6 +128,7 @@ class _VoteResultRow extends StatelessWidget {
                         ? FontWeight.bold
                         : FontWeight.normal,
                     fontSize: isTablet ? 18 : 16,
+                    color: AppColors.textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -127,7 +139,7 @@ class _VoteResultRow extends StatelessWidget {
                   child: Icon(
                     Icons.star,
                     size: isTablet ? 20 : 16,
-                    color: Colors.red,
+                    color: AppColors.error,
                   ),
                 ),
             ],
@@ -139,7 +151,7 @@ class _VoteResultRow extends StatelessWidget {
             vertical: isTablet ? 8 : 4,
           ),
           decoration: BoxDecoration(
-            color: Colors.amber.shade100,
+            color: AppColors.scoreBadgeBg,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -147,6 +159,7 @@ class _VoteResultRow extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: isTablet ? 16 : 14,
+              color: AppColors.scoreBadgeText,
             ),
           ),
         ),

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CountdownScreen extends StatefulWidget {
   final String roomId;
@@ -17,6 +19,7 @@ class _CountdownScreenState extends State<CountdownScreen>
   int _countdown = 3;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
+  String? _gameMode;
 
   @override
   void initState() {
@@ -30,7 +33,30 @@ class _CountdownScreenState extends State<CountdownScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
 
+    _loadGameMode();
     _startCountdown();
+  }
+
+  Future<void> _loadGameMode() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('rooms')
+          .select('game_mode')
+          .eq('id', widget.roomId)
+          .single();
+      if (mounted) {
+        setState(() {
+          _gameMode = response['game_mode'] as String?;
+        });
+      }
+    } catch (e) {
+      // Default to online if error
+      if (mounted) {
+        setState(() {
+          _gameMode = 'online';
+        });
+      }
+    }
   }
 
   void _startCountdown() {
@@ -56,8 +82,13 @@ class _CountdownScreenState extends State<CountdownScreen>
 
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
-        // Navigate to game screen after countdown
-        context.go('/room/${widget.roomId}/game');
+        // For local mode, go to role reveal screen first
+        // For online mode, go directly to game
+        if (_gameMode == 'local') {
+          context.go('/room/${widget.roomId}/role-reveal');
+        } else {
+          context.go('/room/${widget.roomId}/game');
+        }
       }
     });
   }
@@ -74,7 +105,7 @@ class _CountdownScreenState extends State<CountdownScreen>
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: AppColors.background,
       body: Center(
         child: AnimatedBuilder(
           animation: _scaleAnimation,
@@ -87,7 +118,7 @@ class _CountdownScreenState extends State<CountdownScreen>
                       style: TextStyle(
                         fontSize: isTablet ? 180 : 150,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
+                        color: AppColors.primary,
                       ),
                     )
                   : Text(
@@ -95,7 +126,7 @@ class _CountdownScreenState extends State<CountdownScreen>
                       style: TextStyle(
                         fontSize: isTablet ? 120 : 100,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: AppColors.success,
                       ),
                     ),
             );

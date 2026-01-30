@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class ErrorSnackBar {
   static void show(BuildContext context, String message) {
@@ -6,21 +8,25 @@ class ErrorSnackBar {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline, color: Colors.white, size: 24),
+            FaIcon(
+              FontAwesomeIcons.triangleExclamation,
+              color: AppColors.textPrimary,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
           ],
         ),
-        backgroundColor: const Color(0xFFD32F2F),
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -28,7 +34,7 @@ class ErrorSnackBar {
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'حسناً',
-          textColor: Colors.white,
+          textColor: AppColors.textPrimary,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },
@@ -42,25 +48,25 @@ class ErrorSnackBar {
       SnackBar(
         content: Row(
           children: [
-            const Icon(
-              Icons.check_circle_outline,
-              color: Colors.white,
-              size: 24,
+            FaIcon(
+              FontAwesomeIcons.circleCheck,
+              color: AppColors.textPrimary,
+              size: 20,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF388E3C),
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -75,25 +81,25 @@ class ErrorSnackBar {
       SnackBar(
         content: Row(
           children: [
-            const Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.white,
-              size: 24,
+            FaIcon(
+              FontAwesomeIcons.exclamation,
+              color: AppColors.textPrimary,
+              size: 20,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
           ],
         ),
-        backgroundColor: const Color(0xFFF57C00),
+        backgroundColor: AppColors.warning,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),

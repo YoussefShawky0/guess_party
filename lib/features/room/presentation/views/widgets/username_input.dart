@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class UsernameInput extends StatelessWidget {
   final TextEditingController controller;
@@ -16,7 +17,10 @@ class UsernameInput extends StatelessWidget {
       decoration: InputDecoration(
         labelText: 'Your Username',
         hintText: hintText ?? 'Enter username',
-        prefixIcon: const Icon(Icons.person),
+        prefixIcon: const Padding(
+          padding: EdgeInsets.all(12),
+          child: FaIcon(FontAwesomeIcons.user, size: 20),
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
       ),
       style: TextStyle(fontSize: isTablet ? 20 : 18),

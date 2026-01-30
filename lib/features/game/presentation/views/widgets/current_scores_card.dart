@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 
 class CurrentScoresCard extends StatelessWidget {
@@ -15,7 +17,6 @@ class CurrentScoresCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     // Sort players by score (descending)
@@ -26,8 +27,15 @@ class CurrentScoresCard extends StatelessWidget {
         return scoreB.compareTo(scoreA);
       });
 
-    return Card(
-      color: Colors.amber.shade50,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.goldMedal.withValues(alpha: 0.5),
+          width: 2,
+        ),
+      ),
       child: Padding(
         padding: EdgeInsets.all(isTablet ? 20 : 16),
         child: Column(
@@ -35,16 +43,18 @@ class CurrentScoresCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.emoji_events,
-                  color: Colors.amber,
-                  size: isTablet ? 32 : 24,
+                FaIcon(
+                  FontAwesomeIcons.trophy,
+                  color: AppColors.goldMedal,
+                  size: isTablet ? 28 : 20,
                 ),
                 SizedBox(width: isTablet ? 12 : 8),
                 Text(
                   'Current Scores',
-                  style: theme.textTheme.titleLarge?.copyWith(
+                  style: TextStyle(
                     fontSize: isTablet ? 24 : 20,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -92,24 +102,24 @@ class _ScoreRow extends StatelessWidget {
   Color _getRankColor() {
     switch (rank) {
       case 1:
-        return Colors.amber;
+        return AppColors.goldMedal;
       case 2:
-        return Colors.grey.shade400;
+        return AppColors.silverMedal;
       case 3:
-        return Colors.brown.shade300;
+        return AppColors.bronzeMedal;
       default:
-        return Colors.blue.shade100;
+        return AppColors.surfaceLight;
     }
   }
 
   IconData? _getRankIcon() {
     switch (rank) {
       case 1:
-        return Icons.emoji_events;
+        return FontAwesomeIcons.trophy;
       case 2:
-        return Icons.workspace_premium;
+        return FontAwesomeIcons.medal;
       case 3:
-        return Icons.military_tech;
+        return FontAwesomeIcons.award;
       default:
         return null;
     }
@@ -130,14 +140,14 @@ class _ScoreRow extends StatelessWidget {
             child: _getRankIcon() != null
                 ? Icon(
                     _getRankIcon(),
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     size: isTablet ? 24 : 18,
                   )
                 : Text(
                     '$rank',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: isTablet ? 18 : 14,
                     ),
                   ),
@@ -146,9 +156,13 @@ class _ScoreRow extends StatelessWidget {
         SizedBox(width: isTablet ? 16 : 12),
         CircleAvatar(
           radius: isTablet ? 22 : 18,
+          backgroundColor: AppColors.primary,
           child: Text(
             player.username[0].toUpperCase(),
-            style: TextStyle(fontSize: isTablet ? 20 : 16),
+            style: TextStyle(
+              fontSize: isTablet ? 20 : 16,
+              color: AppColors.textPrimary,
+            ),
           ),
         ),
         SizedBox(width: isTablet ? 16 : 12),
@@ -158,6 +172,7 @@ class _ScoreRow extends StatelessWidget {
             style: TextStyle(
               fontWeight: isImposter ? FontWeight.bold : FontWeight.normal,
               fontSize: isTablet ? 18 : 16,
+              color: AppColors.textPrimary,
             ),
             overflow: TextOverflow.ellipsis,
           ),
@@ -168,7 +183,7 @@ class _ScoreRow extends StatelessWidget {
             vertical: isTablet ? 10 : 8,
           ),
           decoration: BoxDecoration(
-            color: Colors.amber,
+            color: AppColors.scoreBadgeBg,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -176,6 +191,7 @@ class _ScoreRow extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: isTablet ? 18 : 16,
+              color: AppColors.scoreBadgeText,
             ),
           ),
         ),

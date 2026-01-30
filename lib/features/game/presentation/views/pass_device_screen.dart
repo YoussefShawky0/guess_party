@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class PassDeviceScreen extends StatefulWidget {
   final String playerName;
@@ -32,10 +33,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
       vsync: this,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
   }
 
@@ -56,21 +54,16 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
 
     if (!_isRevealed) {
-      return _buildPassDeviceView(theme, size, isTablet);
+      return _buildPassDeviceView(size, isTablet);
     }
-    return _buildRevealedView(theme, size, isTablet);
+    return _buildRevealedView(size, isTablet);
   }
 
-  Widget _buildPassDeviceView(
-    ThemeData theme,
-    Size size,
-    bool isTablet,
-  ) {
+  Widget _buildPassDeviceView(Size size, bool isTablet) {
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -80,10 +73,11 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.primary.withOpacity(0.1),
-              theme.colorScheme.secondary.withOpacity(0.1),
+              AppColors.primary.withValues(alpha: 0.1),
+              AppColors.secondary.withValues(alpha: 0.1),
             ],
           ),
+          color: AppColors.background,
         ),
         child: SafeArea(
           child: Padding(
@@ -97,21 +91,21 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                 Icon(
                   Icons.phone_android_rounded,
                   size: isTablet ? 120 : 100,
-                  color: theme.colorScheme.primary,
+                  color: AppColors.primary,
                 ),
                 const SizedBox(height: 40),
                 Text(
                   'Pass device to',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
                     fontSize: isTablet ? 28 : 22,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   widget.playerName,
-                  style: theme.textTheme.displaySmall?.copyWith(
-                    color: theme.colorScheme.primary,
+                  style: TextStyle(
+                    color: AppColors.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: isTablet ? 56 : 48,
                   ),
@@ -121,13 +115,13 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                 Icon(
                   Icons.swipe_up_rounded,
                   size: isTablet ? 60 : 48,
-                  color: theme.colorScheme.secondary,
+                  color: AppColors.secondary,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Tap to see your role',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    color: theme.colorScheme.secondary,
+                  style: TextStyle(
+                    color: AppColors.secondary,
                     fontSize: isTablet ? 24 : 20,
                   ),
                 ),
@@ -138,10 +132,10 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                     vertical: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer.withOpacity(0.3),
+                    color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: theme.colorScheme.error.withOpacity(0.3),
+                      color: AppColors.error.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -149,15 +143,15 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                     children: [
                       Icon(
                         Icons.visibility_off_rounded,
-                        color: theme.colorScheme.error,
+                        color: AppColors.error,
                         size: isTablet ? 24 : 20,
                       ),
                       const SizedBox(width: 12),
                       Flexible(
                         child: Text(
                           "Don't let others see!",
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.error,
+                          style: TextStyle(
+                            color: AppColors.error,
                             fontWeight: FontWeight.w600,
                             fontSize: isTablet ? 18 : 16,
                           ),
@@ -177,8 +171,8 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
                   ),
                   child: Text(
                     'Reveal Role',
@@ -196,13 +190,8 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
     );
   }
 
-  Widget _buildRevealedView(
-    ThemeData theme,
-    Size size,
-    bool isTablet,
-  ) {
-    final roleColor =
-        widget.isImpostor ? theme.colorScheme.error : theme.colorScheme.primary;
+  Widget _buildRevealedView(Size size, bool isTablet) {
+    final roleColor = widget.isImpostor ? AppColors.error : AppColors.primary;
     final roleText = widget.isImpostor ? 'IMPOSTOR' : 'CHARACTER';
 
     return Scaffold(
@@ -214,10 +203,11 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              roleColor.withOpacity(0.2),
-              roleColor.withOpacity(0.05),
+              roleColor.withValues(alpha: 0.2),
+              roleColor.withValues(alpha: 0.05),
             ],
           ),
+          color: AppColors.background,
         ),
         child: SafeArea(
           child: FadeTransition(
@@ -236,16 +226,16 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                       vertical: isTablet ? 16 : 12,
                     ),
                     decoration: BoxDecoration(
-                      color: roleColor.withOpacity(0.2),
+                      color: roleColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(50),
                       border: Border.all(
-                        color: roleColor.withOpacity(0.5),
+                        color: roleColor.withValues(alpha: 0.5),
                         width: 2,
                       ),
                     ),
                     child: Text(
                       roleText,
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: TextStyle(
                         color: roleColor,
                         fontWeight: FontWeight.bold,
                         fontSize: isTablet ? 24 : 20,
@@ -256,8 +246,8 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                   const SizedBox(height: 60),
                   Text(
                     'You are',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
                       fontSize: isTablet ? 28 : 22,
                     ),
                   ),
@@ -279,7 +269,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                     widget.isImpostor
                         ? 'The Impostor'
                         : widget.characterName ?? '',
-                    style: theme.textTheme.displaySmall?.copyWith(
+                    style: TextStyle(
                       color: roleColor,
                       fontWeight: FontWeight.bold,
                       fontSize: isTablet ? 56 : 48,
@@ -290,17 +280,18 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: theme.colorScheme.outline.withOpacity(0.2),
+                        color: AppColors.surfaceLight.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(
                       widget.isImpostor
                           ? 'Pretend to know the character and blend in with the others!'
                           : 'Give hints about your character without revealing too much!',
-                      style: theme.textTheme.bodyLarge?.copyWith(
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
                         fontSize: isTablet ? 18 : 16,
                         height: 1.5,
                       ),
@@ -319,7 +310,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                         borderRadius: BorderRadius.circular(16),
                       ),
                       backgroundColor: roleColor,
-                      foregroundColor: Colors.white,
+                      foregroundColor: AppColors.textPrimary,
                     ),
                     child: Text(
                       'Continue',

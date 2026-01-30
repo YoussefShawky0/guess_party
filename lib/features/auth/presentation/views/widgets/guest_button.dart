@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class GuestButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -14,6 +15,8 @@ class GuestButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.buttonPrimary,
+        foregroundColor: AppColors.textPrimary,
         padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 4,
@@ -22,9 +25,11 @@ class GuestButton extends StatelessWidget {
           ? SizedBox(
               height: isTablet ? 28 : 24,
               width: isTablet ? 28 : 24,
-              child: const CircularProgressIndicator(
+              child: CircularProgressIndicator(
                 strokeWidth: 3,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  AppColors.textPrimary,
+                ),
               ),
             )
           : Row(

@@ -33,7 +33,7 @@ class RoundInfo extends Equatable {
   bool isImposter(String playerId) => playerId == imposterPlayerId;
 
   int get remainingSeconds {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final difference = phaseEndTime.difference(now);
     return difference.inSeconds > 0 ? difference.inSeconds : 0;
   }
@@ -76,16 +76,16 @@ class RoundInfo extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        roomId,
-        imposterPlayerId,
-        character,
-        roundNumber,
-        phase,
-        phaseEndTime,
-        imposterRevealed,
-        playerIds,
-        playerHints,
-        playerVotes,
-      ];
+    id,
+    roomId,
+    imposterPlayerId,
+    character,
+    roundNumber,
+    phase,
+    phaseEndTime,
+    imposterRevealed,
+    playerIds,
+    playerHints,
+    playerVotes,
+  ];
 }

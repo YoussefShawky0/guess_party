@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class AppTheme {
-  static const primaryColor = Color(0xFF6366F1);
-  static const secondaryColor = Color(0xFFEC4899);
-  static const backgroundColor = Color(0xFF0F172A);
-  static const surfaceColor = Color(0xFF1E293B);
+  static const primaryColor = AppColors.primary;
+  static const secondaryColor = AppColors.secondary;
+  static const backgroundColor = AppColors.background;
+  static const surfaceColor = AppColors.surface;
 
   static ThemeData get darkTheme {
     return ThemeData(
@@ -12,27 +13,35 @@ class AppTheme {
       brightness: Brightness.dark,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         primary: primaryColor,
         secondary: secondaryColor,
         surface: surfaceColor,
+        onPrimary: AppColors.textPrimary,
+        onSecondary: AppColors.textPrimary,
+        onSurface: AppColors.textPrimary,
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: backgroundColor,
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: true,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       cardTheme: CardThemeData(
         color: surfaceColor,
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.buttonPrimary,
+          foregroundColor: AppColors.textPrimary,
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

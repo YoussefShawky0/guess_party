@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class RoundsSelector extends StatelessWidget {
   final int selectedRounds;
@@ -20,10 +22,10 @@ class RoundsSelector extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withAlpha(51),
+          color: AppColors.primary.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -35,10 +37,10 @@ class RoundsSelector extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.timer_rounded,
-                    color: Theme.of(context).primaryColor,
-                    size: isTablet ? 24 : 20,
+                  FaIcon(
+                    FontAwesomeIcons.chartSimple,
+                    color: AppColors.primary,
+                    size: isTablet ? 20 : 16,
                   ),
                   const SizedBox(width: 12),
                   Text(
@@ -46,6 +48,7 @@ class RoundsSelector extends StatelessWidget {
                     style: TextStyle(
                       fontSize: isTablet ? 20 : 18,
                       fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                 ],
@@ -56,7 +59,7 @@ class RoundsSelector extends StatelessWidget {
                   vertical: isTablet ? 8 : 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -64,7 +67,7 @@ class RoundsSelector extends StatelessWidget {
                   style: TextStyle(
                     fontSize: isTablet ? 20 : 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ),
@@ -73,11 +76,10 @@ class RoundsSelector extends StatelessWidget {
           const SizedBox(height: 16),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Theme.of(context).primaryColor,
-              inactiveTrackColor:
-                  Theme.of(context).primaryColor.withAlpha(77),
-              thumbColor: Theme.of(context).primaryColor,
-              overlayColor: Theme.of(context).primaryColor.withAlpha(51),
+              activeTrackColor: AppColors.primary,
+              inactiveTrackColor: AppColors.primary.withValues(alpha: 0.3),
+              thumbColor: AppColors.primary,
+              overlayColor: AppColors.primary.withValues(alpha: 0.2),
               trackHeight: isTablet ? 6 : 4,
               thumbShape: RoundSliderThumbShape(
                 enabledThumbRadius: isTablet ? 12 : 10,
@@ -101,14 +103,14 @@ class RoundsSelector extends StatelessWidget {
                   '3 rounds',
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 12,
-                    color: Colors.grey,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 Text(
                   '10 rounds',
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 12,
-                    color: Colors.grey,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],

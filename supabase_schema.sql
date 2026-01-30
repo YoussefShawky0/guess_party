@@ -27,7 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_characters_active ON characters(is_active);
 CREATE TABLE IF NOT EXISTS rooms (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   host_id UUID NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('football_players', 'islamic_figures', 'daily_products')),
+  category TEXT NOT NULL CHECK (category IN ('mix', 'football_players', 'islamic_figures', 'daily_products')),
   max_rounds INTEGER NOT NULL DEFAULT 5 CHECK (max_rounds BETWEEN 1 AND 10),
   max_players INTEGER NOT NULL DEFAULT 6 CHECK (max_players BETWEEN 4 AND 10),
   round_duration INTEGER NOT NULL DEFAULT 60 CHECK (round_duration BETWEEN 30 AND 300),

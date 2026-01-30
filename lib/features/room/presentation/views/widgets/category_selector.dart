@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 
 class CategorySelector extends StatelessWidget {
@@ -21,10 +23,10 @@ class CategorySelector extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withAlpha(51),
+          color: AppColors.primary.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -33,10 +35,10 @@ class CategorySelector extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.category_rounded,
-                color: Theme.of(context).primaryColor,
-                size: isTablet ? 24 : 20,
+              FaIcon(
+                FontAwesomeIcons.shapes,
+                color: AppColors.primary,
+                size: isTablet ? 20 : 16,
               ),
               const SizedBox(width: 12),
               Text(
@@ -44,16 +46,17 @@ class CategorySelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 20 : 18,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
-            value: selectedCategory,
+            initialValue: selectedCategory,
             decoration: InputDecoration(
               filled: true,
-              fillColor: Theme.of(context).colorScheme.surface,
+              fillColor: AppColors.surfaceLight,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -63,9 +66,10 @@ class CategorySelector extends StatelessWidget {
                 vertical: isTablet ? 16 : 12,
               ),
             ),
+            dropdownColor: AppColors.surface,
             style: TextStyle(
               fontSize: isTablet ? 18 : 16,
-              color: Theme.of(context).textTheme.bodyLarge?.color,
+              color: AppColors.textPrimary,
             ),
             items: GameConstants.categories.map((category) {
               return DropdownMenuItem<String>(
@@ -75,6 +79,7 @@ class CategorySelector extends StatelessWidget {
                   style: TextStyle(
                     fontSize: isTablet ? 18 : 16,
                     fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               );

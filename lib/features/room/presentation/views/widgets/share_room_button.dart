@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
 
 class ShareRoomButton extends StatelessWidget {
@@ -27,7 +29,7 @@ Enter this code in the app to join the game!
 
     return ElevatedButton.icon(
       onPressed: _shareRoomCode,
-      icon: Icon(Icons.share, size: isTablet ? 24 : 20),
+      icon: FaIcon(FontAwesomeIcons.shareFromSquare, size: isTablet ? 20 : 16),
       label: Text(
         'Share Room Code',
         style: TextStyle(
@@ -36,6 +38,8 @@ Enter this code in the app to join the game!
         ),
       ),
       style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.textPrimary,
         padding: EdgeInsets.symmetric(
           horizontal: isTablet ? 32 : 24,
           vertical: isTablet ? 18 : 16,

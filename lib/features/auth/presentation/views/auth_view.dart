@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../shared/widgets/error_snackbar.dart';
@@ -63,46 +64,49 @@ class _AuthViewState extends State<AuthView> {
           }
         },
         builder: (context, state) {
-          return SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isTablet ? size.width * 0.2 : 24,
-                  vertical: 24,
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const AuthHeader(),
-                      SizedBox(height: isTablet ? 80 : 60),
-                      UsernameField(
-                        controller: _usernameController,
-                        enabled: state is! AuthLoading,
-                      ),
-                      const SizedBox(height: 32),
-                      GuestButton(
-                        onPressed: state is AuthLoading
-                            ? null
-                            : _handleGuestSignIn,
-                        isLoading: state is AuthLoading,
-                      ),
-                      const SizedBox(height: 24),
-                      TextButton(
-                        onPressed: () {
-                          context.push('/login');
-                        },
-                        child: Text(
-                          'Already have an account? Login',
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                            fontSize: isTablet ? 16 : 14,
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isTablet ? size.width * 0.2 : 24,
+                    vertical: 24,
+                  ),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const AuthHeader(),
+                        SizedBox(height: isTablet ? 80 : 60),
+                        UsernameField(
+                          controller: _usernameController,
+                          enabled: state is! AuthLoading,
+                        ),
+                        const SizedBox(height: 32),
+                        GuestButton(
+                          onPressed: state is AuthLoading
+                              ? null
+                              : _handleGuestSignIn,
+                          isLoading: state is AuthLoading,
+                        ),
+                        const SizedBox(height: 24),
+                        TextButton(
+                          onPressed: () {
+                            context.push('/login');
+                          },
+                          child: Text(
+                            'Already have an account? Login',
+                            style: TextStyle(
+                              color: AppColors.primaryLight,
+                              fontSize: isTablet ? 16 : 14,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

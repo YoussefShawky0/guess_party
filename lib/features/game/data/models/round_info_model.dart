@@ -39,9 +39,6 @@ class RoundInfoModel extends RoundInfo {
     // Convert to UTC explicitly
     phaseEndTime = phaseEndTime.toUtc();
 
-    print('🕒 Parsed phase_end_time (UTC): $phaseEndTime');
-    print('🕒 Local equivalent: ${phaseEndTime.toLocal()}');
-
     return RoundInfoModel(
       id: json['id'] as String,
       roomId: json['room_id'] as String,

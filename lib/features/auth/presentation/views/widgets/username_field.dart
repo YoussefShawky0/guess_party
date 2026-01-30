@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/utils/validators.dart';
 
 class UsernameField extends StatelessWidget {
@@ -23,34 +24,42 @@ class UsernameField extends StatelessWidget {
       style: TextStyle(
         fontSize: isTablet ? 20 : 18,
         fontWeight: FontWeight.w500,
+        color: AppColors.textPrimary,
       ),
       decoration: InputDecoration(
         hintText: 'Enter your username',
         hintStyle: TextStyle(
           fontSize: isTablet ? 18 : 16,
-          color: Colors.grey[600],
+          color: AppColors.textMuted,
         ),
-        prefixIcon: Icon(Icons.person_outline, size: isTablet ? 28 : 24),
+        prefixIcon: Icon(
+          Icons.person_outline,
+          size: isTablet ? 28 : 24,
+          color: AppColors.textSecondary,
+        ),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surface,
+        fillColor: AppColors.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: AppColors.primary.withValues(alpha: 0.5),
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Theme.of(context).primaryColor,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
+          borderSide: BorderSide(color: AppColors.error, width: 2),
         ),
         contentPadding: EdgeInsets.symmetric(
           horizontal: isTablet ? 24 : 20,

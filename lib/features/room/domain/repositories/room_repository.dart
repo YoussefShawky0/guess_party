@@ -15,6 +15,7 @@ abstract class RoomRepository {
     required String roomId,
     required String username,
     required bool isHost,
+    bool isLocalPlayer = false,
   });
 
   ResultFuture<Room> getRoomDetails({required String roomId});

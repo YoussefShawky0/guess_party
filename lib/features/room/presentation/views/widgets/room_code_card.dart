@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 
 class RoomCodeCard extends StatelessWidget {
@@ -20,10 +22,10 @@ class RoomCodeCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 40 : 32),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
@@ -33,7 +35,7 @@ class RoomCodeCard extends StatelessWidget {
             'Room Code',
             style: TextStyle(
               fontSize: isTablet ? 22 : 18,
-              color: Colors.grey[400],
+              color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -45,7 +47,7 @@ class RoomCodeCard extends StatelessWidget {
               vertical: isTablet ? 20 : 16,
             ),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -54,7 +56,7 @@ class RoomCodeCard extends StatelessWidget {
                 fontSize: isTablet ? 56 : 48,
                 fontWeight: FontWeight.bold,
                 letterSpacing: isTablet ? 12 : 8,
-                color: Theme.of(context).primaryColor,
+                color: AppColors.primaryLight,
               ),
             ),
           ),
@@ -62,10 +64,10 @@ class RoomCodeCard extends StatelessWidget {
           // Copy Button
           TextButton.icon(
             onPressed: () => _copyRoomCode(context),
-            icon: const Icon(Icons.copy, size: 20),
-            label: const Text('Copy Code'),
+            icon: FaIcon(FontAwesomeIcons.copy, size: 16, color: AppColors.primary),
+            label: Text('Copy Code', style: TextStyle(color: AppColors.primary)),
             style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).primaryColor,
+              foregroundColor: AppColors.primary,
             ),
           ),
         ],

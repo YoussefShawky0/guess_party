@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class JoinRoomHeader extends StatelessWidget {
   const JoinRoomHeader({super.key});
@@ -10,10 +12,10 @@ class JoinRoomHeader extends StatelessWidget {
 
     return Column(
       children: [
-        Icon(
-          Icons.group_add_rounded,
-          size: isTablet ? 120 : 100,
-          color: Theme.of(context).primaryColor,
+        FaIcon(
+          FontAwesomeIcons.userPlus,
+          size: isTablet ? 80 : 64,
+          color: AppColors.primary,
         ),
         SizedBox(height: isTablet ? 40 : 32),
         Text(
@@ -21,6 +23,7 @@ class JoinRoomHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: isTablet ? 32 : 28,
             fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
           ),
           textAlign: TextAlign.center,
         ),

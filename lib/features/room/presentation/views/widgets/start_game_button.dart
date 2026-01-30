@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class StartGameButton extends StatelessWidget {
   final String roomId;
@@ -36,12 +38,13 @@ class StartGameButton extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            backgroundColor: Theme.of(context).primaryColor,
+            backgroundColor: AppColors.primary,
+            foregroundColor: AppColors.textPrimary,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.play_arrow_rounded, size: isTablet ? 32 : 28),
+              FaIcon(FontAwesomeIcons.play, size: isTablet ? 24 : 20),
               SizedBox(width: isTablet ? 12 : 8),
               Text(
                 'Start Game',
@@ -60,7 +63,7 @@ class StartGameButton extends StatelessWidget {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: isTablet ? 16 : 14,
-              color: Colors.grey[400],
+              color: AppColors.textSecondary,
             ),
           ),
         ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -74,6 +76,7 @@ class _PlayersListState extends State<PlayersList> {
                   style: TextStyle(
                     fontSize: isTablet ? 24 : 20,
                     fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -83,7 +86,7 @@ class _PlayersListState extends State<PlayersList> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -91,7 +94,7 @@ class _PlayersListState extends State<PlayersList> {
                     style: TextStyle(
                       fontSize: isTablet ? 18 : 16,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).primaryColor,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
@@ -104,14 +107,19 @@ class _PlayersListState extends State<PlayersList> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
             ),
             child: BlocBuilder<RoomCubit, RoomState>(
               builder: (context, state) {
                 if (state is RoomDetailsLoaded && state.players != null) {
                   if (state.players!.isEmpty) {
-                    return const Center(child: Text('No players yet'));
+                    return Center(
+                      child: Text(
+                        'No players yet',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    );
                   }
 
                   return ListView.separated(
@@ -122,20 +130,18 @@ class _PlayersListState extends State<PlayersList> {
                       return Container(
                         padding: EdgeInsets.all(isTablet ? 20 : 16),
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
+                          color: AppColors.surfaceLight,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
                           children: [
                             CircleAvatar(
                               radius: isTablet ? 28 : 24,
-                              backgroundColor: Theme.of(context).primaryColor,
-                              child: Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: isTablet ? 28 : 24,
+                              backgroundColor: AppColors.primary,
+                              child: FaIcon(
+                                FontAwesomeIcons.user,
+                                color: AppColors.textPrimary,
+                                size: isTablet ? 22 : 18,
                               ),
                             ),
                             SizedBox(width: isTablet ? 16 : 12),
@@ -148,6 +154,7 @@ class _PlayersListState extends State<PlayersList> {
                                     style: TextStyle(
                                       fontSize: isTablet ? 20 : 18,
                                       fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
                                     ),
                                   ),
                                   if (player.isHost)
@@ -155,7 +162,7 @@ class _PlayersListState extends State<PlayersList> {
                                       'Host',
                                       style: TextStyle(
                                         fontSize: isTablet ? 16 : 14,
-                                        color: Theme.of(context).primaryColor,
+                                        color: AppColors.primaryLight,
                                       ),
                                     ),
                                 ],
@@ -168,8 +175,10 @@ class _PlayersListState extends State<PlayersList> {
                               ),
                               decoration: BoxDecoration(
                                 color: player.isOnline
-                                    ? Colors.green.withValues(alpha: 0.2)
-                                    : Colors.grey.withValues(alpha: 0.2),
+                                    ? AppColors.success.withValues(alpha: 0.2)
+                                    : AppColors.textSecondary.withValues(
+                                        alpha: 0.2,
+                                      ),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -177,8 +186,8 @@ class _PlayersListState extends State<PlayersList> {
                                 style: TextStyle(
                                   fontSize: isTablet ? 14 : 12,
                                   color: player.isOnline
-                                      ? Colors.green
-                                      : Colors.grey,
+                                      ? AppColors.success
+                                      : AppColors.textSecondary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -190,7 +199,9 @@ class _PlayersListState extends State<PlayersList> {
                   );
                 }
 
-                return const Center(child: CircularProgressIndicator());
+                return Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                );
               },
             ),
           ),

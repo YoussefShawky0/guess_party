@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
@@ -49,10 +51,10 @@ class CreateRoomView extends StatefulWidget {
 }
 
 class _CreateRoomViewState extends State<CreateRoomView> {
-  String _selectedCategory = GameConstants.categories.first;
+  String _selectedCategory = 'football_players';
   int _selectedRounds = GameConstants.defaultRounds;
-  int _selectedMaxPlayers = 6;
-  int _selectedRoundDuration = 60;
+  int _selectedMaxPlayers = 4;
+  int _selectedRoundDuration = 300; // 5 minutes
   String _selectedGameMode = 'online'; // Default to online
   List<String> _localPlayerNames = []; // For local mode
   String? _createdRoomId; // Store room ID for listener
@@ -62,7 +64,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
     super.initState();
     // Ensure valid category key
     if (!GameConstants.categories.contains(_selectedCategory)) {
-      _selectedCategory = GameConstants.categories.first;
+      _selectedCategory = 'football_players';
     }
   }
 
@@ -93,7 +95,9 @@ class _CreateRoomViewState extends State<CreateRoomView> {
     final isTablet = size.width > 600;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
+        backgroundColor: AppColors.surface,
         title: const AppBarTitle(title: 'Create Room'),
         centerTitle: true,
       ),
@@ -105,14 +109,16 @@ class _CreateRoomViewState extends State<CreateRoomView> {
               _createdRoomId = state.room.id;
             });
 
-            // For local mode, start game immediately instead of waiting
+            // For local mode, start game and navigate directly to countdown
             if (_selectedGameMode == 'local') {
               ErrorSnackBar.showSuccess(
                 context,
                 'Room created! Starting game...',
               );
-              // Start game for local mode - will trigger navigation via room_status_listener
+              // Start game for local mode
               context.read<RoomCubit>().startGameSession(state.room.id);
+              // Navigate directly to countdown (don't wait for realtime)
+              context.go('/room/${state.room.id}/countdown');
             } else {
               ErrorSnackBar.showSuccess(context, 'Room created successfully!');
               context.go('/room/${state.room.id}/waiting');
@@ -207,19 +213,19 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                           ? SizedBox(
                               height: isTablet ? 28 : 24,
                               width: isTablet ? 28 : 24,
-                              child: const CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 3,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                                  AppColors.textPrimary,
                                 ),
                               ),
                             )
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.add_circle_outline,
-                                  size: isTablet ? 28 : 24,
+                                FaIcon(
+                                  FontAwesomeIcons.plus,
+                                  size: isTablet ? 24 : 20,
                                 ),
                                 const SizedBox(width: 12),
                                 Text(

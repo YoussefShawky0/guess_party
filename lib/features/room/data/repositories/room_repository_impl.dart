@@ -40,12 +40,14 @@ class RoomRepositoryImpl implements RoomRepository {
     required String roomId,
     required String username,
     required bool isHost,
+    bool isLocalPlayer = false,
   }) async {
     try {
       final player = await remoteDataSource.addPlayerToRoom(
         roomId: roomId,
         username: username,
         isHost: isHost,
+        isLocalPlayer: isLocalPlayer,
       );
       return Right(player);
     } catch (e) {

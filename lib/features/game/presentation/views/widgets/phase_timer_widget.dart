@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class PhaseTimerWidget extends StatefulWidget {
   final DateTime phaseEndTime;
@@ -39,11 +41,6 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
 
   void _startTimer() {
     _timer?.cancel();
-    print('⏱️ Starting timer. Phase end time (UTC): ${widget.phaseEndTime}');
-    print('⏱️ Current time (UTC): ${DateTime.now().toUtc()}');
-    print(
-      '⏱️ Difference: ${widget.phaseEndTime.difference(DateTime.now().toUtc()).inSeconds} seconds',
-    );
     _updateTime();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       _updateTime();
@@ -57,18 +54,11 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
     final difference = widget.phaseEndTime.difference(now);
     final newSeconds = difference.inSeconds > 0 ? difference.inSeconds : 0;
 
-    if (_remainingSeconds != newSeconds) {
-      print(
-        '⏱️ Timer update: $_remainingSeconds → $newSeconds seconds remaining',
-      );
-    }
-
     setState(() {
       _remainingSeconds = newSeconds;
     });
 
     if (_remainingSeconds == 0 && !_hasCalledOnTimeUp) {
-      print('⏰ Time is up!');
       _hasCalledOnTimeUp = true;
       _timer?.cancel();
       widget.onTimeUp?.call();
@@ -83,11 +73,11 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
 
   Color _getTimerColor() {
     if (_remainingSeconds > 30) {
-      return Colors.green;
+      return AppColors.timerNormal;
     } else if (_remainingSeconds > 10) {
-      return Colors.orange;
+      return AppColors.timerWarning;
     } else {
-      return Colors.red;
+      return AppColors.timerCritical;
     }
   }
 
@@ -116,14 +106,14 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: AppColors.timerBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color, width: 2),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.timer, color: color, size: 20),
+          FaIcon(FontAwesomeIcons.hourglassHalf, color: color, size: 16),
           const SizedBox(width: 6),
           Text(
             timeText,
@@ -144,19 +134,18 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
   }
 
   Widget _buildLargeTimer(Color color, String timeText) {
-    return Card(
-      elevation: 4,
-      color: color.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.timerBg,
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: color, width: 3),
+        border: Border.all(color: color, width: 3),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.timer, color: color, size: 48),
+            FaIcon(FontAwesomeIcons.hourglassHalf, color: color, size: 40),
             const SizedBox(height: 12),
             Text(
               'Time Remaining',

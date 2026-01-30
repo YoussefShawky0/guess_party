@@ -20,6 +20,7 @@ abstract class RoomRemoteDataSource {
     required String roomId,
     required String username,
     required bool isHost,
+    bool isLocalPlayer = false,
   });
 
   Future<Room> getRoomDetails({required String roomId});
@@ -65,11 +66,6 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
       const uuid = Uuid();
       final roomId = uuid.v4();
 
-      print(
-        'Creating room with: category=$category, maxRounds=$maxRounds, maxPlayers=$maxPlayers, roundDuration=$roundDuration, gameMode=$gameMode',
-      );
-      print('User ID: ${user.id}');
-
       final response = await client
           .from('rooms')
           .insert({
@@ -88,11 +84,8 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
           .select()
           .single();
 
-      print('Room created successfully: ${response['id']}');
       return RoomModel.fromJson(response);
     } catch (e) {
-      print('Error creating room: $e');
-      print('Error type: ${e.runtimeType}');
       rethrow;
     }
   }
@@ -102,6 +95,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     required String roomId,
     required String username,
     required bool isHost,
+    bool isLocalPlayer = false,
   }) async {
     try {
       final user = client.auth.currentUser;
@@ -110,11 +104,17 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
         throw Exception('User not authenticated');
       }
 
+      // For local mode players (except host), generate a unique UUID
+      // This allows multiple players on the same device
+      final playerId = isLocalPlayer && !isHost 
+          ? const Uuid().v4() 
+          : user.id;
+
       final response = await client
           .from('players')
           .insert({
             'room_id': roomId,
-            'user_id': user.id,
+            'user_id': playerId,
             'username': username,
             'score': 0,
             'is_host': isHost,
@@ -179,16 +179,12 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   @override
   Future<void> startGame(String roomId) async {
     try {
-      print('🔵 Updating room $roomId status to active');
-
       // Update room status to active
-      final response = await client
+      await client
           .from('rooms')
           .update({'status': 'active'})
           .eq('id', roomId)
           .select();
-
-      print('🔵 Room update response: $response');
 
       // TODO: Create first round automatically
       // Currently, the first round needs to be created manually via GameRepository.createNextRound()
@@ -198,7 +194,6 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
       // 3. Add a database trigger to auto-create first round
       // For now, the game will show an error until the first round is created
     } catch (e) {
-      print('❌ Error updating room status: $e');
       rethrow;
     }
   }

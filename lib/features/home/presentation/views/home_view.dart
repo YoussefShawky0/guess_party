@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
-import 'package:guess_party/shared/widgets/app_bar_title.dart';
 
 import 'widgets/home_action_buttons.dart';
 import 'widgets/welcome_section.dart';
@@ -30,26 +31,65 @@ class HomeContent extends StatelessWidget {
     final isTablet = size.width > 600;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            AppBar(
-              title: const AppBarTitle(title: 'Guess Party'),
-              centerTitle: true,
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: IconButton(
-                    icon: const Icon(Icons.exit_to_app_rounded),
-                    iconSize: 28,
-                    color: Colors.white,
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.surface,
+                    AppColors.surface.withValues(alpha: 0.9),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  // Logo
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Image.asset(
+                      'assets/images/Due.png',
+                      height: 28,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Title
+                  Expanded(
+                    child: Text(
+                      'Guess Party',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  // Logout Button
+                  IconButton(
+                    icon: const FaIcon(FontAwesomeIcons.rightFromBracket, size: 18),
+                    color: AppColors.error,
                     tooltip: 'Logout',
                     onPressed: () {
                       context.read<HomeCubit>().signOutUser();
                     },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             Expanded(
               child: BlocConsumer<HomeCubit, HomeState>(
@@ -60,14 +100,18 @@ class HomeContent extends StatelessWidget {
                 },
                 builder: (context, state) {
                   if (state is HomeLoading) {
-                    return const Center(child: CircularProgressIndicator());
+                    return Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    );
                   }
 
                   if (state is HomeError) {
                     return Center(
                       child: Text(
                         'Error: ${state.message}',
-                        style: const TextStyle(color: Colors.red),
+                        style: TextStyle(color: AppColors.error),
                       ),
                     );
                   }

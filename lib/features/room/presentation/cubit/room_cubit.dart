@@ -65,17 +65,19 @@ class RoomCubit extends Cubit<RoomState> {
           roomId: room.id,
           username: localPlayerNames.first,
           isHost: true,
+          isLocalPlayer: true,
         );
 
         await hostResult.fold(
           (failure) async => emit(RoomError(failure.message)),
           (hostPlayer) async {
-            // Add remaining players
+            // Add remaining players with unique UUIDs
             for (int i = 1; i < localPlayerNames.length; i++) {
               await addPlayerToRoom(
                 roomId: room.id,
                 username: localPlayerNames[i],
                 isHost: false,
+                isLocalPlayer: true,
               );
             }
             emit(RoomWithPlayerCreated(room: room, player: hostPlayer));
@@ -126,15 +128,12 @@ class RoomCubit extends Cubit<RoomState> {
   }
 
   Future<void> startGameSession(String roomId) async {
-    print('🎮 Starting game session for room: $roomId');
     final result = await startGame(roomId);
     result.fold(
       (failure) {
-        print('❌ Failed to start game: ${failure.message}');
         emit(RoomError(failure.message));
       },
       (_) {
-        print('✅ Game started successfully, waiting for Realtime update');
         // Game started successfully, state will update via Realtime
       },
     );

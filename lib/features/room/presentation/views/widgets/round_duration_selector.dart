@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 
 class RoundDurationSelector extends StatelessWidget {
   final int selectedDuration;
@@ -29,6 +30,7 @@ class RoundDurationSelector extends StatelessWidget {
           style: TextStyle(
             fontSize: isTablet ? 20 : 18,
             fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
           ),
         ),
         SizedBox(height: isTablet ? 16 : 12),
@@ -47,14 +49,22 @@ class RoundDurationSelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 18 : 16,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected
+                      ? AppColors.textPrimary
+                      : AppColors.textSecondary,
                 ),
               ),
               selected: isSelected,
               onSelected: (selected) {
                 if (selected) onDurationChanged(duration);
               },
-              selectedColor: Theme.of(context).primaryColor,
-              labelStyle: TextStyle(color: isSelected ? Colors.white : null),
+              selectedColor: AppColors.primary,
+              backgroundColor: AppColors.surface,
+              labelStyle: TextStyle(
+                color: isSelected
+                    ? AppColors.textPrimary
+                    : AppColors.textSecondary,
+              ),
             );
           }).toList(),
         ),
