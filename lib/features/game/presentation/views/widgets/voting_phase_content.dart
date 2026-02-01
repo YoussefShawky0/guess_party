@@ -97,7 +97,8 @@ class VotingPhaseContent extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 16 : 12),
           ...players.map((player) {
-            // In online mode, hide current user from voting list
+            // In online mode only: hide current user to prevent self-voting
+            // In local mode: show all players (voting happens through dialog)
             if (gameMode == 'online' && player.userId == currentUserId) {
               return const SizedBox.shrink();
             }
@@ -220,6 +221,9 @@ class VotingPhaseContent extends StatelessWidget {
   }
 
   void _showVoterSelectionDialog(BuildContext context, String votedPlayerId) {
+    // Save GameCubit reference before opening dialog to avoid accessing deactivated widget
+    final gameCubit = context.read<GameCubit>();
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -232,6 +236,9 @@ class VotingPhaseContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: players.map((player) {
             final hasVoted = round.playerVotes.containsKey(player.id);
+            // Prevent voting for self
+            final isVotingForSelf = player.id == votedPlayerId;
+
             return ListTile(
               leading: CircleAvatar(
                 backgroundColor: AppColors.primary,
@@ -244,6 +251,12 @@ class VotingPhaseContent extends StatelessWidget {
                 player.username,
                 style: TextStyle(color: AppColors.textPrimary),
               ),
+              subtitle: isVotingForSelf
+                  ? Text(
+                      'Cannot vote for self',
+                      style: TextStyle(color: AppColors.error, fontSize: 12),
+                    )
+                  : null,
               trailing: hasVoted
                   ? FaIcon(
                       FontAwesomeIcons.circleCheck,
@@ -251,11 +264,11 @@ class VotingPhaseContent extends StatelessWidget {
                       size: 20,
                     )
                   : null,
-              enabled: !hasVoted,
-              onTap: hasVoted
+              enabled: !hasVoted && !isVotingForSelf,
+              onTap: hasVoted || isVotingForSelf
                   ? null
                   : () {
-                      context.read<GameCubit>().sendVote(
+                      gameCubit.sendVote(
                         roundId: round.id,
                         voterId: player.id,
                         votedPlayerId: votedPlayerId,
@@ -319,7 +332,7 @@ class VotingPhaseContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'الأصوات (${round.playerVotes.length}/${round.playerIds.length})',
+            'Votes (${round.playerVotes.length}/${round.playerIds.length})',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w500,

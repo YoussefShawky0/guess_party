@@ -11,7 +11,7 @@ class RoomCodeCard extends StatelessWidget {
 
   void _copyRoomCode(BuildContext context) {
     Clipboard.setData(ClipboardData(text: roomCode));
-    ErrorSnackBar.showSuccess(context, 'Room code copied!');
+    // Room code copied silently
   }
 
   @override
@@ -64,11 +64,16 @@ class RoomCodeCard extends StatelessWidget {
           // Copy Button
           TextButton.icon(
             onPressed: () => _copyRoomCode(context),
-            icon: FaIcon(FontAwesomeIcons.copy, size: 16, color: AppColors.primary),
-            label: Text('Copy Code', style: TextStyle(color: AppColors.primary)),
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
+            icon: FaIcon(
+              FontAwesomeIcons.copy,
+              size: 16,
+              color: AppColors.primary,
             ),
+            label: Text(
+              'Copy Code',
+              style: TextStyle(color: AppColors.primary),
+            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
           ),
         ],
       ),

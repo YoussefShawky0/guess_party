@@ -6,63 +6,63 @@ class ErrorHandler {
     // Email confirmation required
     if (errorLower.contains('email not confirmed') ||
         errorLower.contains('confirmation')) {
-      return 'يجب تأكيد البريد الإلكتروني أولاً. تحقق من بريدك الإلكتروني.';
+      return 'Email confirmation required. Check your inbox.';
     }
 
     // Invalid credentials
     if (errorLower.contains('invalid login credentials') ||
         errorLower.contains('invalid_credentials')) {
-      return 'اسم المستخدم أو كلمة المرور غير صحيحة';
+      return 'Invalid username or password';
     }
 
     // User not found
     if (errorLower.contains('user not found') ||
         errorLower.contains('not_found')) {
-      return 'المستخدم غير موجود. قم بإنشاء حساب أولاً';
+      return 'User not found. Please create an account first';
     }
 
     // User already exists
     if (errorLower.contains('user already registered') ||
         errorLower.contains('already exists') ||
         errorLower.contains('duplicate')) {
-      return 'اسم المستخدم موجود بالفعل. اختر اسماً آخر';
+      return 'Username already exists. Choose another one';
     }
 
     // Weak password
     if (errorLower.contains('password') && errorLower.contains('weak')) {
-      return 'كلمة المرور ضعيفة. استخدم على الأقل 6 أحرف';
+      return 'Password is too weak. Use at least 6 characters';
     }
 
     // Network errors
     if (errorLower.contains('network') ||
         errorLower.contains('connection') ||
         errorLower.contains('timeout')) {
-      return 'خطأ في الاتصال. تحقق من الإنترنت';
+      return 'Connection error. Check your internet';
     }
 
     // Rate limit
     if (errorLower.contains('rate limit') || errorLower.contains('too many')) {
-      return 'محاولات كثيرة. حاول مرة أخرى بعد قليل';
+      return 'Too many attempts. Try again later';
     }
 
     // Email address invalid
     if (errorLower.contains('email') && errorLower.contains('invalid')) {
-      return 'البريد الإلكتروني غير صحيح';
+      return 'Invalid email address';
     }
 
     // Database column errors
     if (errorLower.contains('column') &&
         errorLower.contains('does not exist')) {
-      return 'خطأ في قاعدة البيانات. تحقق من إعدادات Supabase';
+      return 'Database error. Check Supabase settings';
     }
 
     // PostgreSQL errors
     if (errorLower.contains('null value in column')) {
-      return 'خطأ في البيانات المطلوبة';
+      return 'Required data is missing';
     }
 
     // Default message - show actual error in debug mode
-    return 'حدث خطأ. حاول مرة أخرى\n(${error.toString().length > 100 ? error.toString().substring(0, 100) + "..." : error.toString()})';
+    return 'An error occurred. Please try again\n(${error.toString().length > 100 ? "${error.toString().substring(0, 100)}..." : error.toString()})';
   }
 
   /// Extract clean error message from exception

@@ -33,45 +33,12 @@ class ErrorSnackBar {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: 'حسناً',
+          label: 'OK',
           textColor: AppColors.textPrimary,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },
         ),
-      ),
-    );
-  }
-
-  static void showSuccess(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            FaIcon(
-              FontAwesomeIcons.circleCheck,
-              color: AppColors.textPrimary,
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        duration: const Duration(seconds: 3),
       ),
     );
   }

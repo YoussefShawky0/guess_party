@@ -190,16 +190,22 @@ class GameRepositoryImpl implements GameRepository {
       );
       final newScores = Map<String, int>.from(currentScores);
 
-      // توزيع النقاط
+      // توزيع النقاط - النظام الجديد
       if (mostVotedPlayerId == imposterPlayerId) {
-        // المحتالون فازوا بتحديد المحتال
-        for (final playerId in newScores.keys) {
-          if (playerId != imposterPlayerId) {
-            newScores[playerId] = (newScores[playerId] ?? 0) + 10;
+        // الأغلبية صوتت على المحتال بشكل صحيح
+        // فقط من صوت على المحتال يأخذ نقاط
+        for (final entry in votes.entries) {
+          final voterId = entry.key;
+          final votedId = entry.value;
+          if (votedId == imposterPlayerId) {
+            // اللي صوت على المحتال ياخد +10 نقاط
+            newScores[voterId] = (newScores[voterId] ?? 0) + 10;
           }
         }
+        // المحتال مياخدش حاجة
       } else {
-        // المحتال فاز بعدم اكتشافه
+        // الأغلبية صوتت على شخص بريء - المحتال فاز
+        // المحتال بس ياخد نقاط
         newScores[imposterPlayerId] = (newScores[imposterPlayerId] ?? 0) + 20;
       }
 
@@ -235,12 +241,12 @@ class GameRepositoryImpl implements GameRepository {
           .from('characters')
           .select()
           .eq('is_active', true);
-      
+
       // إذا مش mix، فلتر حسب الكاتيجوري
       if (!isRoomMix) {
         charactersQuery = charactersQuery.eq('category', room.category);
       }
-      
+
       final charactersResponse = await charactersQuery.limit(100);
 
       final characters = charactersResponse as List;

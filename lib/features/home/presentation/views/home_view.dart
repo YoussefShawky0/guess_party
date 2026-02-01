@@ -82,6 +82,15 @@ class HomeContent extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Settings Button
+                  IconButton(
+                    icon: const FaIcon(FontAwesomeIcons.gear, size: 18),
+                    color: AppColors.textPrimary,
+                    tooltip: 'Settings',
+                    onPressed: () {
+                      context.push('/settings');
+                    },
+                  ),
                   // Logout Button
                   IconButton(
                     icon: const FaIcon(

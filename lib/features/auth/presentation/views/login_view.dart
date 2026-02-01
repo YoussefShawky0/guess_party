@@ -72,10 +72,7 @@ class _LoginViewState extends State<LoginView> {
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            ErrorSnackBar.showSuccess(
-              context,
-              _isSignUp ? 'تم إنشاء الحساب بنجاح! 🎉' : 'مرحباً بك! 👋',
-            );
+            // Login successful
             Future.delayed(const Duration(milliseconds: 500), () {
               context.go('/home');
             });
@@ -118,11 +115,17 @@ class _LoginViewState extends State<LoginView> {
                       TextFormField(
                         controller: _usernameController,
                         enabled: state is! AuthLoading,
-                        style: TextStyle(fontSize: isTablet ? 18 : 16, color: AppColors.textPrimary),
+                        style: TextStyle(
+                          fontSize: isTablet ? 18 : 16,
+                          color: AppColors.textPrimary,
+                        ),
                         decoration: InputDecoration(
                           labelText: 'Username',
                           labelStyle: TextStyle(color: AppColors.textSecondary),
-                          prefixIcon: Icon(Icons.person_outline, color: AppColors.textSecondary),
+                          prefixIcon: Icon(
+                            Icons.person_outline,
+                            color: AppColors.textSecondary,
+                          ),
                           filled: true,
                           fillColor: AppColors.surface,
                           border: OutlineInputBorder(
@@ -150,11 +153,17 @@ class _LoginViewState extends State<LoginView> {
                         controller: _passwordController,
                         enabled: state is! AuthLoading,
                         obscureText: true,
-                        style: TextStyle(fontSize: isTablet ? 18 : 16, color: AppColors.textPrimary),
+                        style: TextStyle(
+                          fontSize: isTablet ? 18 : 16,
+                          color: AppColors.textPrimary,
+                        ),
                         decoration: InputDecoration(
                           labelText: 'Password',
                           labelStyle: TextStyle(color: AppColors.textSecondary),
-                          prefixIcon: Icon(Icons.lock_outline, color: AppColors.textSecondary),
+                          prefixIcon: Icon(
+                            Icons.lock_outline,
+                            color: AppColors.textSecondary,
+                          ),
                           filled: true,
                           fillColor: AppColors.surface,
                           border: OutlineInputBorder(

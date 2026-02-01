@@ -111,16 +111,13 @@ class _CreateRoomViewState extends State<CreateRoomView> {
 
             // For local mode, start game and navigate directly to countdown
             if (_selectedGameMode == 'local') {
-              ErrorSnackBar.showSuccess(
-                context,
-                'Room created! Starting game...',
-              );
+              // Room created, starting game
               // Start game for local mode
               context.read<RoomCubit>().startGameSession(state.room.id);
               // Navigate directly to countdown (don't wait for realtime)
               context.go('/room/${state.room.id}/countdown');
             } else {
-              ErrorSnackBar.showSuccess(context, 'Room created successfully!');
+              // Room created successfully
               context.go('/room/${state.room.id}/waiting');
             }
           } else if (state is RoomError) {

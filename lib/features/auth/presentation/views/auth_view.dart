@@ -55,7 +55,7 @@ class _AuthViewState extends State<AuthView> {
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            ErrorSnackBar.showSuccess(context, 'أهلاً بك! 👋');
+            // Account created successfully
             Future.delayed(const Duration(milliseconds: 500), () {
               context.go('/home');
             });

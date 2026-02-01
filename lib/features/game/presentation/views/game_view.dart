@@ -39,40 +39,50 @@ class GameViewContent extends StatelessWidget {
 
   Future<bool> _showLeaveConfirmation(BuildContext context) async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 28),
-            const SizedBox(width: 12),
-            Text(
-              'Leave Game?',
-              style: TextStyle(color: AppColors.textPrimary),
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to leave? Other players will be notified and the game may end.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Stay', style: TextStyle(color: AppColors.textMuted)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textPrimary,
+            title: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Leave Game?',
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+              ],
             ),
-            child: const Text('Leave'),
+            content: Text(
+              'Are you sure you want to leave? Other players will be notified and the game may end.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Stay',
+                  style: TextStyle(color: AppColors.textMuted),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: AppColors.textPrimary,
+                ),
+                child: const Text('Leave'),
+              ),
+            ],
           ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   Future<void> _handleLeaveGame(BuildContext context) async {
@@ -80,7 +90,7 @@ class GameViewContent extends StatelessWidget {
     if (!shouldLeave) return;
 
     final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
-    
+
     // Get player info from game state
     final gameState = context.read<GameCubit>().state;
     if (gameState is GameLoaded) {
@@ -90,7 +100,7 @@ class GameViewContent extends StatelessWidget {
         orElse: () => players.first,
       );
       final isHost = currentPlayer.isHost;
-      
+
       // Leave room using RoomCubit
       await sl<RoomCubit>().leaveRoomSession(
         playerId: currentPlayer.id,
@@ -244,7 +254,7 @@ class GameViewContent extends StatelessWidget {
     final totalDuration = gameState.roundDuration;
     final totalMinutes = totalDuration ~/ 60;
     final totalSeconds = totalDuration % 60;
-    final durationText = totalSeconds > 0 
+    final durationText = totalSeconds > 0
         ? '$totalMinutes:${totalSeconds.toString().padLeft(2, '0')} min'
         : '$totalMinutes min';
 
@@ -262,7 +272,10 @@ class GameViewContent extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.characterCardBorder, width: 2),
+              border: Border.all(
+                color: AppColors.characterCardBorder,
+                width: 2,
+              ),
             ),
             child: Padding(
               padding: EdgeInsets.all(isTablet ? 20 : 16),
@@ -363,6 +376,7 @@ class GameViewContent extends StatelessWidget {
           CharacterCard(
             character: round.character,
             isImposter: isImposter,
+            gameMode: state.gameState.gameMode,
           ),
           const SizedBox(height: 16),
 

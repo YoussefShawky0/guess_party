@@ -128,10 +128,17 @@ class RoomCubit extends Cubit<RoomState> {
   }
 
   Future<void> startGameSession(String roomId) async {
+    if (isClosed) return;
+
     final result = await startGame(roomId);
+
+    if (isClosed) return;
+
     result.fold(
       (failure) {
-        emit(RoomError(failure.message));
+        if (!isClosed) {
+          emit(RoomError(failure.message));
+        }
       },
       (_) {
         // Game started successfully, state will update via Realtime

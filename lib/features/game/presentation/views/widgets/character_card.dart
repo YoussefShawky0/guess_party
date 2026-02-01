@@ -5,11 +5,13 @@ import 'package:guess_party/features/game/domain/entities/character.dart';
 class CharacterCard extends StatelessWidget {
   final Character character;
   final bool isImposter;
+  final String gameMode;
 
   const CharacterCard({
     super.key,
     required this.character,
     required this.isImposter,
+    required this.gameMode,
   });
 
   @override
@@ -57,7 +59,7 @@ class CharacterCard extends StatelessWidget {
             ),
             SizedBox(height: isTablet ? 12 : 8),
             Text(
-              character.name,
+              gameMode == 'local' ? '???' : character.name,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.bold,

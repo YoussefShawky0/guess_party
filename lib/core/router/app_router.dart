@@ -5,6 +5,7 @@ import 'package:guess_party/features/auth/presentation/views/login_view.dart';
 import 'package:guess_party/features/game/presentation/views/game_view.dart';
 import 'package:guess_party/features/game/presentation/views/local_role_reveal_view.dart';
 import 'package:guess_party/features/home/presentation/views/home_view.dart';
+import 'package:guess_party/features/home/presentation/views/settings_view.dart';
 import 'package:guess_party/features/room/presentation/views/countdown_view.dart';
 import 'package:guess_party/features/room/presentation/views/create_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/join_room_view.dart';
@@ -25,10 +26,7 @@ class AppRouter {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              Text(
-                'Route: ${state.uri}',
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text('Route: ${state.uri}', style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => context.go('/home'),
@@ -44,6 +42,10 @@ class AppRouter {
       GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeView()),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsView(),
+      ),
       GoRoute(
         path: '/create-room',
         builder: (context, state) => const CreateRoomScreen(),
