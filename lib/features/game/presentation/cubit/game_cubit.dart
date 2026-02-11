@@ -162,9 +162,11 @@ class GameCubit extends Cubit<GameState> {
       // Especially important in Local Mode where multiple players vote sequentially
       if (state is GameLoaded) {
         final currentState = (state as GameLoaded).gameState;
-        final updatedVotes = Map<String, String?>.from(currentState.currentRound.playerVotes);
+        final updatedVotes = Map<String, String?>.from(
+          currentState.currentRound.playerVotes,
+        );
         updatedVotes[voterId] = votedPlayerId;
-        
+
         final updatedRound = currentState.currentRound.copyWith(
           playerVotes: updatedVotes,
         );
@@ -241,7 +243,6 @@ class GameCubit extends Cubit<GameState> {
         emit(GameError(failure.message));
       },
       (newRound) {
-
         // Cancel old subscriptions
         _roundSubscription?.cancel();
         _hintsSubscription?.cancel();

@@ -431,13 +431,13 @@ class GameViewContent extends StatelessWidget {
       onNextRound: () {
         final nextRoundNumber = round.roundNumber + 1;
         final gameMode = state.gameState.gameMode;
-        
+
         // Create new round
         context.read<GameCubit>().createNewRound(
           roomId: roomId,
           roundNumber: nextRoundNumber,
         );
-        
+
         // In local mode, navigate to role reveal screen after a short delay
         // to allow the new round to be created
         if (gameMode == 'local') {

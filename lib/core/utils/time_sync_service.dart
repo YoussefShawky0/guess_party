@@ -5,12 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class TimeSyncService {
   static TimeSyncService? _instance;
   static TimeSyncService get instance => _instance ??= TimeSyncService._();
-  
+
   TimeSyncService._();
 
   Duration? _timeOffset;
   DateTime? _lastSyncTime;
-  
+
   /// Get the current server time (synchronized)
   /// Falls back to local time if sync hasn't happened yet
   DateTime get serverTime {
@@ -25,26 +25,27 @@ class TimeSyncService {
   Future<void> syncWithServer() async {
     try {
       final beforeLocal = DateTime.now().toUtc();
-      
+
       // Query server time
       final response = await Supabase.instance.client
           .rpc('get_server_time')
           .select()
           .single();
-      
+
       final afterLocal = DateTime.now().toUtc();
       final serverTimeStr = response['server_time'] as String;
       final serverTime = DateTime.parse(serverTimeStr).toUtc();
-      
+
       // Calculate average local time during the request
       final avgLocal = beforeLocal.add(
-        Duration(milliseconds: afterLocal.difference(beforeLocal).inMilliseconds ~/ 2),
+        Duration(
+          milliseconds: afterLocal.difference(beforeLocal).inMilliseconds ~/ 2,
+        ),
       );
-      
+
       // Calculate offset: server time - local time
       _timeOffset = serverTime.difference(avgLocal);
       _lastSyncTime = DateTime.now().toUtc();
-      
     } catch (e) {
       // If sync fails, use local time (offset = 0)
       _timeOffset = Duration.zero;
