@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/shared/widgets/error_snackbar.dart';
 
 class RoomCodeCard extends StatelessWidget {
   final String roomCode;

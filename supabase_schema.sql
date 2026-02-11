@@ -274,3 +274,13 @@ INSERT INTO characters (name, category, difficulty) VALUES
 ('صابون سائل لليد', 'daily_products', 'easy'),
 ('كريم مرطب', 'daily_products', 'medium')
 ON CONFLICT (name) DO NOTHING;
+-- ========================================
+-- Time Synchronization Function
+-- ========================================
+-- Returns current server time for client synchronization
+CREATE OR REPLACE FUNCTION get_server_time()
+RETURNS TABLE(server_time TIMESTAMP WITH TIME ZONE) AS $$
+BEGIN
+  RETURN QUERY SELECT NOW();
+END;
+$$ LANGUAGE plpgsql;

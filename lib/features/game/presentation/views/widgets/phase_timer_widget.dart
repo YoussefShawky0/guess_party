@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/utils/time_sync_service.dart';
 
 class PhaseTimerWidget extends StatefulWidget {
   final DateTime phaseEndTime;
@@ -50,7 +51,8 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
   void _updateTime() {
     if (!mounted) return;
 
-    final now = DateTime.now().toUtc();
+    // Use synchronized server time for accurate timing across all devices
+    final now = TimeSyncService.instance.serverTime;
     final difference = widget.phaseEndTime.difference(now);
     final newSeconds = difference.inSeconds > 0 ? difference.inSeconds : 0;
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart'
     as entity;
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
@@ -40,6 +41,9 @@ class GameCubit extends Cubit<GameState> {
   }) async {
     if (isClosed) return;
     emit(GameLoading());
+
+    // Sync time with server for accurate timer calculations
+    await TimeSyncService.instance.syncWithServer();
 
     final result = await getGameState(
       roomId: roomId,
@@ -154,8 +158,22 @@ class GameCubit extends Cubit<GameState> {
 
     if (isClosed) return;
     result.fold((failure) => emit(GameError(failure.message)), (_) {
-      // Vote submitted successfully - realtime will update the state
-      // No need to emit here, the _votesSubscription will handle it
+      // Optimistic update: Update state immediately for better UX
+      // Especially important in Local Mode where multiple players vote sequentially
+      if (state is GameLoaded) {
+        final currentState = (state as GameLoaded).gameState;
+        final updatedVotes = Map<String, String?>.from(currentState.currentRound.playerVotes);
+        updatedVotes[voterId] = votedPlayerId;
+        
+        final updatedRound = currentState.currentRound.copyWith(
+          playerVotes: updatedVotes,
+        );
+        final updatedGameState = currentState.copyWith(
+          currentRound: updatedRound,
+        );
+        emit(GameLoaded(updatedGameState));
+      }
+      // Realtime subscription will sync any changes from other devices
     });
   }
 

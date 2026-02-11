@@ -430,10 +430,23 @@ class GameViewContent extends StatelessWidget {
       voteCounts: voteCounts,
       onNextRound: () {
         final nextRoundNumber = round.roundNumber + 1;
+        final gameMode = state.gameState.gameMode;
+        
+        // Create new round
         context.read<GameCubit>().createNewRound(
           roomId: roomId,
           roundNumber: nextRoundNumber,
         );
+        
+        // In local mode, navigate to role reveal screen after a short delay
+        // to allow the new round to be created
+        if (gameMode == 'local') {
+          Future.delayed(const Duration(milliseconds: 1000), () {
+            if (context.mounted) {
+              context.go('/room/$roomId/role-reveal');
+            }
+          });
+        }
       },
       onGameEnd: () {
         context.read<GameCubit>().finishGame(roomId);

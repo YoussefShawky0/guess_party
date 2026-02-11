@@ -29,7 +29,12 @@ class VotingPhaseContent extends StatelessWidget {
       (p) => p.userId == currentUserId,
       orElse: () => players.first,
     );
-    final hasVoted = round.playerVotes.containsKey(currentPlayer.id);
+    
+    // In local mode, check if ALL players have voted (not just current player)
+    // In online mode, check if current player has voted
+    final hasVoted = gameMode == 'local'
+        ? round.playerVotes.length >= players.length  // All players voted
+        : round.playerVotes.containsKey(currentPlayer.id);  // Current player voted
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
