@@ -188,10 +188,12 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
       final response = await client
           .from('votes')
           .select('voter_player_id, voted_player_id')
-          .eq('round_id', roundId);
+          .eq('round_id', roundId)
+          .order('created_at', ascending: true);
 
       final votesMap = <String, String>{};
       for (final vote in response) {
+        // Later votes (vote changes) overwrite earlier ones for same voter
         votesMap[vote['voter_player_id'] as String] =
             vote['voted_player_id'] as String;
       }
@@ -211,7 +213,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
 
       final scoresMap = <String, int>{};
       for (final player in response) {
-        scoresMap[player['id'] as String] = player['score'] as int;
+        scoresMap[player['id'] as String] = (player['score'] as int?) ?? 0;
       }
       return scoresMap;
     } catch (e) {
@@ -261,29 +263,13 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     required String votedPlayerId,
   }) async {
     try {
-      // Check if vote already exists
-      final existing = await client
-          .from('votes')
-          .select('id')
-          .eq('round_id', roundId)
-          .eq('voter_player_id', voterId)
-          .maybeSingle();
-
-      if (existing != null) {
-        // Update existing vote
-        await client
-            .from('votes')
-            .update({'voted_player_id': votedPlayerId})
-            .eq('round_id', roundId)
-            .eq('voter_player_id', voterId);
-      } else {
-        // Insert new vote
-        await client.from('votes').insert({
-          'round_id': roundId,
-          'voter_player_id': voterId,
-          'voted_player_id': votedPlayerId,
-        });
-      }
+      // UPSERT: insert or update if voter already voted in this round
+      // Requires UNIQUE(round_id, voter_player_id) constraint in DB
+      await client.from('votes').upsert({
+        'round_id': roundId,
+        'voter_player_id': voterId,
+        'voted_player_id': votedPlayerId,
+      }, onConflict: 'round_id,voter_player_id');
     } catch (e) {
       throw Exception('Failed to submit vote: $e');
     }

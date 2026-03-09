@@ -26,6 +26,25 @@ class SettingsView extends StatelessWidget {
       body: ListView(
         padding: EdgeInsets.all(isTablet ? 24 : 16),
         children: [
+          // How to Play Section
+          _SettingsSection(
+            icon: FontAwesomeIcons.circleQuestion,
+            title: 'How to Play',
+            isTablet: isTablet,
+            children: [
+              _SettingsTile(
+                icon: FontAwesomeIcons.gamepad,
+                title: 'Game Rules',
+                subtitle: 'Learn how to play Guess Party',
+                isTablet: isTablet,
+                onTap: () {
+                  _showHowToPlayDialog(context, isTablet);
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: isTablet ? 24 : 16),
+
           // Appearance Section
           _SettingsSection(
             icon: FontAwesomeIcons.paintbrush,
@@ -38,7 +57,6 @@ class SettingsView extends StatelessWidget {
                 subtitle: 'Dark',
                 isTablet: isTablet,
                 onTap: () {
-                  // TODO: Implement theme switcher
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Theme switching coming soon!'),
@@ -53,7 +71,6 @@ class SettingsView extends StatelessWidget {
                 subtitle: 'Medium',
                 isTablet: isTablet,
                 onTap: () {
-                  // TODO: Implement font size selector
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: const Text('Font size options coming soon!'),
@@ -77,7 +94,7 @@ class SettingsView extends StatelessWidget {
                 title: 'App Version',
                 subtitle: '0.1.0',
                 isTablet: isTablet,
-                onTap: null, // Not tappable
+                onTap: null,
               ),
               _SettingsTile(
                 icon: FontAwesomeIcons.code,
@@ -92,49 +109,6 @@ class SettingsView extends StatelessWidget {
                 },
               ),
               _SettingsTile(
-                icon: FontAwesomeIcons.circleQuestion,
-                title: 'How to Play',
-                subtitle: 'Learn the game rules',
-                isTablet: isTablet,
-                onTap: () {
-                  _showHowToPlayDialog(context, isTablet);
-                },
-              ),
-              _SettingsTile(
-                icon: FontAwesomeIcons.fileShield,
-                title: 'Privacy Policy',
-                subtitle: 'View our privacy policy',
-                isTablet: isTablet,
-                onTap: () {
-                  // TODO: Add privacy policy
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Privacy policy coming soon!'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          SizedBox(height: isTablet ? 24 : 16),
-
-          // Updates Section
-          _SettingsSection(
-            icon: FontAwesomeIcons.arrowsRotate,
-            title: 'Updates',
-            isTablet: isTablet,
-            children: [
-              _SettingsTile(
-                icon: FontAwesomeIcons.download,
-                title: 'Check for Updates',
-                subtitle: 'You\'re on the latest version',
-                isTablet: isTablet,
-                onTap: () {
-                  _checkForUpdates(context);
-                },
-              ),
-              _SettingsTile(
                 icon: FontAwesomeIcons.github,
                 title: 'View on GitHub',
                 subtitle: 'Check out the source code',
@@ -146,6 +120,29 @@ class SettingsView extends StatelessWidget {
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
+                },
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.download,
+                title: 'Check for Updates',
+                subtitle: 'You\'re on the latest version',
+                isTablet: isTablet,
+                onTap: () {
+                  _checkForUpdates(context);
+                },
+              ),
+              _SettingsTile(
+                icon: FontAwesomeIcons.fileShield,
+                title: 'Privacy Policy',
+                subtitle: 'View our privacy policy',
+                isTablet: isTablet,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Privacy policy coming soon!'),
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
                 },
               ),
             ],

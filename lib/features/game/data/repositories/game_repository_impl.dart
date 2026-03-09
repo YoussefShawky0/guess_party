@@ -106,34 +106,30 @@ class GameRepositoryImpl implements GameRepository {
     required String roundId,
   }) async {
     try {
-      // جلب الجولة الحالية
+      // Fetch current round phase only (no JOIN needed - durations are fixed)
       final currentRoundResponse = await client
           .from('rounds')
-          .select('*, rooms!inner(round_duration)')
+          .select('phase')
           .eq('id', roundId)
           .single();
 
       final currentPhase = currentRoundResponse['phase'] as String;
-      final roomDuration =
-          currentRoundResponse['rooms']['round_duration'] as int;
       String newPhase;
-      int phaseDuration = roomDuration; // استخدام مدة الراوند من الغرفة
+      int phaseDuration;
 
-      // تحديد المرحلة التالية - fixed durations for consistency
       switch (currentPhase) {
         case 'hints':
           newPhase = 'voting';
-          phaseDuration = 60; // Fixed 1 minute for voting
+          phaseDuration = 60;
           break;
         case 'voting':
           newPhase = 'results';
-          phaseDuration = 30; // Keep 30 seconds for results
+          phaseDuration = 30;
           break;
         default:
           throw Exception('Cannot advance from results phase');
       }
 
-      // Use UTC time for consistency
       final phaseEndTime = DateTime.now().toUtc().add(
         Duration(seconds: phaseDuration),
       );

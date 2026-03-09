@@ -213,12 +213,26 @@ CREATE POLICY "Players can add hints" ON hints
 CREATE POLICY "Anyone can view votes" ON votes
   FOR SELECT USING (true);
 
--- Votes: اللاعيبة يقدروا يصوتوا
+-- Votes: اللاعيبة يقدروا يصوتوا (Local Mode: all players in same room share user_id)
 CREATE POLICY "Players can vote" ON votes
   FOR INSERT WITH CHECK (
     EXISTS (
       SELECT 1 FROM players p
+      JOIN rounds r ON r.id = votes.round_id
       WHERE p.id = votes.voter_player_id
+      AND p.room_id = r.room_id
+      AND p.user_id = (SELECT auth.uid())
+    )
+  );
+
+-- Votes: اللاعيبة يقدروا يعدلوا صوتهم
+CREATE POLICY "Players can update their vote" ON votes
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM players p
+      JOIN rounds r ON r.id = votes.round_id
+      WHERE p.id = votes.voter_player_id
+      AND p.room_id = r.room_id
       AND p.user_id = (SELECT auth.uid())
     )
   );

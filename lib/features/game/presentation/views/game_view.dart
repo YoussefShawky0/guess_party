@@ -137,6 +137,7 @@ class GameViewContent extends StatelessWidget {
           listener: (context, state) {
             // Show error messages with better styling
             if (state is GameError) {
+              if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Row(
@@ -162,6 +163,9 @@ class GameViewContent extends StatelessWidget {
                   ),
                 ),
               );
+            } else if (state is GameEnded) {
+              if (!context.mounted) return;
+              context.go('/home');
             }
           },
           builder: (context, state) {
@@ -508,9 +512,8 @@ class GameViewContent extends StatelessWidget {
     } else if (phase == GamePhase.results) {
       // Check if this is the last round
       if (state.gameState.isLastRound) {
+        // finishGame emits GameEnded → listener navigates to /home
         context.read<GameCubit>().finishGame(state.gameState.roomId);
-        // Navigate to results screen (to be implemented)
-        context.go('/home');
       } else {
         context.read<GameCubit>().createNewRound(
           roomId: state.gameState.roomId,
