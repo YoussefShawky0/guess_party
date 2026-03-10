@@ -11,15 +11,6 @@ final class RoomInitial extends RoomState {}
 
 class RoomLoading extends RoomState {}
 
-class RoomCreated extends RoomState {
-  final Room room;
-
-  const RoomCreated(this.room);
-
-  @override
-  List<Object?> get props => [room];
-}
-
 class RoomWithPlayerCreated extends RoomState {
   final Room room;
   final Player player;
@@ -45,15 +36,6 @@ class RoomDetailsLoaded extends RoomState {
       players: players ?? this.players,
     );
   }
-}
-
-class RoomPlayersLoaded extends RoomState {
-  final List<Player> players;
-
-  const RoomPlayersLoaded(this.players);
-
-  @override
-  List<Object?> get props => [players];
 }
 
 class RoomError extends RoomState {

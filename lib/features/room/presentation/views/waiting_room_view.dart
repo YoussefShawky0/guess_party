@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
@@ -84,7 +85,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
               );
               Future.delayed(const Duration(seconds: 2), () {
                 if (mounted && context.mounted) {
-                  context.go('/home');
+                  context.go(AppRoutes.home);
                 }
               });
             }

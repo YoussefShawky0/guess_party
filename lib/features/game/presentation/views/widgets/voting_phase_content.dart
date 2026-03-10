@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -11,6 +12,8 @@ class VotingPhaseContent extends StatelessWidget {
   final List<Player> players;
   final String gameMode;
   final String currentUserId;
+  final bool isHost;
+  final VoidCallback? onShowResults;
 
   const VotingPhaseContent({
     super.key,
@@ -18,6 +21,8 @@ class VotingPhaseContent extends StatelessWidget {
     required this.players,
     required this.gameMode,
     required this.currentUserId,
+    this.isHost = false,
+    this.onShowResults,
   });
 
   @override
@@ -32,13 +37,15 @@ class VotingPhaseContent extends StatelessWidget {
 
     // In local mode, check if ALL players have voted (not just current player)
     // In online mode, check if current player has voted
-    final hasVoted = gameMode == 'local'
+    final hasVoted = gameMode == GameConstants.gameModeLocal
         ? round.playerVotes.length >=
               players
                   .length // All players voted
         : round.playerVotes.containsKey(
             currentPlayer.id,
           ); // Current player voted
+
+    final allVoted = round.playerVotes.length >= players.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -47,12 +54,16 @@ class VotingPhaseContent extends StatelessWidget {
         SizedBox(height: isTablet ? 12 : 8),
         _buildDescription(context, isTablet),
         SizedBox(height: isTablet ? 20 : 16),
-        if (gameMode == 'local' || !hasVoted)
+        if (gameMode == GameConstants.gameModeLocal || !hasVoted)
           _buildVotingList(context, isTablet, currentPlayer, hasVoted)
         else
           _buildVoteSubmittedCard(context, isTablet),
         SizedBox(height: isTablet ? 20 : 16),
         _buildVotingProgress(context, isTablet),
+        if (allVoted) ...[
+          SizedBox(height: isTablet ? 16 : 12),
+          _buildShowResultsSection(context, isTablet),
+        ],
       ],
     );
   }
@@ -70,7 +81,7 @@ class VotingPhaseContent extends StatelessWidget {
 
   Widget _buildDescription(BuildContext context, bool isTablet) {
     return Text(
-      gameMode == 'local'
+      gameMode == GameConstants.gameModeLocal
           ? 'Find the Impostor! Each player taps their own name, then picks who they suspect.'
           : 'Vote for who you think is the Impostor!',
       style: TextStyle(
@@ -87,12 +98,7 @@ class VotingPhaseContent extends StatelessWidget {
     bool hasVoted,
   ) {
     // Build vote count map: votedPlayerId -> count
-    final voteCountMap = <String, int>{};
-    for (final votedId in round.playerVotes.values) {
-      if (votedId != null) {
-        voteCountMap[votedId] = (voteCountMap[votedId] ?? 0) + 1;
-      }
-    }
+    final voteCountMap = round.voteCounts;
 
     return Container(
       decoration: BoxDecoration(
@@ -105,7 +111,7 @@ class VotingPhaseContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            gameMode == 'local'
+            gameMode == GameConstants.gameModeLocal
                 ? 'Tap your name to vote ↓'
                 : 'Choose a suspect:',
             style: TextStyle(
@@ -117,13 +123,14 @@ class VotingPhaseContent extends StatelessWidget {
           SizedBox(height: isTablet ? 16 : 12),
           ...players.map((player) {
             // In online mode: hide self from list
-            if (gameMode == 'online' && player.userId == currentUserId) {
+            if (gameMode == GameConstants.gameModeOnline &&
+                player.userId == currentUserId) {
               return const SizedBox.shrink();
             }
 
             final voteCount = voteCountMap[player.id] ?? 0;
 
-            if (gameMode == 'local') {
+            if (gameMode == GameConstants.gameModeLocal) {
               // LOCAL MODE: each tile = the VOTER (not the target)
               // Vote button means: "I (this player) want to cast my vote"
               final hasThisPlayerVoted = round.playerVotes.containsKey(
@@ -345,6 +352,52 @@ class VotingPhaseContent extends StatelessWidget {
                 color: AppColors.textPrimary,
                 fontSize: isTablet ? 16 : 14,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShowResultsSection(BuildContext context, bool isTablet) {
+    if (isHost) {
+      return ElevatedButton.icon(
+        onPressed: onShowResults,
+        icon: const Icon(Icons.check_circle_outline),
+        label: const Text('Show Results Now →'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.success,
+          foregroundColor: AppColors.textPrimary,
+          minimumSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+    return Container(
+      padding: EdgeInsets.all(isTablet ? 16 : 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            'All votes in! Waiting for host...',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: isTablet ? 16 : 14,
             ),
           ),
         ],

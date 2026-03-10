@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 
 class GameModeSelector extends StatelessWidget {
   final String selectedMode;
@@ -34,11 +35,11 @@ class GameModeSelector extends StatelessWidget {
             Expanded(
               child: _buildModeCard(
                 context: context,
-                mode: 'online',
+                mode: GameConstants.gameModeOnline,
                 title: 'Online',
                 subtitle: 'Each player joins from their own device',
                 icon: FontAwesomeIcons.towerBroadcast,
-                isSelected: selectedMode == 'online',
+                isSelected: selectedMode == GameConstants.gameModeOnline,
                 isTablet: isTablet,
               ),
             ),
@@ -46,11 +47,11 @@ class GameModeSelector extends StatelessWidget {
             Expanded(
               child: _buildModeCard(
                 context: context,
-                mode: 'local',
+                mode: GameConstants.gameModeLocal,
                 title: 'Local',
                 subtitle: 'Pass & play on one device',
                 icon: FontAwesomeIcons.mobile,
-                isSelected: selectedMode == 'local',
+                isSelected: selectedMode == GameConstants.gameModeLocal,
                 isTablet: isTablet,
               ),
             ),

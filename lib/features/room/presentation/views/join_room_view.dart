@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_button.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_header.dart';
@@ -71,7 +72,7 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
           }
 
           if (state is RoomWithPlayerCreated) {
-            context.go('/room/${state.room.id}/waiting');
+            context.go(AppRoutes.roomWaiting(state.room.id));
           }
         },
         builder: (context, state) {

@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CountdownScreen extends StatefulWidget {
@@ -53,7 +55,7 @@ class _CountdownScreenState extends State<CountdownScreen>
       // Default to online if error
       if (mounted) {
         setState(() {
-          _gameMode = 'online';
+          _gameMode = GameConstants.gameModeOnline;
         });
       }
     }
@@ -84,10 +86,10 @@ class _CountdownScreenState extends State<CountdownScreen>
       if (mounted) {
         // For local mode, go to role reveal screen first
         // For online mode, go directly to game
-        if (_gameMode == 'local') {
-          context.go('/room/${widget.roomId}/role-reveal');
+        if (_gameMode == GameConstants.gameModeLocal) {
+          context.go(AppRoutes.roomRoleReveal(widget.roomId));
         } else {
-          context.go('/room/${widget.roomId}/game');
+          context.go(AppRoutes.roomGame(widget.roomId));
         }
       }
     });

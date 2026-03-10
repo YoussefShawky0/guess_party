@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
@@ -55,7 +56,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
   int _selectedRounds = GameConstants.defaultRounds;
   int _selectedMaxPlayers = 4;
   int _selectedRoundDuration = 300; // 5 minutes
-  String _selectedGameMode = 'online'; // Default to online
+  String _selectedGameMode = GameConstants.gameModeOnline; // Default to online
   List<String> _localPlayerNames = []; // For local mode
   String? _createdRoomId; // Store room ID for listener
 
@@ -70,7 +71,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
 
   bool _isCreateDisabled() {
     // For local mode, require at least 2 player names
-    if (_selectedGameMode == 'local') {
+    if (_selectedGameMode == GameConstants.gameModeLocal) {
       return _localPlayerNames.length < 2;
     }
     return false;
@@ -85,7 +86,9 @@ class _CreateRoomViewState extends State<CreateRoomView> {
       maxPlayers: _selectedMaxPlayers,
       roundDuration: _selectedRoundDuration,
       gameMode: _selectedGameMode,
-      localPlayerNames: _selectedGameMode == 'local' ? _localPlayerNames : null,
+      localPlayerNames: _selectedGameMode == GameConstants.gameModeLocal
+          ? _localPlayerNames
+          : null,
     );
   }
 
@@ -110,15 +113,15 @@ class _CreateRoomViewState extends State<CreateRoomView> {
             });
 
             // For local mode, start game and navigate directly to countdown
-            if (_selectedGameMode == 'local') {
+            if (_selectedGameMode == GameConstants.gameModeLocal) {
               // Room created, starting game
               // Start game for local mode
               context.read<RoomCubit>().startGameSession(state.room.id);
               // Navigate directly to countdown (don't wait for realtime)
-              context.go('/room/${state.room.id}/countdown');
+              context.go(AppRoutes.roomCountdown(state.room.id));
             } else {
               // Room created successfully
-              context.go('/room/${state.room.id}/waiting');
+              context.go(AppRoutes.roomWaiting(state.room.id));
             }
           } else if (state is RoomError) {
             ErrorSnackBar.show(context, state.message);
@@ -176,13 +179,13 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                     const SizedBox(height: 24),
 
                     // Local Players Input (only shown for local mode)
-                    if (_selectedGameMode == 'local')
+                    if (_selectedGameMode == GameConstants.gameModeLocal)
                       LocalPlayersInput(
                         maxPlayers: _selectedMaxPlayers,
                         onPlayersChanged: (names) =>
                             setState(() => _localPlayerNames = names),
                       ),
-                    if (_selectedGameMode == 'local')
+                    if (_selectedGameMode == GameConstants.gameModeLocal)
                       const SizedBox(height: 24),
 
                     // Round Duration Selector

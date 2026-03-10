@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../shared/widgets/error_snackbar.dart';
@@ -57,7 +58,7 @@ class _AuthViewState extends State<AuthView> {
           if (state is AuthSuccess) {
             // Account created successfully
             Future.delayed(const Duration(milliseconds: 500), () {
-              context.go('/home');
+              context.go(AppRoutes.home);
             });
           } else if (state is AuthError) {
             ErrorSnackBar.show(context, state.message);
@@ -95,7 +96,7 @@ class _AuthViewState extends State<AuthView> {
                         const SizedBox(height: 24),
                         TextButton(
                           onPressed: () {
-                            context.push('/login');
+                            context.push(AppRoutes.login);
                           },
                           child: Text(
                             'Already have an account? Login',

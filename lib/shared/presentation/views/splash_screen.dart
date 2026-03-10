@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -31,7 +32,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuthAndNavigate() async {
-    await Future.delayed(const Duration(seconds: 2));
+    // Wait for the first frame to finish before navigating
+    await Future.microtask(() {});
 
     if (!mounted) return;
 
@@ -40,10 +42,10 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (session != null) {
       // User is logged in → go to Home
-      context.go('/home');
+      context.go(AppRoutes.home);
     } else {
       // User not logged in → go to Auth
-      context.go('/auth');
+      context.go(AppRoutes.auth);
     }
   }
 

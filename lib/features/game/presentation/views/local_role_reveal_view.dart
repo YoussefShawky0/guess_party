@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
@@ -12,8 +13,13 @@ import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 /// before the game starts. This ensures privacy on a shared device.
 class LocalRoleRevealScreen extends StatelessWidget {
   final String roomId;
+  final Map<String, int>? preservedScores;
 
-  const LocalRoleRevealScreen({super.key, required this.roomId});
+  const LocalRoleRevealScreen({
+    super.key,
+    required this.roomId,
+    this.preservedScores,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,15 +29,23 @@ class LocalRoleRevealScreen extends StatelessWidget {
           roomId: roomId,
           currentPlayerId: '', // Will be set per player
         ),
-      child: LocalRoleRevealContent(roomId: roomId),
+      child: LocalRoleRevealContent(
+        roomId: roomId,
+        preservedScores: preservedScores,
+      ),
     );
   }
 }
 
 class LocalRoleRevealContent extends StatefulWidget {
   final String roomId;
+  final Map<String, int>? preservedScores;
 
-  const LocalRoleRevealContent({super.key, required this.roomId});
+  const LocalRoleRevealContent({
+    super.key,
+    required this.roomId,
+    this.preservedScores,
+  });
 
   @override
   State<LocalRoleRevealContent> createState() => _LocalRoleRevealContentState();
@@ -406,7 +420,15 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
         });
       } else {
         // All players have seen their roles, start the game
-        context.go('/room/${widget.roomId}/game');
+        // Pass preserved scores so the new GameCubit restores them correctly
+        context.go(
+          AppRoutes.roomGame(widget.roomId),
+          extra:
+              widget.preservedScores != null &&
+                  widget.preservedScores!.isNotEmpty
+              ? {'playerScores': widget.preservedScores!}
+              : null,
+        );
       }
     }
   }

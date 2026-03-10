@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HintsPhaseContent extends StatefulWidget {
   final RoundInfo round;
@@ -43,7 +43,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
       children: [
         _buildHeader(context, isTablet),
         SizedBox(height: isTablet ? 12 : 8),
-        if (widget.gameMode == 'local')
+        if (widget.gameMode == GameConstants.gameModeLocal)
           _buildLocalModeCard(context, isTablet)
         else ...[
           _buildOnlineModeDescription(context, isTablet),
@@ -223,7 +223,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
 
     setState(() => _errorMessage = null);
 
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = widget.currentUserId;
     final cubit = context.read<GameCubit>();
     final state = cubit.state;
     if (state is GameLoaded) {

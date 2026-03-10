@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
 import 'package:guess_party/features/room/domain/usecases/add_player_to_room.dart';
@@ -53,50 +54,59 @@ class RoomCubit extends Cubit<RoomState> {
       gameMode: gameMode,
     );
 
-    await roomResult.fold((failure) async => emit(RoomError(failure.message)), (
-      room,
-    ) async {
-      // For local mode, add all players at once
-      if (gameMode == 'local' &&
-          localPlayerNames != null &&
-          localPlayerNames.isNotEmpty) {
-        // Add host as first player
-        final hostResult = await addPlayerToRoom(
-          roomId: room.id,
-          username: localPlayerNames.first,
-          isHost: true,
-          isLocalPlayer: true,
-        );
+    if (isClosed) return;
 
-        await hostResult.fold(
-          (failure) async => emit(RoomError(failure.message)),
-          (hostPlayer) async {
-            // Add remaining players with unique UUIDs
-            for (int i = 1; i < localPlayerNames.length; i++) {
-              await addPlayerToRoom(
-                roomId: room.id,
-                username: localPlayerNames[i],
-                isHost: false,
-                isLocalPlayer: true,
-              );
-            }
-            emit(RoomWithPlayerCreated(room: room, player: hostPlayer));
-          },
-        );
-      } else {
-        // Online mode - add only host
-        final playerResult = await addPlayerToRoom(
-          roomId: room.id,
-          username: username,
-          isHost: true,
-        );
+    if (roomResult.isLeft()) {
+      emit(RoomError(roomResult.fold((f) => f.message, (_) => '')));
+      return;
+    }
+    final room = roomResult.getOrElse(() => throw StateError('unreachable'));
 
-        playerResult.fold(
-          (failure) => emit(RoomError(failure.message)),
-          (player) => emit(RoomWithPlayerCreated(room: room, player: player)),
-        );
-      }
-    });
+    if (gameMode == GameConstants.gameModeLocal &&
+        localPlayerNames != null &&
+        localPlayerNames.isNotEmpty) {
+      await _addLocalPlayers(room, localPlayerNames);
+    } else {
+      final playerResult = await addPlayerToRoom(
+        roomId: room.id,
+        username: username,
+        isHost: true,
+      );
+      if (isClosed) return;
+      playerResult.fold(
+        (failure) => emit(RoomError(failure.message)),
+        (player) => emit(RoomWithPlayerCreated(room: room, player: player)),
+      );
+    }
+  }
+
+  Future<void> _addLocalPlayers(Room room, List<String> playerNames) async {
+    final hostResult = await addPlayerToRoom(
+      roomId: room.id,
+      username: playerNames.first,
+      isHost: true,
+      isLocalPlayer: true,
+    );
+    if (isClosed) return;
+    if (hostResult.isLeft()) {
+      emit(RoomError(hostResult.fold((f) => f.message, (_) => '')));
+      return;
+    }
+    final hostPlayer = hostResult.getOrElse(
+      () => throw StateError('unreachable'),
+    );
+
+    for (int i = 1; i < playerNames.length; i++) {
+      await addPlayerToRoom(
+        roomId: room.id,
+        username: playerNames[i],
+        isHost: false,
+        isLocalPlayer: true,
+      );
+      if (isClosed) return;
+    }
+
+    emit(RoomWithPlayerCreated(room: room, player: hostPlayer));
   }
 
   Future<void> loadRoomDetails({required String roomId}) async {
@@ -170,11 +180,21 @@ class RoomCubit extends Cubit<RoomState> {
 
     final roomResult = await getRoomByCode(roomCode: roomCode);
 
+    if (isClosed) return;
+
     await roomResult.fold((failure) async => emit(RoomError(failure.message)), (
       room,
     ) async {
       if (room.status != 'waiting') {
         emit(const RoomError('This room has already started'));
+        return;
+      }
+
+      // Check current player count against the room's max limit
+      final playersResult = await getRoomPlayers(roomId: room.id);
+      final int currentCount = playersResult.fold((_) => 0, (p) => p.length);
+      if (currentCount >= room.maxPlayers) {
+        emit(RoomError('This room is full (${room.maxPlayers} players max)'));
         return;
       }
 

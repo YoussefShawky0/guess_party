@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
 
 class CharacterCard extends StatelessWidget {
@@ -59,7 +60,7 @@ class CharacterCard extends StatelessWidget {
             ),
             SizedBox(height: isTablet ? 12 : 8),
             Text(
-              gameMode == 'local' ? '???' : character.name,
+              gameMode == GameConstants.gameModeLocal ? '???' : character.name,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.bold,

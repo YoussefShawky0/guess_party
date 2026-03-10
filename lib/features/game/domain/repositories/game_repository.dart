@@ -33,6 +33,7 @@ abstract class GameRepository {
   // Calculate and update scores after voting
   Future<Either<Failure, Map<String, int>>> calculateScores({
     required String roundId,
+    required Map<String, int> currentScores,
   });
 
   // Create next round

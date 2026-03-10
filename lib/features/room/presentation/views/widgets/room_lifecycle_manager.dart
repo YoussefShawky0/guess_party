@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 
 class RoomLifecycleManager extends StatefulWidget {
@@ -95,7 +96,7 @@ class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
     }
 
     if (mounted && context.mounted) {
-      context.go('/home');
+      context.go(AppRoutes.home);
     }
   }
 

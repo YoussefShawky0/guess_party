@@ -46,6 +46,17 @@ class RoundInfo extends Equatable {
 
   String? getPlayerVote(String playerId) => playerVotes[playerId];
 
+  /// Returns a map of playerId → number of votes received in this round.
+  Map<String, int> get voteCounts {
+    final counts = <String, int>{};
+    for (final votedPlayerId in playerVotes.values) {
+      if (votedPlayerId != null) {
+        counts[votedPlayerId] = (counts[votedPlayerId] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
   RoundInfo copyWith({
     String? id,
     String? roomId,

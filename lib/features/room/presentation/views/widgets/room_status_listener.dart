@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RoomStatusListener extends StatefulWidget {
@@ -34,8 +35,10 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
 
   void _listenToRoomStatus() {
     try {
-      final channel = Supabase.instance.client.channel('room_status_${widget.roomId}');
-      
+      final channel = Supabase.instance.client.channel(
+        'room_status_${widget.roomId}',
+      );
+
       channel.onPostgresChanges(
         event: PostgresChangeEvent.update,
         schema: 'public',
@@ -55,10 +58,10 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
           }
         },
       );
-      
+
       channel.subscribe((status, error) {
-        if (status == RealtimeSubscribeStatus.channelError || 
-                   status == RealtimeSubscribeStatus.closed) {
+        if (status == RealtimeSubscribeStatus.channelError ||
+            status == RealtimeSubscribeStatus.closed) {
           // Retry connection after a delay
           Future.delayed(const Duration(seconds: 3), () {
             if (mounted) {
@@ -68,7 +71,7 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
           });
         }
       });
-      
+
       _roomChannel = channel;
     } catch (e) {
       // Retry after delay
@@ -90,7 +93,7 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
 
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted && context.mounted) {
-        context.go('/home');
+        context.go(AppRoutes.home);
       }
     });
   }
@@ -99,7 +102,7 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
     // Navigate to countdown when game starts
     // No need to load players data when navigating away
     if (mounted && context.mounted) {
-      context.go('/room/${widget.roomId}/countdown');
+      context.go(AppRoutes.roomCountdown(widget.roomId));
     }
   }
 

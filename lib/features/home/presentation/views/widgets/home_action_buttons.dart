@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 
 class HomeActionButtons extends StatelessWidget {
   final bool isTablet;
@@ -14,7 +15,7 @@ class HomeActionButtons extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ElevatedButton(
-          onPressed: () => context.push('/create-room'),
+          onPressed: () => context.push(AppRoutes.createRoom),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: AppColors.textPrimary,
@@ -40,7 +41,7 @@ class HomeActionButtons extends StatelessWidget {
         ),
         SizedBox(height: isTablet ? 24 : 20),
         OutlinedButton(
-          onPressed: () => context.push('/join-room'),
+          onPressed: () => context.push(AppRoutes.joinRoom),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.primary,
             padding: EdgeInsets.symmetric(vertical: isTablet ? 24 : 20),

@@ -1,32 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
-import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/character_card.dart';
 import 'widgets/hints_phase_content.dart';
-import 'widgets/phase_timer_widget.dart';
 import 'widgets/results_phase_content.dart';
+import 'widgets/round_header_widget.dart';
 import 'widgets/voting_phase_content.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class GameView extends StatelessWidget {
   final String roomId;
+  final Map<String, int>? preservedScores;
 
-  const GameView({super.key, required this.roomId});
+  const GameView({super.key, required this.roomId, this.preservedScores});
 
   @override
   Widget build(BuildContext context) {
     final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
 
     return BlocProvider(
-      create: (context) =>
-          sl<GameCubit>()
-            ..loadGameState(roomId: roomId, currentPlayerId: currentUserId),
+      create: (context) => sl<GameCubit>()
+        ..loadGameState(
+          roomId: roomId,
+          currentPlayerId: currentUserId,
+          preservedScores: preservedScores,
+        ),
       child: GameViewContent(roomId: roomId),
     );
   }
@@ -89,7 +94,7 @@ class GameViewContent extends StatelessWidget {
     final shouldLeave = await _showLeaveConfirmation(context);
     if (!shouldLeave) return;
 
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = context.read<GameCubit>().currentPlayerId;
 
     // Get player info from game state
     final gameState = context.read<GameCubit>().state;
@@ -101,8 +106,8 @@ class GameViewContent extends StatelessWidget {
       );
       final isHost = currentPlayer.isHost;
 
-      // Leave room using RoomCubit
-      await sl<RoomCubit>().leaveRoomSession(
+      // Call leave-room use case directly (avoids creating a stale RoomCubit instance)
+      await sl<LeaveRoom>()(
         playerId: currentPlayer.id,
         roomId: roomId,
         isHost: isHost,
@@ -110,7 +115,7 @@ class GameViewContent extends StatelessWidget {
     }
 
     if (context.mounted) {
-      context.go('/home');
+      context.go(AppRoutes.home);
     }
   }
 
@@ -165,7 +170,13 @@ class GameViewContent extends StatelessWidget {
               );
             } else if (state is GameEnded) {
               if (!context.mounted) return;
-              context.go('/home');
+              context.go(
+                AppRoutes.roomGameOver(roomId),
+                extra: {
+                  'players': state.players,
+                  'playerScores': state.playerScores,
+                },
+              );
             }
           },
           builder: (context, state) {
@@ -212,11 +223,11 @@ class GameViewContent extends StatelessWidget {
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () {
-                        final currentUserId =
-                            Supabase.instance.client.auth.currentUser?.id ?? '';
                         context.read<GameCubit>().loadGameState(
                           roomId: roomId,
-                          currentPlayerId: currentUserId,
+                          currentPlayerId: context
+                              .read<GameCubit>()
+                              .currentPlayerId,
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -228,7 +239,7 @@ class GameViewContent extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     TextButton(
-                      onPressed: () => context.go('/home'),
+                      onPressed: () => context.go(AppRoutes.home),
                       child: const Text('Back to Home'),
                     ),
                   ],
@@ -250,129 +261,27 @@ class GameViewContent extends StatelessWidget {
   Widget _buildGameContent(BuildContext context, GameLoaded state) {
     final gameState = state.gameState;
     final round = gameState.currentRound;
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = state.gameState.currentPlayerId;
     final isImposter = round.isImposter(currentUserId);
     final isTablet = MediaQuery.of(context).size.width > 600;
 
-    // حساب المدة الأصلية للراوند
-    final totalDuration = gameState.roundDuration;
-    final totalMinutes = totalDuration ~/ 60;
-    final totalSeconds = totalDuration % 60;
-    final durationText = totalSeconds > 0
-        ? '$totalMinutes:${totalSeconds.toString().padLeft(2, '0')} min'
-        : '$totalMinutes min';
+    // حساب الـ host
+    final currentPlayer = gameState.players.firstWhere(
+      (p) => p.userId == currentUserId,
+      orElse: () => gameState.players.first,
+    );
+    final isHost = currentPlayer.isHost;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isTablet ? 24 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Round info - Improved Layout
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [AppColors.characterCardBg, AppColors.surface],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.characterCardBorder,
-                width: 2,
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(isTablet ? 20 : 16),
-              child: Column(
-                children: [
-                  // Top Row: Round number (left) + Timer (right)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Round number & total
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Round ${round.roundNumber}',
-                            style: TextStyle(
-                              fontSize: isTablet ? 28 : 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'of ${gameState.totalRounds}',
-                            style: TextStyle(
-                              fontSize: isTablet ? 16 : 14,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      // Timer
-                      PhaseTimerWidget(
-                        phaseEndTime: round.phaseEndTime,
-                        onTimeUp: () => _handlePhaseTimeUp(context, state),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: isTablet ? 16 : 12),
-                  // Phase info
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isTablet ? 20 : 16,
-                      vertical: isTablet ? 12 : 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _getPhaseIcon(round.phase),
-                          color: AppColors.primary,
-                          size: isTablet ? 24 : 20,
-                        ),
-                        SizedBox(width: isTablet ? 12 : 8),
-                        Text(
-                          _getPhaseText(round.phase),
-                          style: TextStyle(
-                            fontSize: isTablet ? 18 : 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const Spacer(),
-                        // Duration badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            durationText,
-                            style: TextStyle(
-                              fontSize: isTablet ? 14 : 12,
-                              color: AppColors.primaryLight,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          RoundHeaderWidget(
+            round: round,
+            totalRounds: gameState.totalRounds,
+            roundDuration: gameState.roundDuration,
+            onTimeUp: () => _handlePhaseTimeUp(context, state),
           ),
           const SizedBox(height: 16),
 
@@ -398,6 +307,17 @@ class GameViewContent extends StatelessWidget {
               players: state.gameState.players,
               gameMode: state.gameState.gameMode,
               currentUserId: currentUserId,
+              isHost: isHost,
+              onShowResults: () {
+                // Await scoring completion before advancing phase
+                context.read<GameCubit>().calculateRoundScores(round.id).then((
+                  _,
+                ) {
+                  if (context.mounted) {
+                    context.read<GameCubit>().progressPhase(round.id);
+                  }
+                });
+              },
             ),
           if (round.phase == GamePhase.results)
             _buildResultsPhase(context, state),
@@ -412,20 +332,14 @@ class GameViewContent extends StatelessWidget {
     final isLastRound = state.gameState.isLastRound;
 
     // Count votes
-    final voteCounts = <String, int>{};
-    for (final votedPlayerId in round.playerVotes.values) {
-      if (votedPlayerId != null) {
-        voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] ?? 0) + 1;
-      }
-    }
+    final voteCounts = round.voteCounts;
 
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = state.gameState.currentPlayerId;
     final currentPlayer = players.firstWhere(
       (p) => p.userId == currentUserId,
       orElse: () => players.first,
     );
-    // في Local mode، أول player يعتبر host
-    final isHost = currentPlayer.id == players.first.id;
+    final isHost = currentPlayer.isHost;
 
     return ResultsPhaseContent(
       roundInfo: round,
@@ -435,6 +349,10 @@ class GameViewContent extends StatelessWidget {
       onNextRound: () {
         final nextRoundNumber = round.roundNumber + 1;
         final gameMode = state.gameState.gameMode;
+        // Capture scores BEFORE creating new round (in-memory accumulation)
+        final currentScores = Map<String, int>.from(
+          state.gameState.playerScores,
+        );
 
         // Create new round
         context.read<GameCubit>().createNewRound(
@@ -443,11 +361,15 @@ class GameViewContent extends StatelessWidget {
         );
 
         // In local mode, navigate to role reveal screen after a short delay
-        // to allow the new round to be created
-        if (gameMode == 'local') {
+        // to allow the new round to be created.
+        // Pass scores via extra so the new cubit instance can restore them.
+        if (gameMode == GameConstants.gameModeLocal) {
           Future.delayed(const Duration(milliseconds: 1000), () {
             if (context.mounted) {
-              context.go('/room/$roomId/role-reveal');
+              context.go(
+                AppRoutes.roomRoleReveal(roomId),
+                extra: {'playerScores': currentScores},
+              );
             }
           });
         }
@@ -461,31 +383,9 @@ class GameViewContent extends StatelessWidget {
     );
   }
 
-  String _getPhaseText(GamePhase phase) {
-    switch (phase) {
-      case GamePhase.hints:
-        return 'Hints Phase';
-      case GamePhase.voting:
-        return 'Voting Phase';
-      case GamePhase.results:
-        return 'Results';
-    }
-  }
-
-  IconData _getPhaseIcon(GamePhase phase) {
-    switch (phase) {
-      case GamePhase.hints:
-        return FontAwesomeIcons.lightbulb;
-      case GamePhase.voting:
-        return FontAwesomeIcons.checkToSlot;
-      case GamePhase.results:
-        return FontAwesomeIcons.trophy;
-    }
-  }
-
   void _handlePhaseTimeUp(BuildContext context, GameLoaded state) {
     final round = state.gameState.currentRound;
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = state.gameState.currentPlayerId;
     final hostUserId = state.gameState.players
         .firstWhere((p) => p.isHost)
         .userId;
@@ -501,25 +401,13 @@ class GameViewContent extends StatelessWidget {
     if (phase == GamePhase.hints) {
       context.read<GameCubit>().progressPhase(round.id);
     } else if (phase == GamePhase.voting) {
-      // Calculate scores first
-      context.read<GameCubit>().calculateRoundScores(round.id);
-      // Then progress to results phase after a short delay
-      Future.delayed(const Duration(milliseconds: 500), () {
+      // Calculate scores first, then advance phase
+      context.read<GameCubit>().calculateRoundScores(round.id).then((_) {
         if (context.mounted) {
           context.read<GameCubit>().progressPhase(round.id);
         }
       });
-    } else if (phase == GamePhase.results) {
-      // Check if this is the last round
-      if (state.gameState.isLastRound) {
-        // finishGame emits GameEnded → listener navigates to /home
-        context.read<GameCubit>().finishGame(state.gameState.roomId);
-      } else {
-        context.read<GameCubit>().createNewRound(
-          roomId: state.gameState.roomId,
-          roundNumber: round.roundNumber + 1,
-        );
-      }
     }
+    // Results phase is button-driven only — no auto-advance
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/utils/validators.dart';
@@ -74,7 +75,7 @@ class _LoginViewState extends State<LoginView> {
           if (state is AuthSuccess) {
             // Login successful
             Future.delayed(const Duration(milliseconds: 500), () {
-              context.go('/home');
+              context.go(AppRoutes.home);
             });
           } else if (state is AuthError) {
             ErrorSnackBar.show(context, state.message);

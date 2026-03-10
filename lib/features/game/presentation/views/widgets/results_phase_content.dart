@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
@@ -92,34 +90,36 @@ class ResultsPhaseContent extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 32 : 24),
 
-          // Last Round - Show Winner and Exit
-          if (isLastRound) ...[
-            _buildWinnerCard(context, isTablet),
-            SizedBox(height: isTablet ? 20 : 16),
+          // Last Round - Host ends game and goes to leaderboard
+          if (isLastRound && isHost)
             ElevatedButton.icon(
-              onPressed: () {
-                onGameEnd?.call();
-                context.go('/home');
-              },
+              onPressed: () => onGameEnd?.call(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textPrimary,
+                backgroundColor: AppColors.goldMedal,
+                foregroundColor: AppColors.scoreBadgeText,
                 padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              icon: Icon(Icons.home, size: isTablet ? 24 : 20),
+              icon: Icon(Icons.leaderboard_rounded, size: isTablet ? 24 : 20),
               label: Text(
-                'Back to Home',
+                'View Final Leaderboard',
                 style: TextStyle(
                   fontSize: isTablet ? 20 : 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-          ] else if (isHost)
-            // Next Round Button (only for host, not on last round)
+            )
+          else if (isLastRound && !isHost)
+            _buildWaitingMessage(
+              'Waiting for host to show leaderboard...',
+              AppColors.goldMedal,
+              AppColors.goldMedal.withOpacity(0.4),
+              isTablet,
+            )
+          else if (!isLastRound && isHost)
+            // Next Round Button (only for host)
             ElevatedButton(
               onPressed: onNextRound,
               style: ElevatedButton.styleFrom(
@@ -137,85 +137,52 @@ class ResultsPhaseContent extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+            )
+          else if (!isLastRound && !isHost)
+            _buildWaitingMessage(
+              'Waiting for host to start next round...',
+              AppColors.primary,
+              AppColors.cardBorder,
+              isTablet,
             ),
         ],
       ),
     );
   }
 
-  Widget _buildWinnerCard(BuildContext context, bool isTablet) {
-    // Get winner (highest score)
-    final sortedPlayers = List<Player>.from(players);
-    sortedPlayers.sort(
-      (a, b) => (playerScores[b.id] ?? 0).compareTo(playerScores[a.id] ?? 0),
-    );
-    final winner = sortedPlayers.first;
-    final winnerScore = playerScores[winner.id] ?? 0;
-
+  Widget _buildWaitingMessage(
+    String text,
+    Color indicatorColor,
+    Color borderColor,
+    bool isTablet,
+  ) {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.goldMedal.withOpacity(0.3),
-            AppColors.goldMedal.withOpacity(0.1),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.goldMedal, width: 3),
+      padding: EdgeInsets.symmetric(
+        vertical: isTablet ? 18 : 14,
+        horizontal: 20,
       ),
-      padding: EdgeInsets.all(isTablet ? 32 : 24),
-      child: Column(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FaIcon(
-            FontAwesomeIcons.trophy,
-            size: isTablet ? 64 : 48,
-            color: AppColors.goldMedal,
-          ),
-          SizedBox(height: isTablet ? 16 : 12),
-          Text(
-            '🎉 Game Over! 🎉',
-            style: TextStyle(
-              fontSize: isTablet ? 28 : 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: indicatorColor,
             ),
           ),
-          SizedBox(height: isTablet ? 12 : 8),
+          const SizedBox(width: 12),
           Text(
-            'Winner',
+            text,
             style: TextStyle(
-              fontSize: isTablet ? 18 : 16,
               color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(height: isTablet ? 8 : 4),
-          Text(
-            winner.username,
-            style: TextStyle(
-              fontSize: isTablet ? 32 : 28,
-              fontWeight: FontWeight.bold,
-              color: AppColors.goldMedal,
-            ),
-          ),
-          SizedBox(height: isTablet ? 8 : 4),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 20 : 16,
-              vertical: isTablet ? 8 : 6,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.goldMedal,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              '$winnerScore points',
-              style: TextStyle(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textDark,
-              ),
+              fontSize: isTablet ? 16 : 14,
             ),
           ),
         ],

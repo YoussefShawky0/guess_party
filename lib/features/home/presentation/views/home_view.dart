@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
@@ -88,7 +89,7 @@ class HomeContent extends StatelessWidget {
                     color: AppColors.textPrimary,
                     tooltip: 'Settings',
                     onPressed: () {
-                      context.push('/settings');
+                      context.push(AppRoutes.settings);
                     },
                   ),
                   // Logout Button
@@ -110,7 +111,7 @@ class HomeContent extends StatelessWidget {
               child: BlocConsumer<HomeCubit, HomeState>(
                 listener: (context, state) {
                   if (state is HomeSignedOut) {
-                    context.go('/auth');
+                    context.go(AppRoutes.auth);
                   }
                 },
                 builder: (context, state) {

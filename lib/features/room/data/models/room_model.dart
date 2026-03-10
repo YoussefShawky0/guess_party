@@ -1,3 +1,4 @@
+import 'package:guess_party/core/constants/game_constants.dart';
 import '../../domain/entities/room.dart';
 
 class RoomModel extends Room {
@@ -32,7 +33,7 @@ class RoomModel extends Room {
           [],
       maxPlayers: json['max_players'] as int? ?? 6,
       roundDuration: json['round_duration'] as int? ?? 60,
-      gameMode: json['game_mode'] as String? ?? 'online',
+      gameMode: json['game_mode'] as String? ?? GameConstants.gameModeOnline,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : null,

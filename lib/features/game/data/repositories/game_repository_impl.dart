@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:dartz/dartz.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/features/game/data/datasources/game_remote_data_source.dart';
 import 'package:guess_party/features/game/data/models/round_info_model.dart';
@@ -109,7 +111,7 @@ class GameRepositoryImpl implements GameRepository {
       // Fetch current round phase only (no JOIN needed - durations are fixed)
       final currentRoundResponse = await client
           .from('rounds')
-          .select('phase')
+          .select('phase, room_id')
           .eq('id', roundId)
           .single();
 
@@ -120,14 +122,18 @@ class GameRepositoryImpl implements GameRepository {
       switch (currentPhase) {
         case 'hints':
           newPhase = 'voting';
-          phaseDuration = 60;
+          phaseDuration = GameConstants.votingPhaseDurationSeconds;
           break;
         case 'voting':
           newPhase = 'results';
-          phaseDuration = 30;
+          phaseDuration = GameConstants.resultsPhaseDurationSeconds;
           break;
         default:
-          throw Exception('Cannot advance from results phase');
+          // Already at results phase — no-op, return current round as-is
+          final roundModel = await remoteDataSource.getCurrentRound(
+            roomId: currentRoundResponse['room_id'] as String,
+          );
+          return Right(roundModel.toEntity());
       }
 
       final phaseEndTime = DateTime.now().toUtc().add(
@@ -149,6 +155,7 @@ class GameRepositoryImpl implements GameRepository {
   @override
   Future<Either<Failure, Map<String, int>>> calculateScores({
     required String roundId,
+    required Map<String, int> currentScores,
   }) async {
     try {
       // جلب معلومات الجولة
@@ -159,7 +166,6 @@ class GameRepositoryImpl implements GameRepository {
           .single();
 
       final imposterPlayerId = roundResponse['imposter_player_id'] as String;
-      final roomId = roundResponse['room_id'] as String;
 
       // جلب الأصوات
       final votes = await remoteDataSource.getVotesForRound(roundId: roundId);
@@ -180,33 +186,33 @@ class GameRepositoryImpl implements GameRepository {
         }
       }
 
-      // جلب النتائج الحالية
-      final currentScores = await remoteDataSource.getPlayerScores(
-        roomId: roomId,
-      );
+      // استخدام currentScores الممررة من الـ state بدلاً من قراءة DB
+      // (تجنباً لأي RLS restrictions أو race conditions)
       final newScores = Map<String, int>.from(currentScores);
 
-      // توزيع النقاط - النظام الجديد
-      if (mostVotedPlayerId == imposterPlayerId) {
-        // الأغلبية صوتت على المحتال بشكل صحيح
-        // فقط من صوت على المحتال يأخذ نقاط
-        for (final entry in votes.entries) {
-          final voterId = entry.key;
-          final votedId = entry.value;
-          if (votedId == imposterPlayerId) {
-            // اللي صوت على المحتال ياخد +10 نقاط
-            newScores[voterId] = (newScores[voterId] ?? 0) + 10;
-          }
+      // توزيع النقاط
+      // دايمًا: اللي صوّت على المحتال ياخد +10 (صح حتى لو مكنش الأغلبية)
+      for (final entry in votes.entries) {
+        final voterId = entry.key;
+        final votedId = entry.value;
+        if (votedId == imposterPlayerId) {
+          newScores[voterId] = (newScores[voterId] ?? 0) + 10;
         }
-        // المحتال مياخدش حاجة
-      } else {
-        // الأغلبية صوتت على شخص بريء - المحتال فاز
-        // المحتال بس ياخد نقاط
-        newScores[imposterPlayerId] = (newScores[imposterPlayerId] ?? 0) + 20;
       }
 
-      // تحديث النتائج في قاعدة البيانات
-      await remoteDataSource.updatePlayerScores(scores: newScores);
+      // لو الإمبستر مكنش الأكثر تصويتًا (الأغلبية غلط) → الإمبستر فاز +20
+      if (mostVotedPlayerId != imposterPlayerId) {
+        newScores[imposterPlayerId] = (newScores[imposterPlayerId] ?? 0) + 20;
+      }
+      // لو الإمبستر اتمسك (الأغلبية صح) → الإمبستر مياخدش إضافي
+
+      // تحديث النتائج في قاعدة البيانات (best-effort – RLS قد تمنع التحديث لبعض اللاعبين)
+      // النقاط المحسوبة في الـ memory هي المصدر الصحيح دايمًا
+      try {
+        await remoteDataSource.updatePlayerScores(scores: newScores);
+      } catch (_) {
+        // تجاهل فشل كتابة DB – الـ in-memory scores صحيحة
+      }
 
       return Right(newScores);
     } catch (e) {
@@ -220,12 +226,43 @@ class GameRepositoryImpl implements GameRepository {
     required int roundNumber,
   }) async {
     try {
-      // جلب اللاعبين
+      // ── Guard: هل الجولة دي اتعملت فعلاً؟ (double-tap / race condition) ──
+      final List existingList = await client
+          .from('rounds')
+          .select()
+          .eq('room_id', roomId)
+          .eq('round_number', roundNumber);
+
+      if (existingList.isNotEmpty) {
+        // الجولة موجودة – ارجع بياناتها بدل ما تعمل insert تاني
+        final existing = existingList.first as Map<String, dynamic>;
+        final character = await remoteDataSource.getCharacter(
+          characterId: existing['character_id'] as String,
+        );
+        final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
+        final playerIds = players.map((p) => p.id).toList();
+        final hints = await remoteDataSource.getHintsForRound(
+          roundId: existing['id'] as String,
+        );
+        final votes = await remoteDataSource.getVotesForRound(
+          roundId: existing['id'] as String,
+        );
+        final model = RoundInfoModel.fromJson(
+          existing,
+          character.toEntity(),
+          playerIds,
+          hints,
+          votes,
+        );
+        return Right(model.toEntity());
+      }
+
+      // ── Normal flow ─────────────────────────────────────────────────────
       final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
 
       // اختيار محتال عشوائي
-      final random = DateTime.now().millisecondsSinceEpoch;
-      final imposterIndex = random % players.length;
+      final rng = Random();
+      final imposterIndex = rng.nextInt(players.length);
       final imposterPlayerId = players[imposterIndex].id;
 
       // جلب معلومات الغرفة للحصول على roundDuration
@@ -250,7 +287,7 @@ class GameRepositoryImpl implements GameRepository {
         throw Exception('No characters available');
       }
 
-      final characterIndex = random % characters.length;
+      final characterIndex = rng.nextInt(characters.length);
       final characterId = characters[characterIndex]['id'] as String;
 
       // إنشاء جولة جديدة بمدة من إعدادات الغرفة
