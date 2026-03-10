@@ -158,7 +158,7 @@ class GameRepositoryImpl implements GameRepository {
     required Map<String, int> currentScores,
   }) async {
     try {
-      // جلب معلومات الجولة
+      // Fetch round info
       final roundResponse = await client
           .from('rounds')
           .select()
@@ -167,16 +167,16 @@ class GameRepositoryImpl implements GameRepository {
 
       final imposterPlayerId = roundResponse['imposter_player_id'] as String;
 
-      // جلب الأصوات
+      // Fetch votes
       final votes = await remoteDataSource.getVotesForRound(roundId: roundId);
 
-      // حساب الأصوات لكل لاعب
+      // Count votes per player
       final voteCounts = <String, int>{};
       for (final votedPlayerId in votes.values) {
         voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] ?? 0) + 1;
       }
 
-      // إيجاد اللاعب الأكثر حصولاً على أصوات
+      // Find the most-voted player
       String? mostVotedPlayerId;
       int maxVotes = 0;
       for (final entry in voteCounts.entries) {
@@ -186,12 +186,12 @@ class GameRepositoryImpl implements GameRepository {
         }
       }
 
-      // استخدام currentScores الممررة من الـ state بدلاً من قراءة DB
-      // (تجنباً لأي RLS restrictions أو race conditions)
+      // Use in-memory scores passed from state instead of reading DB
+      // (avoids RLS restrictions and race conditions)
       final newScores = Map<String, int>.from(currentScores);
 
-      // توزيع النقاط
-      // دايمًا: اللي صوّت على المحتال ياخد +10 (صح حتى لو مكنش الأغلبية)
+      // Award points
+      // Always: +10 to anyone who voted for the imposter (correct even if not the majority)
       for (final entry in votes.entries) {
         final voterId = entry.key;
         final votedId = entry.value;
@@ -200,18 +200,18 @@ class GameRepositoryImpl implements GameRepository {
         }
       }
 
-      // لو الإمبستر مكنش الأكثر تصويتًا (الأغلبية غلط) → الإمبستر فاز +20
+      // Imposter wins +20 if they were NOT the most-voted (majority wrong)
       if (mostVotedPlayerId != imposterPlayerId) {
         newScores[imposterPlayerId] = (newScores[imposterPlayerId] ?? 0) + 20;
       }
-      // لو الإمبستر اتمسك (الأغلبية صح) → الإمبستر مياخدش إضافي
+      // If imposter was caught (majority correct) — no bonus for imposter
 
-      // تحديث النتائج في قاعدة البيانات (best-effort – RLS قد تمنع التحديث لبعض اللاعبين)
-      // النقاط المحسوبة في الـ memory هي المصدر الصحيح دايمًا
+      // Persist scores to DB (best-effort — RLS may block writes for some players)
+      // In-memory scores are always the source of truth
       try {
         await remoteDataSource.updatePlayerScores(scores: newScores);
       } catch (_) {
-        // تجاهل فشل كتابة DB – الـ in-memory scores صحيحة
+        // Ignore DB write failure — in-memory scores are correct
       }
 
       return Right(newScores);
@@ -226,7 +226,7 @@ class GameRepositoryImpl implements GameRepository {
     required int roundNumber,
   }) async {
     try {
-      // ── Guard: هل الجولة دي اتعملت فعلاً؟ (double-tap / race condition) ──
+      // ── Guard: check if this round was already created (double-tap / race condition) ──
       final List existingList = await client
           .from('rounds')
           .select()
@@ -234,7 +234,7 @@ class GameRepositoryImpl implements GameRepository {
           .eq('round_number', roundNumber);
 
       if (existingList.isNotEmpty) {
-        // الجولة موجودة – ارجع بياناتها بدل ما تعمل insert تاني
+        // Round already exists — return its data instead of inserting again
         final existing = existingList.first as Map<String, dynamic>;
         final character = await remoteDataSource.getCharacter(
           characterId: existing['character_id'] as String,
@@ -260,22 +260,22 @@ class GameRepositoryImpl implements GameRepository {
       // ── Normal flow ─────────────────────────────────────────────────────
       final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
 
-      // اختيار محتال عشوائي
+      // Pick a random imposter
       final rng = Random();
       final imposterIndex = rng.nextInt(players.length);
       final imposterPlayerId = players[imposterIndex].id;
 
-      // جلب معلومات الغرفة للحصول على roundDuration
+      // Fetch room details to get roundDuration and category
       final room = await roomRemoteDataSource.getRoomDetails(roomId: roomId);
 
-      // جلب شخصية عشوائية حسب كاتيجوري الغرفة
+      // Fetch a random character matching the room's category
       final isRoomMix = room.category == 'mix';
       var charactersQuery = client
           .from('characters')
           .select()
           .eq('is_active', true);
 
-      // إذا مش mix، فلتر حسب الكاتيجوري
+      // Filter by category unless room is set to mix
       if (!isRoomMix) {
         charactersQuery = charactersQuery.eq('category', room.category);
       }
@@ -290,7 +290,7 @@ class GameRepositoryImpl implements GameRepository {
       final characterIndex = rng.nextInt(characters.length);
       final characterId = characters[characterIndex]['id'] as String;
 
-      // إنشاء جولة جديدة بمدة من إعدادات الغرفة
+      // Create new round with duration from room settings
       final newRound = await remoteDataSource.createRound(
         roomId: roomId,
         imposterPlayerId: imposterPlayerId,
@@ -320,39 +320,53 @@ class GameRepositoryImpl implements GameRepository {
 
   @override
   Stream<RoundInfo> watchRoundUpdates({required String roundId}) async* {
-    await for (final _ in remoteDataSource.watchRoundChanges(
-      roundId: roundId,
-    )) {
+    while (true) {
       try {
-        // جلب معلومات الجولة الكاملة
-        final roundResponse = await client
-            .from('rounds')
-            .select()
-            .eq('id', roundId)
-            .single();
+        await for (final _ in remoteDataSource.watchRoundChanges(
+          roundId: roundId,
+        )) {
+          try {
+            // Fetch full round details
+            final roundResponse = await client
+                .from('rounds')
+                .select()
+                .eq('id', roundId)
+                .single();
 
-        final character = await remoteDataSource.getCharacter(
-          characterId: roundResponse['character_id'] as String,
-        );
+            final character = await remoteDataSource.getCharacter(
+              characterId: roundResponse['character_id'] as String,
+            );
 
-        final roomId = roundResponse['room_id'] as String;
-        final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
-        final playerIds = players.map((p) => p.id).toList();
+            final roomId = roundResponse['room_id'] as String;
+            final players = await remoteDataSource.getRoomPlayers(
+              roomId: roomId,
+            );
+            final playerIds = players.map((p) => p.id).toList();
 
-        final hints = await remoteDataSource.getHintsForRound(roundId: roundId);
-        final votes = await remoteDataSource.getVotesForRound(roundId: roundId);
+            final hints = await remoteDataSource.getHintsForRound(
+              roundId: roundId,
+            );
+            final votes = await remoteDataSource.getVotesForRound(
+              roundId: roundId,
+            );
 
-        final roundModel = RoundInfoModel.fromJson(
-          roundResponse,
-          character.toEntity(),
-          playerIds,
-          hints,
-          votes,
-        );
+            final roundModel = RoundInfoModel.fromJson(
+              roundResponse,
+              character.toEntity(),
+              playerIds,
+              hints,
+              votes,
+            );
 
-        yield roundModel.toEntity();
-      } catch (e) {
-        // تجاهل الأخطاء في الـ stream
+            yield roundModel.toEntity();
+          } catch (_) {
+            // Ignore errors processing an individual event
+          }
+        }
+        break; // Stream ended normally
+      } catch (_) {
+        // WebSocket dropped — wait and reconnect
+        await Future.delayed(const Duration(seconds: 3));
       }
     }
   }
@@ -361,11 +375,22 @@ class GameRepositoryImpl implements GameRepository {
   Stream<Map<String, String>> watchHintsUpdates({
     required String roundId,
   }) async* {
-    await for (final _ in remoteDataSource.watchHintsChanges(
-      roundId: roundId,
-    )) {
-      final hints = await remoteDataSource.getHintsForRound(roundId: roundId);
-      yield hints;
+    while (true) {
+      try {
+        await for (final _ in remoteDataSource.watchHintsChanges(
+          roundId: roundId,
+        )) {
+          try {
+            final hints = await remoteDataSource.getHintsForRound(
+              roundId: roundId,
+            );
+            yield hints;
+          } catch (_) {}
+        }
+        break;
+      } catch (_) {
+        await Future.delayed(const Duration(seconds: 3));
+      }
     }
   }
 
@@ -373,11 +398,22 @@ class GameRepositoryImpl implements GameRepository {
   Stream<Map<String, String>> watchVotesUpdates({
     required String roundId,
   }) async* {
-    await for (final _ in remoteDataSource.watchVotesChanges(
-      roundId: roundId,
-    )) {
-      final votes = await remoteDataSource.getVotesForRound(roundId: roundId);
-      yield votes;
+    while (true) {
+      try {
+        await for (final _ in remoteDataSource.watchVotesChanges(
+          roundId: roundId,
+        )) {
+          try {
+            final votes = await remoteDataSource.getVotesForRound(
+              roundId: roundId,
+            );
+            yield votes;
+          } catch (_) {}
+        }
+        break;
+      } catch (_) {
+        await Future.delayed(const Duration(seconds: 3));
+      }
     }
   }
 }

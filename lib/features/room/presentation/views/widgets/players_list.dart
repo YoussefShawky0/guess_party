@@ -15,6 +15,7 @@ class PlayersList extends StatefulWidget {
 }
 
 class _PlayersListState extends State<PlayersList> {
+  RealtimeChannel? _playersChannel;
   @override
   void initState() {
     super.initState();
@@ -23,31 +24,50 @@ class _PlayersListState extends State<PlayersList> {
   }
 
   void _subscribeToRealtimeUpdates() {
-    Supabase.instance.client
-        .channel('players_${widget.roomId}')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'players',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'room_id',
-            value: widget.roomId,
-          ),
-          callback: (payload) {
+    try {
+      final channel = Supabase.instance.client
+          .channel('players_${widget.roomId}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'players',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: widget.roomId,
+            ),
+            callback: (payload) {
+              if (mounted) {
+                context.read<RoomCubit>().loadRoomPlayers(
+                  roomId: widget.roomId,
+                );
+              }
+            },
+          );
+
+      channel.subscribe((status, error) {
+        if (status == RealtimeSubscribeStatus.channelError ||
+            status == RealtimeSubscribeStatus.closed) {
+          Future.delayed(const Duration(seconds: 3), () {
             if (mounted) {
-              context.read<RoomCubit>().loadRoomPlayers(roomId: widget.roomId);
+              _playersChannel?.unsubscribe();
+              _subscribeToRealtimeUpdates();
             }
-          },
-        )
-        .subscribe();
+          });
+        }
+      });
+
+      _playersChannel = channel;
+    } catch (_) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) _subscribeToRealtimeUpdates();
+      });
+    }
   }
 
   @override
   void dispose() {
-    Supabase.instance.client.removeChannel(
-      Supabase.instance.client.channel('players_${widget.roomId}'),
-    );
+    _playersChannel?.unsubscribe();
     super.dispose();
   }
 

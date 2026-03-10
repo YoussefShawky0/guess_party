@@ -59,22 +59,41 @@ class _ChatWidgetState extends State<ChatWidget> {
   }
 
   void _subscribeToMessages() {
-    _channel = _supabase
-        .channel('messages:${widget.roomId}')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'messages',
-          filter: PostgresChangeFilter(
-            type: PostgresChangeFilterType.eq,
-            column: 'room_id',
-            value: widget.roomId,
-          ),
-          callback: (payload) {
-            _handleNewMessage(payload.newRecord);
-          },
-        )
-        .subscribe();
+    try {
+      final channel = _supabase
+          .channel('messages:${widget.roomId}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'messages',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: widget.roomId,
+            ),
+            callback: (payload) {
+              _handleNewMessage(payload.newRecord);
+            },
+          );
+
+      channel.subscribe((status, error) {
+        if (status == RealtimeSubscribeStatus.channelError ||
+            status == RealtimeSubscribeStatus.closed) {
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              _channel?.unsubscribe();
+              _subscribeToMessages();
+            }
+          });
+        }
+      });
+
+      _channel = channel;
+    } catch (_) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) _subscribeToMessages();
+      });
+    }
   }
 
   Future<void> _handleNewMessage(Map<String, dynamic> newMessage) async {

@@ -74,40 +74,66 @@ class RoundHeaderWidget extends StatelessWidget {
         padding: EdgeInsets.all(isTablet ? 20 : 16),
         child: Column(
           children: [
-            // Top Row: Round number (left) + Timer (right)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Round ${round.roundNumber}',
-                      style: TextStyle(
-                        fontSize: isTablet ? 28 : 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+            // Top Row: Round number + Timer (timer hidden in results phase)
+            if (round.phase == GamePhase.results)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Round ${round.roundNumber}',
+                        style: TextStyle(
+                          fontSize: isTablet ? 28 : 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'of $totalRounds',
-                      style: TextStyle(
-                        fontSize: isTablet ? 16 : 14,
-                        color: AppColors.textSecondary,
+                      const SizedBox(height: 4),
+                      Text(
+                        'of $totalRounds',
+                        style: TextStyle(
+                          fontSize: isTablet ? 16 : 14,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                // Timer hidden during results phase (button-driven)
-                if (round.phase != GamePhase.results)
+                    ],
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Round ${round.roundNumber}',
+                        style: TextStyle(
+                          fontSize: isTablet ? 28 : 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'of $totalRounds',
+                        style: TextStyle(
+                          fontSize: isTablet ? 16 : 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                   PhaseTimerWidget(
                     phaseEndTime: round.phaseEndTime,
                     onTimeUp: onTimeUp,
                   ),
-              ],
-            ),
+                ],
+              ),
             SizedBox(height: isTablet ? 16 : 12),
             // Phase info + duration badge
             Container(
@@ -136,25 +162,27 @@ class RoundHeaderWidget extends StatelessWidget {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _durationText,
-                      style: TextStyle(
-                        fontSize: isTablet ? 14 : 12,
-                        color: AppColors.primaryLight,
-                        fontWeight: FontWeight.w500,
+                  if (round.phase != GamePhase.results) ...[
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        _durationText,
+                        style: TextStyle(
+                          fontSize: isTablet ? 14 : 12,
+                          color: AppColors.primaryLight,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

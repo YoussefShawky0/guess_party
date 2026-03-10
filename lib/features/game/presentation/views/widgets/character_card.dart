@@ -81,13 +81,15 @@ class CharacterCard extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    character.emoji,
-                    style: TextStyle(fontSize: isTablet ? 24 : 20),
+                  Icon(
+                    Icons.category_rounded,
+                    size: isTablet ? 20 : 16,
+                    color: AppColors.characterCardSubtext,
                   ),
-                  SizedBox(width: isTablet ? 12 : 8),
+                  SizedBox(width: isTablet ? 10 : 8),
                   Text(
-                    character.category,
+                    GameConstants.categoryNames[character.category] ??
+                        character.category,
                     style: TextStyle(
                       color: AppColors.characterCardSubtext,
                       fontSize: isTablet ? 16 : 14,
