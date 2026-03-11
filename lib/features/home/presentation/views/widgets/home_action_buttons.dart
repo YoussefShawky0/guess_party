@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -18,7 +18,7 @@ class HomeActionButtons extends StatelessWidget {
           onPressed: () => context.push(AppRoutes.createRoom),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.textPrimary,
+            foregroundColor: AppColors.of(context).textPrimary,
             padding: EdgeInsets.symmetric(vertical: isTablet ? 24 : 20),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

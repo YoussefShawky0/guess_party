@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -111,7 +111,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.2),
@@ -133,7 +133,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
                 child: Text(
                   'Enter Player Names',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: isTablet ? 22 : 18,
                   ),
@@ -145,7 +145,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
           Text(
             'Enter names for players who will play on this device',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 16 : 14,
             ),
           ),
@@ -158,17 +158,21 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
                 controller: _controllers[index],
                 decoration: InputDecoration(
                   labelText: 'Player ${index + 1}',
-                  labelStyle: TextStyle(color: AppColors.textSecondary),
+                  labelStyle: TextStyle(
+                    color: AppColors.of(context).textSecondary,
+                  ),
                   hintText: 'Enter name...',
                   hintStyle: TextStyle(
-                    color: AppColors.textSecondary.withValues(alpha: 0.5),
+                    color: AppColors.of(
+                      context,
+                    ).textSecondary.withValues(alpha: 0.5),
                   ),
                   prefixIcon: Padding(
                     padding: const EdgeInsets.all(12),
                     child: FaIcon(
                       FontAwesomeIcons.user,
                       color: _playerNames[index].isEmpty
-                          ? AppColors.textSecondary
+                          ? AppColors.of(context).textSecondary
                           : AppColors.primary,
                       size: 18,
                     ),
@@ -187,7 +191,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
                     borderSide: BorderSide(color: AppColors.primary, width: 2),
                   ),
                   filled: true,
-                  fillColor: AppColors.surfaceLight,
+                  fillColor: AppColors.of(context).inputFill,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -196,7 +200,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
                 textCapitalization: TextCapitalization.words,
                 style: TextStyle(
                   fontSize: isTablet ? 18 : 16,
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ),
@@ -220,7 +224,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
                   child: Text(
                     'At least 2 players required to start the game',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: AppColors.of(context).textSecondary,
                       fontSize: isTablet ? 14 : 12,
                     ),
                   ),

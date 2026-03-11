@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
@@ -23,7 +23,7 @@ class CategorySelector extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.2),
@@ -46,7 +46,7 @@ class CategorySelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 20 : 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ],
@@ -56,7 +56,7 @@ class CategorySelector extends StatelessWidget {
             initialValue: selectedCategory,
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppColors.surfaceLight,
+              fillColor: AppColors.of(context).surfaceLight,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -66,10 +66,10 @@ class CategorySelector extends StatelessWidget {
                 vertical: isTablet ? 16 : 12,
               ),
             ),
-            dropdownColor: AppColors.surface,
+            dropdownColor: AppColors.of(context).surface,
             style: TextStyle(
               fontSize: isTablet ? 18 : 16,
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
             ),
             items: GameConstants.categories.map((category) {
               return DropdownMenuItem<String>(
@@ -79,7 +79,7 @@ class CategorySelector extends StatelessWidget {
                   style: TextStyle(
                     fontSize: isTablet ? 18 : 16,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
               );

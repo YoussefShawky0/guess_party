@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
@@ -29,12 +29,12 @@ class CharacterCard extends StatelessWidget {
   Widget _buildCharacterCard(BuildContext context, bool isTablet) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.characterCardBg,
+        color: AppColors.of(context).characterCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.characterCardBorder, width: 2),
+        border: Border.all(color: AppColors.of(context).characterCardBorder, width: 2),
         boxShadow: [
           BoxShadow(
-            color: AppColors.characterCardBorder.withValues(alpha: 0.3),
+            color: AppColors.of(context).characterCardBorder.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -48,13 +48,13 @@ class CharacterCard extends StatelessWidget {
             Icon(
               Icons.person,
               size: isTablet ? 64 : 48,
-              color: AppColors.characterCardIcon,
+              color: AppColors.of(context).characterCardIcon,
             ),
             SizedBox(height: isTablet ? 16 : 12),
             Text(
               'Character',
               style: TextStyle(
-                color: AppColors.characterCardSubtext,
+                color: AppColors.of(context).characterCardSubtext,
                 fontSize: isTablet ? 20 : 18,
               ),
             ),
@@ -64,7 +64,7 @@ class CharacterCard extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: AppColors.characterCardText,
+                color: AppColors.of(context).characterCardText,
                 fontSize: isTablet ? 32 : 26,
               ),
             ),
@@ -75,7 +75,7 @@ class CharacterCard extends StatelessWidget {
                 vertical: isTablet ? 10 : 8,
               ),
               decoration: BoxDecoration(
-                color: AppColors.characterCardBorder.withValues(alpha: 0.2),
+                color: AppColors.of(context).characterCardBorder.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -84,14 +84,14 @@ class CharacterCard extends StatelessWidget {
                   Icon(
                     Icons.category_rounded,
                     size: isTablet ? 20 : 16,
-                    color: AppColors.characterCardSubtext,
+                    color: AppColors.of(context).characterCardSubtext,
                   ),
                   SizedBox(width: isTablet ? 10 : 8),
                   Text(
                     GameConstants.categoryNames[character.category] ??
                         character.category,
                     style: TextStyle(
-                      color: AppColors.characterCardSubtext,
+                      color: AppColors.of(context).characterCardSubtext,
                       fontSize: isTablet ? 16 : 14,
                     ),
                   ),

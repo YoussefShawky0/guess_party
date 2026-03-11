@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
 class JoinRoomButton extends StatelessWidget {
@@ -20,7 +20,7 @@ class JoinRoomButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: AppColors.of(context).textPrimary,
         padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -30,7 +30,7 @@ class JoinRoomButton extends StatelessWidget {
               width: isTablet ? 28 : 24,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppColors.textPrimary,
+                color: AppColors.of(context).textPrimary,
               ),
             )
           : Text(

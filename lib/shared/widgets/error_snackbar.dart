@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
@@ -10,7 +10,7 @@ class ErrorSnackBar {
           children: [
             FaIcon(
               FontAwesomeIcons.triangleExclamation,
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -20,7 +20,7 @@ class ErrorSnackBar {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ),
@@ -34,7 +34,7 @@ class ErrorSnackBar {
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'OK',
-          textColor: AppColors.textPrimary,
+          textColor: AppColors.of(context).textPrimary,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
           },
@@ -50,7 +50,7 @@ class ErrorSnackBar {
           children: [
             FaIcon(
               FontAwesomeIcons.exclamation,
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               size: 20,
             ),
             const SizedBox(width: 12),
@@ -60,7 +60,7 @@ class ErrorSnackBar {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 
@@ -30,7 +30,7 @@ class PodiumWidget extends StatelessWidget {
                   rank: 2,
                   score: playerScores[second.id] ?? 0,
                   barHeight: 148,
-                  barColor: AppColors.surfaceLight,
+                  barColor: AppColors.of(context).surfaceLight,
                   medalColor: AppColors.silverMedal,
                   avatarIndex: 1,
                 )

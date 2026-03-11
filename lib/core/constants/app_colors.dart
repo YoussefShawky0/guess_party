@@ -136,4 +136,187 @@ class AppColors {
   static Color getAvatarColor(int index) {
     return avatarColors[index % avatarColors.length];
   }
+
+  /// Returns the theme-aware colors for the current context.
+  static AppColorsTheme of(BuildContext context) =>
+      Theme.of(context).extension<AppColorsTheme>()!;
+}
+
+/// Theme extension that holds all surface/text colors that change
+/// between light and dark themes.
+class AppColorsTheme extends ThemeExtension<AppColorsTheme> {
+  const AppColorsTheme({
+    required this.background,
+    required this.surface,
+    required this.surfaceLight,
+    required this.inputFill,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.cardBg,
+    required this.cardBorder,
+    required this.buttonSecondary,
+    required this.hintCardBg,
+    required this.hintCardBorder,
+    required this.characterCardBg,
+    required this.characterCardBorder,
+    required this.characterCardText,
+    required this.characterCardSubtext,
+    required this.characterCardIcon,
+    required this.timerBg,
+    required this.voteUnselectedBg,
+  });
+
+  final Color background;
+  final Color surface;
+  final Color surfaceLight;
+  final Color inputFill;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color cardBg;
+  final Color cardBorder;
+  final Color buttonSecondary;
+  final Color hintCardBg;
+  final Color hintCardBorder;
+  final Color characterCardBg;
+  final Color characterCardBorder;
+  final Color characterCardText;
+  final Color characterCardSubtext;
+  final Color characterCardIcon;
+  final Color timerBg;
+  final Color voteUnselectedBg;
+
+  static const dark = AppColorsTheme(
+    background: Color(0xFF0A1929),
+    surface: Color(0xFF112D4E),
+    surfaceLight: Color(0xFF1C4D8D),
+    inputFill: Color(0xFF1C4D8D),
+    textPrimary: Color(0xFFF9F7F7),
+    textSecondary: Color(0xFFDBE2EF),
+    textMuted: Color(0xFFBDE8F5),
+    cardBg: Color(0xFF112D4E),
+    cardBorder: Color(0xFF1C4D8D),
+    buttonSecondary: Color(0xFF1C4D8D),
+    hintCardBg: Color(0xFF112D4E),
+    hintCardBorder: Color(0xFF1C4D8D),
+    characterCardBg: Color(0xFF112D4E),
+    characterCardBorder: Color(0xFF1C4D8D),
+    characterCardText: Color(0xFFF9F7F7),
+    characterCardSubtext: Color(0xFFDBE2EF),
+    characterCardIcon: Color(0xFFDBE2EF),
+    timerBg: Color(0xFF112D4E),
+    voteUnselectedBg: Color(0xFF1C4D8D),
+  );
+
+  static const light = AppColorsTheme(
+    background: Color(0xFFF9F7F7),
+    surface: Color(0xFFDBE2EF),
+    surfaceLight: Color(0xFF3F72AF),
+    inputFill: Color(0xFFFFFFFF),
+    textPrimary: Color(0xFF112D4E),
+    textSecondary: Color(0xFF3F72AF),
+    textMuted: Color(0xFF3F72AF),
+    cardBg: Color(0xFFDBE2EF),
+    cardBorder: Color(0xFF3F72AF),
+    buttonSecondary: Color(0xFFDBE2EF),
+    hintCardBg: Color(0xFFDBE2EF),
+    hintCardBorder: Color(0xFF3F72AF),
+    characterCardBg: Color(0xFFDBE2EF),
+    characterCardBorder: Color(0xFF3F72AF),
+    characterCardText: Color(0xFF112D4E),
+    characterCardSubtext: Color(0xFF3F72AF),
+    characterCardIcon: Color(0xFF3F72AF),
+    timerBg: Color(0xFFDBE2EF),
+    voteUnselectedBg: Color(0xFFDBE2EF),
+  );
+
+  @override
+  AppColorsTheme copyWith({
+    Color? background,
+    Color? surface,
+    Color? surfaceLight,
+    Color? inputFill,
+    Color? textPrimary,
+    Color? textSecondary,
+    Color? textMuted,
+    Color? cardBg,
+    Color? cardBorder,
+    Color? buttonSecondary,
+    Color? hintCardBg,
+    Color? hintCardBorder,
+    Color? characterCardBg,
+    Color? characterCardBorder,
+    Color? characterCardText,
+    Color? characterCardSubtext,
+    Color? characterCardIcon,
+    Color? timerBg,
+    Color? voteUnselectedBg,
+  }) => AppColorsTheme(
+    background: background ?? this.background,
+    surface: surface ?? this.surface,
+    surfaceLight: surfaceLight ?? this.surfaceLight,
+    inputFill: inputFill ?? this.inputFill,
+    textPrimary: textPrimary ?? this.textPrimary,
+    textSecondary: textSecondary ?? this.textSecondary,
+    textMuted: textMuted ?? this.textMuted,
+    cardBg: cardBg ?? this.cardBg,
+    cardBorder: cardBorder ?? this.cardBorder,
+    buttonSecondary: buttonSecondary ?? this.buttonSecondary,
+    hintCardBg: hintCardBg ?? this.hintCardBg,
+    hintCardBorder: hintCardBorder ?? this.hintCardBorder,
+    characterCardBg: characterCardBg ?? this.characterCardBg,
+    characterCardBorder: characterCardBorder ?? this.characterCardBorder,
+    characterCardText: characterCardText ?? this.characterCardText,
+    characterCardSubtext: characterCardSubtext ?? this.characterCardSubtext,
+    characterCardIcon: characterCardIcon ?? this.characterCardIcon,
+    timerBg: timerBg ?? this.timerBg,
+    voteUnselectedBg: voteUnselectedBg ?? this.voteUnselectedBg,
+  );
+
+  @override
+  AppColorsTheme lerp(AppColorsTheme? other, double t) {
+    if (other is! AppColorsTheme) return this;
+    return AppColorsTheme(
+      background: Color.lerp(background, other.background, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      surfaceLight: Color.lerp(surfaceLight, other.surfaceLight, t)!,
+      inputFill: Color.lerp(inputFill, other.inputFill, t)!,
+      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
+      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
+      textMuted: Color.lerp(textMuted, other.textMuted, t)!,
+      cardBg: Color.lerp(cardBg, other.cardBg, t)!,
+      cardBorder: Color.lerp(cardBorder, other.cardBorder, t)!,
+      buttonSecondary: Color.lerp(buttonSecondary, other.buttonSecondary, t)!,
+      hintCardBg: Color.lerp(hintCardBg, other.hintCardBg, t)!,
+      hintCardBorder: Color.lerp(hintCardBorder, other.hintCardBorder, t)!,
+      characterCardBg: Color.lerp(characterCardBg, other.characterCardBg, t)!,
+      characterCardBorder: Color.lerp(
+        characterCardBorder,
+        other.characterCardBorder,
+        t,
+      )!,
+      characterCardText: Color.lerp(
+        characterCardText,
+        other.characterCardText,
+        t,
+      )!,
+      characterCardSubtext: Color.lerp(
+        characterCardSubtext,
+        other.characterCardSubtext,
+        t,
+      )!,
+      characterCardIcon: Color.lerp(
+        characterCardIcon,
+        other.characterCardIcon,
+        t,
+      )!,
+      timerBg: Color.lerp(timerBg, other.timerBg, t)!,
+      voteUnselectedBg: Color.lerp(
+        voteUnselectedBg,
+        other.voteUnselectedBg,
+        t,
+      )!,
+    );
+  }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -62,7 +62,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
 
   Widget _buildScaffold() {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.of(context).background,
       appBar: WaitingRoomAppBar(
         currentPlayerId: _currentPlayerId ?? '',
         roomId: widget.roomId,

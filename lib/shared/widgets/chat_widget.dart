@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -155,10 +155,10 @@ class _ChatWidgetState extends State<ChatWidget> {
     return Container(
       height: isTablet ? 400 : 300,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.surfaceLight.withValues(alpha: 0.2),
+          color: AppColors.of(context).surfaceLight.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -185,7 +185,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: isTablet ? 18 : 16,
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
               ],
@@ -202,7 +202,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                 ? Center(
                     child: Text(
                       'No messages yet',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: AppColors.of(context).textSecondary),
                     ),
                   )
                 : ListView.builder(
@@ -229,7 +229,7 @@ class _ChatWidgetState extends State<ChatWidget> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surfaceLight,
+              color: AppColors.of(context).surfaceLight,
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(16),
               ),
@@ -239,16 +239,16 @@ class _ChatWidgetState extends State<ChatWidget> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: AppColors.of(context).textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
-                      hintStyle: TextStyle(color: AppColors.textMuted),
+                      hintStyle: TextStyle(color: AppColors.of(context).textMuted),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: AppColors.of(context).surface,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 12,
@@ -265,7 +265,7 @@ class _ChatWidgetState extends State<ChatWidget> {
                   icon: const FaIcon(FontAwesomeIcons.paperPlane, size: 18),
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.textPrimary,
+                    foregroundColor: AppColors.of(context).textPrimary,
                     padding: const EdgeInsets.all(12),
                   ),
                 ),
@@ -302,7 +302,7 @@ class _MessageBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
-          color: isCurrentUser ? AppColors.primary : AppColors.surfaceLight,
+          color: isCurrentUser ? AppColors.primary : AppColors.of(context).surfaceLight,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -322,8 +322,8 @@ class _MessageBubble extends StatelessWidget {
               content,
               style: TextStyle(
                 color: isCurrentUser
-                    ? AppColors.textPrimary
-                    : AppColors.textPrimary,
+                    ? AppColors.of(context).textPrimary
+                    : AppColors.of(context).textPrimary,
                 fontSize: isTablet ? 16 : 14,
               ),
             ),

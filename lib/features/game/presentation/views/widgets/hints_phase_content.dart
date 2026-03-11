@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -63,7 +63,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
       style: TextStyle(
         fontSize: isTablet ? 24 : 20,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: AppColors.of(context).textPrimary,
       ),
     );
   }
@@ -71,9 +71,9 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
   Widget _buildLocalModeCard(BuildContext context, bool isTablet) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.hintCardBg,
+        color: AppColors.of(context).hintCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.hintCardBorder, width: 2),
+        border: Border.all(color: AppColors.of(context).hintCardBorder, width: 2),
       ),
       padding: EdgeInsets.all(isTablet ? 24 : 16),
       child: Column(
@@ -81,14 +81,14 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
           Icon(
             Icons.people,
             size: isTablet ? 64 : 48,
-            color: AppColors.characterCardIcon,
+            color: AppColors.of(context).characterCardIcon,
           ),
           SizedBox(height: isTablet ? 16 : 12),
           Text(
             'Discuss and give hints verbally!',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               fontSize: isTablet ? 20 : 16,
             ),
           ),
@@ -97,7 +97,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
             'Talk about the character without revealing yourself. The timer will move to voting automatically.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 16 : 14,
             ),
           ),
@@ -110,7 +110,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
     return Text(
       'Give a hint about the character without revealing yourself!',
       style: TextStyle(
-        color: AppColors.textSecondary,
+        color: AppColors.of(context).textSecondary,
         fontSize: isTablet ? 16 : 14,
       ),
     );
@@ -119,9 +119,9 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
   Widget _buildHintInput(BuildContext context, bool isTablet) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
       ),
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       child: Column(
@@ -130,22 +130,22 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
           TextField(
             controller: _hintController,
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               fontSize: isTablet ? 18 : 16,
             ),
             decoration: InputDecoration(
               labelText: 'Write your hint here',
-              labelStyle: TextStyle(color: AppColors.textMuted),
+              labelStyle: TextStyle(color: AppColors.of(context).textMuted),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: AppColors.cardBorder),
+                borderSide: BorderSide(color: AppColors.of(context).cardBorder),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                   color: _errorMessage != null
                       ? AppColors.error
-                      : AppColors.cardBorder,
+                      : AppColors.of(context).cardBorder,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
@@ -158,9 +158,9 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
                 ),
               ),
               hintText: 'مثال: يستخدم في المطبخ',
-              hintStyle: TextStyle(color: AppColors.textMuted),
+              hintStyle: TextStyle(color: AppColors.of(context).textMuted),
               filled: true,
-              fillColor: AppColors.surface,
+              fillColor: AppColors.of(context).surface,
             ),
             maxLines: 2,
             onChanged: (_) {
@@ -184,7 +184,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
             onPressed: _submitHint,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.buttonPrimary,
-              foregroundColor: AppColors.textPrimary,
+              foregroundColor: AppColors.of(context).textPrimary,
               padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -245,15 +245,15 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
     if (widget.round.playerHints.isEmpty) {
       return Container(
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
+          color: AppColors.of(context).cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.cardBorder, width: 1),
+          border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
         ),
         padding: EdgeInsets.all(isTablet ? 20 : 16),
         child: Text(
           'No hints yet...',
           style: TextStyle(
-            color: AppColors.textMuted,
+            color: AppColors.of(context).textMuted,
             fontSize: isTablet ? 16 : 14,
           ),
         ),
@@ -262,9 +262,9 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
       ),
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       child: Column(
@@ -273,7 +273,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
           Text(
             'Hints Submitted (${widget.round.playerHints.length}/${widget.round.playerIds.length})',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,
               fontSize: isTablet ? 18 : 16,
             ),
@@ -328,7 +328,7 @@ class _HintItem extends StatelessWidget {
             child: RichText(
               text: TextSpan(
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                   fontSize: isTablet ? 16 : 14,
                 ),
                 children: [

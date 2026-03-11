@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -106,7 +106,7 @@ class _LoginViewState extends State<LoginView> {
                         style: TextStyle(
                           fontSize: isTablet ? 36 : 32,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -118,17 +118,17 @@ class _LoginViewState extends State<LoginView> {
                         enabled: state is! AuthLoading,
                         style: TextStyle(
                           fontSize: isTablet ? 18 : 16,
-                          color: AppColors.textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                         decoration: InputDecoration(
                           labelText: 'Username',
-                          labelStyle: TextStyle(color: AppColors.textSecondary),
+                          labelStyle: TextStyle(color: AppColors.of(context).textSecondary),
                           prefixIcon: Icon(
                             Icons.person_outline,
-                            color: AppColors.textSecondary,
+                            color: AppColors.of(context).textSecondary,
                           ),
                           filled: true,
-                          fillColor: AppColors.surface,
+                          fillColor: AppColors.of(context).surface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
@@ -156,17 +156,17 @@ class _LoginViewState extends State<LoginView> {
                         obscureText: true,
                         style: TextStyle(
                           fontSize: isTablet ? 18 : 16,
-                          color: AppColors.textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          labelStyle: TextStyle(color: AppColors.textSecondary),
+                          labelStyle: TextStyle(color: AppColors.of(context).textSecondary),
                           prefixIcon: Icon(
                             Icons.lock_outline,
-                            color: AppColors.textSecondary,
+                            color: AppColors.of(context).textSecondary,
                           ),
                           filled: true,
-                          fillColor: AppColors.surface,
+                          fillColor: AppColors.of(context).surface,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
@@ -192,7 +192,7 @@ class _LoginViewState extends State<LoginView> {
                         onPressed: state is AuthLoading ? null : _handleSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.buttonPrimary,
-                          foregroundColor: AppColors.textPrimary,
+                          foregroundColor: AppColors.of(context).textPrimary,
                           padding: EdgeInsets.symmetric(
                             vertical: isTablet ? 20 : 16,
                           ),
@@ -207,7 +207,7 @@ class _LoginViewState extends State<LoginView> {
                                 child: CircularProgressIndicator(
                                   strokeWidth: 3,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    AppColors.textPrimary,
+                                    AppColors.of(context).textPrimary,
                                   ),
                                 ),
                               )

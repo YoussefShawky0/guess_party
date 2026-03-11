@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -98,9 +98,9 @@ class _CreateRoomViewState extends State<CreateRoomView> {
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.of(context).surface,
         title: const AppBarTitle(title: 'Create Room'),
         centerTitle: true,
       ),
@@ -216,7 +216,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                               child: CircularProgressIndicator(
                                 strokeWidth: 3,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.textPrimary,
+                                  AppColors.of(context).textPrimary,
                                 ),
                               ),
                             )

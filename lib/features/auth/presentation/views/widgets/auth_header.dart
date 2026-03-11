@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
 class AuthHeader extends StatelessWidget {
@@ -31,7 +31,7 @@ class AuthHeader extends StatelessWidget {
           'Find the Imposter',
           style: TextStyle(
             fontSize: isTablet ? 18 : 16,
-            color: AppColors.textSecondary,
+            color: AppColors.of(context).textSecondary,
           ),
           textAlign: TextAlign.center,
         ),

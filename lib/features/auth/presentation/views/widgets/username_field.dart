@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/utils/validators.dart';
 
@@ -24,21 +24,21 @@ class UsernameField extends StatelessWidget {
       style: TextStyle(
         fontSize: isTablet ? 20 : 18,
         fontWeight: FontWeight.w500,
-        color: AppColors.textPrimary,
+        color: AppColors.of(context).textPrimary,
       ),
       decoration: InputDecoration(
         hintText: 'Enter your username',
         hintStyle: TextStyle(
           fontSize: isTablet ? 18 : 16,
-          color: AppColors.textMuted,
+          color: AppColors.of(context).textMuted,
         ),
         prefixIcon: Icon(
           Icons.person_outline,
           size: isTablet ? 28 : 24,
-          color: AppColors.textSecondary,
+          color: AppColors.of(context).textSecondary,
         ),
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.of(context).surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(

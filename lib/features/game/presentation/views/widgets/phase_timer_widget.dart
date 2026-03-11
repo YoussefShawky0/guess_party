@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -108,7 +108,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.timerBg,
+        color: AppColors.of(context).timerBg,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color, width: 2),
       ),
@@ -138,7 +138,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
   Widget _buildLargeTimer(Color color, String timeText) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.timerBg,
+        color: AppColors.of(context).timerBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color, width: 3),
       ),

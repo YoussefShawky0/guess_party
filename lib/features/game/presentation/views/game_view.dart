@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -46,7 +46,7 @@ class GameViewContent extends StatelessWidget {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
+            backgroundColor: AppColors.of(context).surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -60,27 +60,27 @@ class GameViewContent extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(
                   'Leave Game?',
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: AppColors.of(context).textPrimary),
                 ),
               ],
             ),
             content: Text(
               'Are you sure you want to leave? Other players will be notified and the game may end.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: Text(
                   'Stay',
-                  style: TextStyle(color: AppColors.textMuted),
+                  style: TextStyle(color: AppColors.of(context).textMuted),
                 ),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,
-                  foregroundColor: AppColors.textPrimary,
+                  foregroundColor: AppColors.of(context).textPrimary,
                 ),
                 child: const Text('Leave'),
               ),
@@ -128,11 +128,11 @@ class GameViewContent extends StatelessWidget {
         await _handleLeaveGame(context);
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.of(context).background,
         appBar: AppBar(
           title: const Text('Game'),
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.textPrimary,
+          backgroundColor: AppColors.of(context).surface,
+          foregroundColor: AppColors.of(context).textPrimary,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => _handleLeaveGame(context),
@@ -147,14 +147,14 @@ class GameViewContent extends StatelessWidget {
                 SnackBar(
                   content: Row(
                     children: [
-                      Icon(Icons.error_outline, color: AppColors.textPrimary),
+                      Icon(Icons.error_outline, color: AppColors.of(context).textPrimary),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           state.message,
                           style: TextStyle(
                             fontSize: 16,
-                            color: AppColors.textPrimary,
+                            color: AppColors.of(context).textPrimary,
                           ),
                         ),
                       ),
@@ -189,7 +189,7 @@ class GameViewContent extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       'Loading game...',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: AppColors.of(context).textSecondary),
                     ),
                   ],
                 ),
@@ -208,7 +208,7 @@ class GameViewContent extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: AppColors.of(context).textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -216,7 +216,7 @@ class GameViewContent extends StatelessWidget {
                       state.message,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppColors.textSecondary,
+                        color: AppColors.of(context).textSecondary,
                         fontSize: 14,
                       ),
                     ),
@@ -232,7 +232,7 @@ class GameViewContent extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.buttonPrimary,
-                        foregroundColor: AppColors.textPrimary,
+                        foregroundColor: AppColors.of(context).textPrimary,
                       ),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retry'),

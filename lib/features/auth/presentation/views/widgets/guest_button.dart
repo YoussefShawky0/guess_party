@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
 class GuestButton extends StatelessWidget {
@@ -16,7 +16,7 @@ class GuestButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.buttonPrimary,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: AppColors.of(context).textPrimary,
         padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 4,
@@ -28,7 +28,7 @@ class GuestButton extends StatelessWidget {
               child: CircularProgressIndicator(
                 strokeWidth: 3,
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  AppColors.textPrimary,
+                  AppColors.of(context).textPrimary,
                 ),
               ),
             )

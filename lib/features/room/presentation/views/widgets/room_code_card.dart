@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -21,7 +21,7 @@ class RoomCodeCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 40 : 32),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.3),
@@ -34,7 +34,7 @@ class RoomCodeCard extends StatelessWidget {
             'Room Code',
             style: TextStyle(
               fontSize: isTablet ? 22 : 18,
-              color: AppColors.textSecondary,
+              color: AppColors.of(context).textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),

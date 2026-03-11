@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:guess_party/core/router/app_router.dart';
 import 'package:guess_party/core/theme/app_theme.dart';
+import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/di/injection_container.dart' as di;
@@ -28,11 +30,20 @@ class GuessParty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Guess Party',
-      theme: AppTheme.darkTheme,
-      routerConfig: AppRouter.router,
-      debugShowCheckedModeBanner: false,
+    return BlocProvider.value(
+      value: di.sl<ThemeCubit>(),
+      child: BlocBuilder<ThemeCubit, ThemeMode>(
+        builder: (context, themeMode) {
+          return MaterialApp.router(
+            title: 'Guess Party',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeMode,
+            routerConfig: AppRouter.router,
+            debugShowCheckedModeBanner: false,
+          );
+        },
+      ),
     );
   }
 }

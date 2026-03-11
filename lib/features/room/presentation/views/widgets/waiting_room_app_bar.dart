@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -37,13 +37,13 @@ class WaitingRoomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.of(context).surface,
       title: const AppBarTitle(title: 'Waiting Room'),
       centerTitle: true,
       leading: IconButton(
         icon: FaIcon(
           FontAwesomeIcons.arrowLeftLong,
-          color: AppColors.textPrimary,
+          color: AppColors.of(context).textPrimary,
           size: 20,
         ),
         onPressed: () => _handleBackPress(context),

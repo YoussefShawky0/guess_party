@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
 class PassDeviceScreen extends StatefulWidget {
@@ -77,7 +77,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
               AppColors.secondary.withValues(alpha: 0.1),
             ],
           ),
-          color: AppColors.background,
+          color: AppColors.of(context).background,
         ),
         child: SafeArea(
           child: Padding(
@@ -97,7 +97,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                 Text(
                   'Pass device to',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: AppColors.of(context).textSecondary,
                     fontSize: isTablet ? 28 : 22,
                   ),
                 ),
@@ -172,7 +172,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                       borderRadius: BorderRadius.circular(16),
                     ),
                     backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.textPrimary,
+                    foregroundColor: AppColors.of(context).textPrimary,
                   ),
                   child: Text(
                     'Reveal Role',
@@ -207,7 +207,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
               roleColor.withValues(alpha: 0.05),
             ],
           ),
-          color: AppColors.background,
+          color: AppColors.of(context).background,
         ),
         child: SafeArea(
           child: FadeTransition(
@@ -247,7 +247,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                   Text(
                     'You are',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: AppColors.of(context).textSecondary,
                       fontSize: isTablet ? 28 : 22,
                     ),
                   ),
@@ -280,10 +280,10 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: AppColors.of(context).surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppColors.surfaceLight.withValues(alpha: 0.2),
+                        color: AppColors.of(context).surfaceLight.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Text(
@@ -291,7 +291,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                           ? 'Pretend to know the character and blend in with the others!'
                           : 'Give hints about your character without revealing too much!',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: AppColors.of(context).textPrimary,
                         fontSize: isTablet ? 18 : 16,
                         height: 1.5,
                       ),
@@ -310,7 +310,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                         borderRadius: BorderRadius.circular(16),
                       ),
                       backgroundColor: roleColor,
-                      foregroundColor: AppColors.textPrimary,
+                      foregroundColor: AppColors.of(context).textPrimary,
                     ),
                     child: Text(
                       'Continue',

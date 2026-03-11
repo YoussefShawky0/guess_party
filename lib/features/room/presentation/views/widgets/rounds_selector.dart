@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
@@ -22,7 +22,7 @@ class RoundsSelector extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.2),
@@ -48,7 +48,7 @@ class RoundsSelector extends StatelessWidget {
                     style: TextStyle(
                       fontSize: isTablet ? 20 : 18,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                 ],
@@ -67,7 +67,7 @@ class RoundsSelector extends StatelessWidget {
                   style: TextStyle(
                     fontSize: isTablet ? 20 : 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
               ),
@@ -103,14 +103,14 @@ class RoundsSelector extends StatelessWidget {
                   '3 rounds',
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 12,
-                    color: AppColors.textSecondary,
+                    color: AppColors.of(context).textSecondary,
                   ),
                 ),
                 Text(
                   '10 rounds',
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 12,
-                    color: AppColors.textSecondary,
+                    color: AppColors.of(context).textSecondary,
                   ),
                 ),
               ],

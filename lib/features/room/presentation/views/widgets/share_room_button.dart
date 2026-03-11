@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:share_plus/share_plus.dart';
@@ -39,7 +39,7 @@ Enter this code in the app to join the game!
       ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: AppColors.of(context).textPrimary,
         padding: EdgeInsets.symmetric(
           horizontal: isTablet ? 32 : 24,
           vertical: isTablet ? 18 : 16,

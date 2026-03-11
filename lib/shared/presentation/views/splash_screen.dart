@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen>
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.of(context).background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -74,7 +74,7 @@ class _SplashScreenState extends State<SplashScreen>
               style: TextStyle(
                 fontSize: isTablet ? 48 : 36,
                 fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+                color: AppColors.of(context).textPrimary,
                 letterSpacing: 1.5,
               ),
             ),

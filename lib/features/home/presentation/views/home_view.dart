@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -32,7 +32,7 @@ class HomeContent extends StatelessWidget {
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.of(context).background,
       body: SafeArea(
         child: Column(
           children: [
@@ -43,8 +43,8 @@ class HomeContent extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    AppColors.surface,
-                    AppColors.surface.withValues(alpha: 0.9),
+                    AppColors.of(context).surface,
+                    AppColors.of(context).surface.withValues(alpha: 0.9),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
@@ -79,14 +79,14 @@ class HomeContent extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: AppColors.of(context).textPrimary,
                       ),
                     ),
                   ),
                   // Settings Button
                   IconButton(
                     icon: const FaIcon(FontAwesomeIcons.gear, size: 18),
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                     tooltip: 'Settings',
                     onPressed: () {
                       context.push(AppRoutes.settings);

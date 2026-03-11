@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -96,7 +96,7 @@ class _PlayersListState extends State<PlayersList> {
                   style: TextStyle(
                     fontSize: isTablet ? 24 : 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -127,7 +127,7 @@ class _PlayersListState extends State<PlayersList> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.of(context).surface,
               borderRadius: BorderRadius.circular(16),
             ),
             child: BlocBuilder<RoomCubit, RoomState>(
@@ -137,7 +137,7 @@ class _PlayersListState extends State<PlayersList> {
                     return Center(
                       child: Text(
                         'No players yet',
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: TextStyle(color: AppColors.of(context).textSecondary),
                       ),
                     );
                   }
@@ -150,7 +150,7 @@ class _PlayersListState extends State<PlayersList> {
                       return Container(
                         padding: EdgeInsets.all(isTablet ? 20 : 16),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceLight,
+                          color: AppColors.of(context).surfaceLight,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -160,7 +160,7 @@ class _PlayersListState extends State<PlayersList> {
                               backgroundColor: AppColors.primary,
                               child: FaIcon(
                                 FontAwesomeIcons.user,
-                                color: AppColors.textPrimary,
+                                color: AppColors.of(context).textPrimary,
                                 size: isTablet ? 22 : 18,
                               ),
                             ),
@@ -174,7 +174,7 @@ class _PlayersListState extends State<PlayersList> {
                                     style: TextStyle(
                                       fontSize: isTablet ? 20 : 18,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
+                                      color: AppColors.of(context).textPrimary,
                                     ),
                                   ),
                                   if (player.isHost)
@@ -196,7 +196,7 @@ class _PlayersListState extends State<PlayersList> {
                               decoration: BoxDecoration(
                                 color: player.isOnline
                                     ? AppColors.success.withValues(alpha: 0.2)
-                                    : AppColors.textSecondary.withValues(
+                                    : AppColors.of(context).textSecondary.withValues(
                                         alpha: 0.2,
                                       ),
                                 borderRadius: BorderRadius.circular(20),
@@ -207,7 +207,7 @@ class _PlayersListState extends State<PlayersList> {
                                   fontSize: isTablet ? 14 : 12,
                                   color: player.isOnline
                                       ? AppColors.success
-                                      : AppColors.textSecondary,
+                                      : AppColors.of(context).textSecondary,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

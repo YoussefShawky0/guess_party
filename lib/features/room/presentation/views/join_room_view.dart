@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -59,9 +59,9 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.of(context).surface,
         title: const AppBarTitle(title: 'Join Room'),
         centerTitle: true,
       ),

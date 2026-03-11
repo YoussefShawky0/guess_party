@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -63,7 +63,7 @@ class ImposterRevealCard extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(isTablet ? 20 : 16),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.of(context).surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: AppColors.imposterCardBorder,
@@ -76,7 +76,7 @@ class ImposterRevealCard extends StatelessWidget {
                     'The Imposter was:',
                     style: TextStyle(
                       fontSize: isTablet ? 20 : 16,
-                      color: AppColors.textSecondary,
+                      color: AppColors.of(context).textSecondary,
                     ),
                   ),
                   SizedBox(height: isTablet ? 16 : 12),
@@ -90,7 +90,7 @@ class ImposterRevealCard extends StatelessWidget {
                           imposter.username[0].toUpperCase(),
                           style: TextStyle(
                             fontSize: isTablet ? 32 : 24,
-                            color: AppColors.textPrimary,
+                            color: AppColors.of(context).textPrimary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -102,7 +102,7 @@ class ImposterRevealCard extends StatelessWidget {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: isTablet ? 28 : 22,
-                            color: AppColors.textPrimary,
+                            color: AppColors.of(context).textPrimary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),

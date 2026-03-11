@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
@@ -26,7 +26,7 @@ class GameModeSelector extends StatelessWidget {
           style: TextStyle(
             fontSize: isTablet ? 18 : 16,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: AppColors.of(context).textPrimary,
           ),
         ),
         const SizedBox(height: 12),
@@ -77,7 +77,7 @@ class GameModeSelector extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.surface,
+              : AppColors.of(context).surface,
           border: Border.all(
             color: isSelected
                 ? AppColors.primary
@@ -94,7 +94,7 @@ class GameModeSelector extends StatelessWidget {
               FaIcon(
                 icon,
                 size: isTablet ? 40 : 32,
-                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                color: isSelected ? AppColors.primary : AppColors.of(context).textSecondary,
               ),
               SizedBox(height: isTablet ? 12 : 8),
               Text(
@@ -102,7 +102,7 @@ class GameModeSelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 18 : 16,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                  color: isSelected ? AppColors.primary : AppColors.of(context).textPrimary,
                 ),
               ),
               SizedBox(height: isTablet ? 6 : 4),
@@ -111,7 +111,7 @@ class GameModeSelector extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: isTablet ? 13 : 11,
-                  color: AppColors.textSecondary,
+                  color: AppColors.of(context).textSecondary,
                 ),
               ),
               if (isSelected) ...[

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 
@@ -28,9 +28,9 @@ class VotingResultsCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
       ),
       child: Padding(
         padding: EdgeInsets.all(isTablet ? 20 : 16),
@@ -42,7 +42,7 @@ class VotingResultsCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: isTablet ? 24 : 20,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.of(context).textPrimary,
               ),
             ),
             SizedBox(height: isTablet ? 16 : 12),
@@ -50,7 +50,7 @@ class VotingResultsCard extends StatelessWidget {
               width: double.infinity,
               padding: EdgeInsets.all(isTablet ? 16 : 12),
               decoration: BoxDecoration(
-                color: AppColors.hintCardBg,
+                color: AppColors.of(context).hintCardBg,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.info, width: 1),
               ),
@@ -59,7 +59,7 @@ class VotingResultsCard extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: isTablet ? 18 : 16,
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ),
@@ -109,11 +109,11 @@ class _VoteResultRow extends StatelessWidget {
                 radius: isTablet ? 20 : 16,
                 backgroundColor: isImposter
                     ? AppColors.imposterCardBorder
-                    : AppColors.characterCardBorder,
+                    : AppColors.of(context).characterCardBorder,
                 child: Text(
                   player.username[0].toUpperCase(),
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                     fontSize: isTablet ? 18 : 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -128,7 +128,7 @@ class _VoteResultRow extends StatelessWidget {
                         ? FontWeight.bold
                         : FontWeight.normal,
                     fontSize: isTablet ? 18 : 16,
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

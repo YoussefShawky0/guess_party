@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
 class WelcomeSection extends StatelessWidget {
@@ -19,7 +19,7 @@ class WelcomeSection extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.surface, AppColors.surface.withValues(alpha: 0.8)],
+          colors: [AppColors.of(context).surface, AppColors.of(context).surface.withValues(alpha: 0.8)],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
@@ -83,7 +83,7 @@ class WelcomeSection extends StatelessWidget {
               fontSize: isTablet ? 28 : 24,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
             ),
             textAlign: TextAlign.center,
           ),

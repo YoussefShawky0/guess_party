@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -74,7 +74,7 @@ class VotingPhaseContent extends StatelessWidget {
       style: TextStyle(
         fontSize: isTablet ? 24 : 20,
         fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
+        color: AppColors.of(context).textPrimary,
       ),
     );
   }
@@ -85,7 +85,7 @@ class VotingPhaseContent extends StatelessWidget {
           ? 'Find the Impostor! Each player taps their own name, then picks who they suspect.'
           : 'Vote for who you think is the Impostor!',
       style: TextStyle(
-        color: AppColors.textSecondary,
+        color: AppColors.of(context).textSecondary,
         fontSize: isTablet ? 16 : 14,
       ),
     );
@@ -102,9 +102,9 @@ class VotingPhaseContent extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
       ),
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       child: Column(
@@ -115,7 +115,7 @@ class VotingPhaseContent extends StatelessWidget {
                 ? 'Tap your name to vote ↓'
                 : 'Choose a suspect:',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,
               fontSize: isTablet ? 18 : 16,
             ),
@@ -184,21 +184,21 @@ class VotingPhaseContent extends StatelessWidget {
       showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          backgroundColor: AppColors.surface,
+          backgroundColor: AppColors.of(context).surface,
           title: Text(
             'Change Vote?',
-            style: TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.of(context).textPrimary),
           ),
           content: Text(
             'Change your vote to ${votedPlayer.username}?',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: AppColors.of(context).textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: AppColors.textMuted),
+                style: TextStyle(color: AppColors.of(context).textMuted),
               ),
             ),
             ElevatedButton(
@@ -239,20 +239,20 @@ class VotingPhaseContent extends StatelessWidget {
           bloc: gameCubit,
           builder: (_, state) {
             return AlertDialog(
-              backgroundColor: AppColors.surface,
+              backgroundColor: AppColors.of(context).surface,
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     '${voter.username}, who do you suspect?',
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: AppColors.of(context).textPrimary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Tap the player you think is the Impostor',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: AppColors.of(context).textSecondary,
                       fontSize: 13,
                       fontWeight: FontWeight.normal,
                     ),
@@ -268,14 +268,14 @@ class VotingPhaseContent extends StatelessWidget {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: isVotingForSelf
-                            ? AppColors.surfaceLight
+                            ? AppColors.of(context).surfaceLight
                             : AppColors.primary,
                         child: Text(
                           player.username[0].toUpperCase(),
                           style: TextStyle(
                             color: isVotingForSelf
-                                ? AppColors.textMuted
-                                : AppColors.textPrimary,
+                                ? AppColors.of(context).textMuted
+                                : AppColors.of(context).textPrimary,
                           ),
                         ),
                       ),
@@ -283,8 +283,8 @@ class VotingPhaseContent extends StatelessWidget {
                         player.username,
                         style: TextStyle(
                           color: isVotingForSelf
-                              ? AppColors.textMuted
-                              : AppColors.textPrimary,
+                              ? AppColors.of(context).textMuted
+                              : AppColors.of(context).textPrimary,
                         ),
                       ),
                       subtitle: isVotingForSelf
@@ -318,7 +318,7 @@ class VotingPhaseContent extends StatelessWidget {
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(color: AppColors.textMuted),
+                    style: TextStyle(color: AppColors.of(context).textMuted),
                   ),
                 ),
               ],
@@ -349,7 +349,7 @@ class VotingPhaseContent extends StatelessWidget {
             child: Text(
               'Vote submitted! Waiting for results...',
               style: TextStyle(
-                color: AppColors.textPrimary,
+                color: AppColors.of(context).textPrimary,
                 fontSize: isTablet ? 16 : 14,
               ),
             ),
@@ -367,7 +367,7 @@ class VotingPhaseContent extends StatelessWidget {
         label: const Text('Show Results Now →'),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.success,
-          foregroundColor: AppColors.textPrimary,
+          foregroundColor: AppColors.of(context).textPrimary,
           minimumSize: const Size.fromHeight(50),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -378,7 +378,7 @@ class VotingPhaseContent extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(isTablet ? 16 : 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -396,7 +396,7 @@ class VotingPhaseContent extends StatelessWidget {
           Text(
             'All votes in! Waiting for host...',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 16 : 14,
             ),
           ),
@@ -410,9 +410,9 @@ class VotingPhaseContent extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder, width: 1),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
       ),
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       child: Column(
@@ -421,7 +421,7 @@ class VotingPhaseContent extends StatelessWidget {
           Text(
             'Votes (${round.playerVotes.length}/${round.playerIds.length})',
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,
               fontSize: isTablet ? 18 : 16,
             ),
@@ -432,7 +432,7 @@ class VotingPhaseContent extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               minHeight: isTablet ? 12 : 8,
-              backgroundColor: AppColors.surfaceLight,
+              backgroundColor: AppColors.of(context).surfaceLight,
               valueColor: AlwaysStoppedAnimation<Color>(
                 progress >= 1.0 ? AppColors.success : AppColors.primary,
               ),
@@ -470,12 +470,12 @@ class _VotePlayerTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: (iVotedForThis || hasAlreadyVotedAsVoter)
               ? AppColors.voteSelectedBg
-              : AppColors.voteUnselectedBg,
+              : AppColors.of(context).voteUnselectedBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: (iVotedForThis || hasAlreadyVotedAsVoter)
                 ? AppColors.success
-                : AppColors.cardBorder,
+                : AppColors.of(context).cardBorder,
             width: (iVotedForThis || hasAlreadyVotedAsVoter) ? 2 : 1,
           ),
         ),
@@ -493,7 +493,7 @@ class _VotePlayerTile extends StatelessWidget {
                 child: Text(
                   player.username[0].toUpperCase(),
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                     fontSize: isTablet ? 20 : 16,
                   ),
                 ),
@@ -509,7 +509,7 @@ class _VotePlayerTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.error,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.surface, width: 1.5),
+                      border: Border.all(color: AppColors.of(context).surface, width: 1.5),
                     ),
                     alignment: Alignment.center,
                     child: Text(
@@ -527,7 +527,7 @@ class _VotePlayerTile extends StatelessWidget {
           title: Text(
             player.username,
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
               fontSize: isTablet ? 18 : 16,
             ),
           ),
@@ -551,7 +551,7 @@ class _VotePlayerTile extends StatelessWidget {
                   onPressed: onVote,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.buttonPrimary,
-                    foregroundColor: AppColors.textPrimary,
+                    foregroundColor: AppColors.of(context).textPrimary,
                     padding: EdgeInsets.symmetric(
                       horizontal: isTablet ? 24 : 16,
                       vertical: isTablet ? 12 : 8,

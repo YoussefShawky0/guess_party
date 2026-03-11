@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
@@ -63,12 +63,12 @@ class RoundHeaderWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.characterCardBg, AppColors.surface],
+          colors: [AppColors.of(context).characterCardBg, AppColors.of(context).surface],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.characterCardBorder, width: 2),
+        border: Border.all(color: AppColors.of(context).characterCardBorder, width: 2),
       ),
       child: Padding(
         padding: EdgeInsets.all(isTablet ? 20 : 16),
@@ -87,7 +87,7 @@ class RoundHeaderWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: isTablet ? 28 : 24,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -95,7 +95,7 @@ class RoundHeaderWidget extends StatelessWidget {
                         'of $totalRounds',
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
-                          color: AppColors.textSecondary,
+                          color: AppColors.of(context).textSecondary,
                         ),
                       ),
                     ],
@@ -115,7 +115,7 @@ class RoundHeaderWidget extends StatelessWidget {
                         style: TextStyle(
                           fontSize: isTablet ? 28 : 24,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: AppColors.of(context).textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -123,7 +123,7 @@ class RoundHeaderWidget extends StatelessWidget {
                         'of $totalRounds',
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
-                          color: AppColors.textSecondary,
+                          color: AppColors.of(context).textSecondary,
                         ),
                       ),
                     ],
@@ -142,7 +142,7 @@ class RoundHeaderWidget extends StatelessWidget {
                 vertical: isTablet ? 12 : 10,
               ),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: AppColors.of(context).surface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -159,7 +159,7 @@ class RoundHeaderWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: isTablet ? 18 : 16,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: AppColors.of(context).textPrimary,
                     ),
                   ),
                   if (round.phase != GamePhase.results) ...[

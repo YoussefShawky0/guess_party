@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
@@ -113,6 +113,7 @@ class ResultsPhaseContent extends StatelessWidget {
             )
           else if (isLastRound && !isHost)
             _buildWaitingMessage(
+              context,
               'Waiting for host to show leaderboard...',
               AppColors.goldMedal,
               AppColors.goldMedal.withOpacity(0.4),
@@ -124,7 +125,7 @@ class ResultsPhaseContent extends StatelessWidget {
               onPressed: onNextRound,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.success,
-                foregroundColor: AppColors.textPrimary,
+                foregroundColor: AppColors.of(context).textPrimary,
                 padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -140,9 +141,10 @@ class ResultsPhaseContent extends StatelessWidget {
             )
           else if (!isLastRound && !isHost)
             _buildWaitingMessage(
+              context,
               'Waiting for host to start next round...',
               AppColors.primary,
-              AppColors.cardBorder,
+              AppColors.of(context).cardBorder,
               isTablet,
             ),
         ],
@@ -151,6 +153,7 @@ class ResultsPhaseContent extends StatelessWidget {
   }
 
   Widget _buildWaitingMessage(
+    BuildContext context,
     String text,
     Color indicatorColor,
     Color borderColor,
@@ -162,7 +165,7 @@ class ResultsPhaseContent extends StatelessWidget {
         horizontal: 20,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.of(context).surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borderColor),
       ),
@@ -181,7 +184,7 @@ class ResultsPhaseContent extends StatelessWidget {
           Text(
             text,
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 16 : 14,
             ),
           ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
@@ -34,7 +34,7 @@ class GameOverView extends StatelessWidget {
       canPop: false,
       onPopInvokedWithResult: (_, __) => context.go(AppRoutes.home),
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: AppColors.of(context).background,
         body: SafeArea(
           child: CustomScrollView(
             slivers: [
@@ -50,7 +50,7 @@ class GameOverView extends StatelessWidget {
                         'Game Over!',
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
-                              color: AppColors.textPrimary,
+                              color: AppColors.of(context).textPrimary,
                               fontWeight: FontWeight.bold,
                             ),
                       ),
@@ -58,7 +58,7 @@ class GameOverView extends StatelessWidget {
                       Text(
                         'Final Leaderboard',
                         style: TextStyle(
-                          color: AppColors.textMuted,
+                          color: AppColors.of(context).textMuted,
                           fontSize: 16,
                         ),
                       ),
@@ -113,7 +113,7 @@ class GameOverView extends StatelessWidget {
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.buttonPrimary,
-                          foregroundColor: AppColors.textPrimary,
+                          foregroundColor: AppColors.of(context).textPrimary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),

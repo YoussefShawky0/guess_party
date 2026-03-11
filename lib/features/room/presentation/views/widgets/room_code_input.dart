@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -17,7 +17,7 @@ class RoomCodeInput extends StatelessWidget {
       controller: controller,
       decoration: InputDecoration(
         labelText: 'Room Code',
-        labelStyle: TextStyle(color: AppColors.textSecondary),
+        labelStyle: TextStyle(color: AppColors.of(context).textSecondary),
         prefixIcon: Padding(
           padding: const EdgeInsets.all(12),
           child: FaIcon(
@@ -41,7 +41,7 @@ class RoomCodeInput extends StatelessWidget {
           borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.of(context).surface,
       ),
       keyboardType: TextInputType.number,
       textAlign: TextAlign.center,
@@ -49,7 +49,7 @@ class RoomCodeInput extends StatelessWidget {
         fontSize: isTablet ? 32 : 28,
         fontWeight: FontWeight.bold,
         letterSpacing: isTablet ? 16 : 12,
-        color: AppColors.textPrimary,
+        color: AppColors.of(context).textPrimary,
       ),
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,

@@ -1,11 +1,30 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/theme/theme_cubit.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SettingsView extends StatelessWidget {
+class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
+
+  @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView> {
+  String _appVersion = '...';
+
+  @override
+  void initState() {
+    super.initState();
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) setState(() => _appVersion = info.version);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,11 +32,11 @@ class SettingsView extends StatelessWidget {
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: AppColors.surface,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: AppColors.of(context).surface,
+        foregroundColor: AppColors.of(context).textPrimary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -46,40 +65,25 @@ class SettingsView extends StatelessWidget {
           SizedBox(height: isTablet ? 24 : 16),
 
           // Appearance Section
-          _SettingsSection(
-            icon: FontAwesomeIcons.paintbrush,
-            title: 'Appearance',
-            isTablet: isTablet,
-            children: [
-              _SettingsTile(
-                icon: FontAwesomeIcons.palette,
-                title: 'Theme',
-                subtitle: 'Dark',
+          BlocBuilder<ThemeCubit, ThemeMode>(
+            bloc: sl<ThemeCubit>(),
+            builder: (context, themeMode) {
+              final themeName = sl<ThemeCubit>().currentThemeName;
+              return _SettingsSection(
+                icon: FontAwesomeIcons.paintbrush,
+                title: 'Appearance',
                 isTablet: isTablet,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Theme switching coming soon!'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-              _SettingsTile(
-                icon: FontAwesomeIcons.textHeight,
-                title: 'Font Size',
-                subtitle: 'Medium',
-                isTablet: isTablet,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Font size options coming soon!'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                },
-              ),
-            ],
+                children: [
+                  _SettingsTile(
+                    icon: FontAwesomeIcons.palette,
+                    title: 'Theme',
+                    subtitle: themeName,
+                    isTablet: isTablet,
+                    onTap: () => _showThemePicker(context, themeMode, isTablet),
+                  ),
+                ],
+              );
+            },
           ),
           SizedBox(height: isTablet ? 24 : 16),
 
@@ -92,7 +96,7 @@ class SettingsView extends StatelessWidget {
               _SettingsTile(
                 icon: FontAwesomeIcons.mobileScreen,
                 title: 'App Version',
-                subtitle: '0.1.0',
+                subtitle: _appVersion,
                 isTablet: isTablet,
                 onTap: null,
               ),
@@ -101,26 +105,20 @@ class SettingsView extends StatelessWidget {
                 title: 'Developer',
                 subtitle: 'Youssef Shawky',
                 isTablet: isTablet,
-                onTap: () async {
-                  final uri = Uri.parse('https://github.com/YoussefShawky0');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
+                onTap: () => launchUrl(
+                  Uri.parse('https://github.com/YoussefShawky0'),
+                  mode: LaunchMode.externalApplication,
+                ),
               ),
               _SettingsTile(
                 icon: FontAwesomeIcons.github,
                 title: 'View on GitHub',
                 subtitle: 'Check out the source code',
                 isTablet: isTablet,
-                onTap: () async {
-                  final uri = Uri.parse(
-                    'https://github.com/YoussefShawky0/guess_party',
-                  );
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
+                onTap: () => launchUrl(
+                  Uri.parse('https://github.com/YoussefShawky0/guess_party'),
+                  mode: LaunchMode.externalApplication,
+                ),
               ),
               _SettingsTile(
                 icon: FontAwesomeIcons.download,
@@ -152,11 +150,134 @@ class SettingsView extends StatelessWidget {
     );
   }
 
+  void _showThemePicker(
+    BuildContext context,
+    ThemeMode current,
+    bool isTablet,
+  ) {
+    final options = [
+      (ThemeMode.dark, FontAwesomeIcons.moon, 'Dark'),
+      (ThemeMode.light, FontAwesomeIcons.sun, 'Light'),
+      (ThemeMode.system, FontAwesomeIcons.circleHalfStroke, 'System Default'),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.of(context).surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(isTablet ? 24 : 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'Choose Theme',
+                  style: TextStyle(
+                    fontSize: isTablet ? 20 : 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.of(context).textPrimary,
+                  ),
+                ),
+              ),
+              ...options.map((opt) {
+                final (mode, icon, label) = opt;
+                final isSelected = mode == current;
+                return InkWell(
+                  onTap: () {
+                    sl<ThemeCubit>().setTheme(mode);
+                    Navigator.of(context).pop();
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.all(isTablet ? 16 : 14),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.of(context).cardBorder,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        FaIcon(
+                          icon,
+                          size: isTablet ? 22 : 18,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.of(context).textSecondary,
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: isTablet ? 16 : 14,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isSelected
+                                ? AppColors.of(context).textPrimary
+                                : AppColors.of(context).textSecondary,
+                          ),
+                        ),
+                        if (mode == ThemeMode.light) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.warning.withValues(alpha: 0.5),
+                              ),
+                            ),
+                            child: Text(
+                              'Demo',
+                              style: TextStyle(
+                                fontSize: isTablet ? 12 : 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const Spacer(),
+                        if (isSelected)
+                          FaIcon(
+                            FontAwesomeIcons.circleCheck,
+                            size: isTablet ? 20 : 16,
+                            color: AppColors.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _checkForUpdates(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.of(context).surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -166,12 +287,18 @@ class SettingsView extends StatelessWidget {
               size: 24,
             ),
             const SizedBox(width: 12),
-            Text('Up to Date!', style: TextStyle(color: AppColors.textPrimary)),
+            Text(
+              'Up to Date!',
+              style: TextStyle(color: AppColors.of(context).textPrimary),
+            ),
           ],
         ),
         content: Text(
           'You are running the latest version of Guess Party (0.1.0).',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+          style: TextStyle(
+            color: AppColors.of(context).textSecondary,
+            fontSize: 16,
+          ),
         ),
         actions: [
           TextButton(
@@ -187,7 +314,7 @@ class SettingsView extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.of(context).surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
@@ -197,7 +324,10 @@ class SettingsView extends StatelessWidget {
               size: 24,
             ),
             const SizedBox(width: 12),
-            Text('How to Play', style: TextStyle(color: AppColors.textPrimary)),
+            Text(
+              'How to Play',
+              style: TextStyle(color: AppColors.of(context).textPrimary),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -281,7 +411,7 @@ class _SettingsSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 20 : 18,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                 ),
               ),
             ],
@@ -289,7 +419,7 @@ class _SettingsSection extends StatelessWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.of(context).surface,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: AppColors.primary.withValues(alpha: 0.2),
@@ -351,7 +481,7 @@ class _SettingsTile extends StatelessWidget {
                       style: TextStyle(
                         fontSize: isTablet ? 18 : 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: AppColors.of(context).textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -359,7 +489,7 @@ class _SettingsTile extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: isTablet ? 14 : 12,
-                        color: AppColors.textSecondary,
+                        color: AppColors.of(context).textSecondary,
                       ),
                     ),
                   ],
@@ -369,7 +499,7 @@ class _SettingsTile extends StatelessWidget {
                 FaIcon(
                   FontAwesomeIcons.chevronRight,
                   size: isTablet ? 18 : 16,
-                  color: AppColors.textMuted,
+                  color: AppColors.of(context).textMuted,
                 ),
             ],
           ),
@@ -421,7 +551,7 @@ class _HowToPlayStep extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  color: AppColors.textPrimary,
+                  color: AppColors.of(context).textPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
@@ -430,7 +560,7 @@ class _HowToPlayStep extends StatelessWidget {
               Text(
                 description,
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: AppColors.of(context).textSecondary,
                   fontSize: 14,
                   height: 1.4,
                 ),

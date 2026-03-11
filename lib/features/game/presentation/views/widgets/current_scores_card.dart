@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -29,7 +29,7 @@ class CurrentScoresCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.goldMedal.withValues(alpha: 0.5),
@@ -54,7 +54,7 @@ class CurrentScoresCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: isTablet ? 24 : 20,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                   ),
                 ),
               ],
@@ -99,7 +99,7 @@ class _ScoreRow extends StatelessWidget {
     required this.isTablet,
   });
 
-  Color _getRankColor() {
+  Color _getRankColor(BuildContext context) {
     switch (rank) {
       case 1:
         return AppColors.goldMedal;
@@ -108,7 +108,7 @@ class _ScoreRow extends StatelessWidget {
       case 3:
         return AppColors.bronzeMedal;
       default:
-        return AppColors.surfaceLight;
+        return AppColors.of(context).surfaceLight;
     }
   }
 
@@ -133,21 +133,21 @@ class _ScoreRow extends StatelessWidget {
           width: isTablet ? 40 : 32,
           height: isTablet ? 40 : 32,
           decoration: BoxDecoration(
-            color: _getRankColor(),
+            color: _getRankColor(context),
             shape: BoxShape.circle,
           ),
           child: Center(
             child: _getRankIcon() != null
                 ? Icon(
                     _getRankIcon(),
-                    color: AppColors.textPrimary,
+                    color: AppColors.of(context).textPrimary,
                     size: isTablet ? 24 : 18,
                   )
                 : Text(
                     '$rank',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: AppColors.of(context).textPrimary,
                       fontSize: isTablet ? 18 : 14,
                     ),
                   ),
@@ -161,7 +161,7 @@ class _ScoreRow extends StatelessWidget {
             player.username[0].toUpperCase(),
             style: TextStyle(
               fontSize: isTablet ? 20 : 16,
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
             ),
           ),
         ),
@@ -172,7 +172,7 @@ class _ScoreRow extends StatelessWidget {
             style: TextStyle(
               fontWeight: isImposter ? FontWeight.bold : FontWeight.normal,
               fontSize: isTablet ? 18 : 16,
-              color: AppColors.textPrimary,
+              color: AppColors.of(context).textPrimary,
             ),
             overflow: TextOverflow.ellipsis,
           ),

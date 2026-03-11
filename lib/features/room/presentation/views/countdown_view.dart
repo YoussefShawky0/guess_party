@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -107,7 +107,7 @@ class _CountdownScreenState extends State<CountdownScreen>
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.of(context).background,
       body: Center(
         child: AnimatedBuilder(
           animation: _scaleAnimation,

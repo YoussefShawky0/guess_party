@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 
@@ -35,9 +35,9 @@ class LeaderboardListWidget extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.of(context).surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.cardBorder, width: 1),
+            border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
           ),
           child: Row(
             children: [
@@ -46,14 +46,14 @@ class LeaderboardListWidget extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
+                  color: AppColors.of(context).surfaceLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Text(
                     rank.toString().padLeft(2, '0'),
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: AppColors.of(context).textSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -89,7 +89,7 @@ class LeaderboardListWidget extends StatelessWidget {
                     Text(
                       player.username,
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: AppColors.of(context).textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -98,7 +98,7 @@ class LeaderboardListWidget extends StatelessWidget {
                     Text(
                       '$score points',
                       style: TextStyle(
-                        color: AppColors.textMuted,
+                        color: AppColors.of(context).textMuted,
                         fontSize: 13,
                       ),
                     ),
@@ -108,7 +108,7 @@ class LeaderboardListWidget extends StatelessWidget {
               // Decorative chevron
               Icon(
                 Icons.keyboard_arrow_up_rounded,
-                color: AppColors.textMuted,
+                color: AppColors.of(context).textMuted,
                 size: 22,
               ),
             ],

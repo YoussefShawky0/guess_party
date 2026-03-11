@@ -33,11 +33,17 @@ import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
+  // ============= Theme =============
+  final themeCubit = ThemeCubit();
+  await themeCubit.loadSavedTheme();
+  sl.registerSingleton<ThemeCubit>(themeCubit);
+
   // Supabase Client
   final supabase = Supabase.instance.client;
   sl.registerLazySingleton<SupabaseClient>(() => supabase);
