@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:dartz/dartz.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/failures.dart';
+import 'package:guess_party/core/utils/error_handler.dart';
 import 'package:guess_party/features/game/data/datasources/game_remote_data_source.dart';
 import 'package:guess_party/features/game/data/models/round_info_model.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart';
@@ -21,6 +22,23 @@ class GameRepositoryImpl implements GameRepository {
     required this.client,
   });
 
+  Future<Failure> _serverFailure(
+    String operation,
+    Object error,
+    StackTrace stackTrace, {
+    Map<String, Object?> data = const {},
+  }) async {
+    await ErrorHandler.reportException(
+      error,
+      stackTrace: stackTrace,
+      operation: operation,
+      data: data,
+    );
+
+    final errorMessage = ErrorHandler.extractErrorMessage(error);
+    return ServerFailure(ErrorHandler.getUserFriendlyMessage(errorMessage));
+  }
+
   @override
   Future<Either<Failure, RoundInfo>> getCurrentRound({
     required String roomId,
@@ -28,8 +46,15 @@ class GameRepositoryImpl implements GameRepository {
     try {
       final roundModel = await remoteDataSource.getCurrentRound(roomId: roomId);
       return Right(roundModel.toEntity());
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'getCurrentRound',
+          e,
+          stackTrace,
+          data: {'roomId': roomId},
+        ),
+      );
     }
   }
 
@@ -62,8 +87,15 @@ class GameRepositoryImpl implements GameRepository {
       );
 
       return Right(gameState);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'getGameState',
+          e,
+          stackTrace,
+          data: {'roomId': roomId},
+        ),
+      );
     }
   }
 
@@ -80,8 +112,15 @@ class GameRepositoryImpl implements GameRepository {
         hint: hint,
       );
       return const Right(null);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'submitHint',
+          e,
+          stackTrace,
+          data: {'roundId': roundId, 'playerId': playerId},
+        ),
+      );
     }
   }
 
@@ -98,8 +137,15 @@ class GameRepositoryImpl implements GameRepository {
         votedPlayerId: votedPlayerId,
       );
       return const Right(null);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'submitVote',
+          e,
+          stackTrace,
+          data: {'roundId': roundId, 'voterId': voterId},
+        ),
+      );
     }
   }
 
@@ -147,8 +193,15 @@ class GameRepositoryImpl implements GameRepository {
       );
 
       return Right(updatedRound.toEntity());
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'advancePhase',
+          e,
+          stackTrace,
+          data: {'roundId': roundId},
+        ),
+      );
     }
   }
 
@@ -215,8 +268,15 @@ class GameRepositoryImpl implements GameRepository {
       }
 
       return Right(newScores);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'calculateScores',
+          e,
+          stackTrace,
+          data: {'roundId': roundId},
+        ),
+      );
     }
   }
 
@@ -300,8 +360,15 @@ class GameRepositoryImpl implements GameRepository {
       );
 
       return Right(newRound.toEntity());
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'createNextRound',
+          e,
+          stackTrace,
+          data: {'roomId': roomId, 'roundNumber': roundNumber},
+        ),
+      );
     }
   }
 
@@ -313,8 +380,15 @@ class GameRepositoryImpl implements GameRepository {
         status: 'finished',
       );
       return const Right(null);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'endGame',
+          e,
+          stackTrace,
+          data: {'roomId': roomId},
+        ),
+      );
     }
   }
 
@@ -359,12 +433,23 @@ class GameRepositoryImpl implements GameRepository {
             );
 
             yield roundModel.toEntity();
-          } catch (_) {
-            // Ignore errors processing an individual event
+          } catch (e, stackTrace) {
+            await ErrorHandler.reportException(
+              e,
+              stackTrace: stackTrace,
+              operation: 'watchRoundUpdates.processEvent',
+              data: {'roundId': roundId},
+            );
           }
         }
         break; // Stream ended normally
-      } catch (_) {
+      } catch (e, stackTrace) {
+        await ErrorHandler.reportException(
+          e,
+          stackTrace: stackTrace,
+          operation: 'watchRoundUpdates.subscribe',
+          data: {'roundId': roundId},
+        );
         // WebSocket dropped — wait and reconnect
         await Future.delayed(const Duration(seconds: 3));
       }
@@ -385,10 +470,23 @@ class GameRepositoryImpl implements GameRepository {
               roundId: roundId,
             );
             yield hints;
-          } catch (_) {}
+          } catch (e, stackTrace) {
+            await ErrorHandler.reportException(
+              e,
+              stackTrace: stackTrace,
+              operation: 'watchHintsUpdates.processEvent',
+              data: {'roundId': roundId},
+            );
+          }
         }
         break;
-      } catch (_) {
+      } catch (e, stackTrace) {
+        await ErrorHandler.reportException(
+          e,
+          stackTrace: stackTrace,
+          operation: 'watchHintsUpdates.subscribe',
+          data: {'roundId': roundId},
+        );
         await Future.delayed(const Duration(seconds: 3));
       }
     }
@@ -408,10 +506,23 @@ class GameRepositoryImpl implements GameRepository {
               roundId: roundId,
             );
             yield votes;
-          } catch (_) {}
+          } catch (e, stackTrace) {
+            await ErrorHandler.reportException(
+              e,
+              stackTrace: stackTrace,
+              operation: 'watchVotesUpdates.processEvent',
+              data: {'roundId': roundId},
+            );
+          }
         }
         break;
-      } catch (_) {
+      } catch (e, stackTrace) {
+        await ErrorHandler.reportException(
+          e,
+          stackTrace: stackTrace,
+          operation: 'watchVotesUpdates.subscribe',
+          data: {'roundId': roundId},
+        );
         await Future.delayed(const Duration(seconds: 3));
       }
     }

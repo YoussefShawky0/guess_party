@@ -1,3 +1,5 @@
+import 'package:sentry_flutter/sentry_flutter.dart';
+
 class ErrorHandler {
   /// Convert technical errors to user-friendly messages in Arabic
   static String getUserFriendlyMessage(String error) {
@@ -36,7 +38,11 @@ class ErrorHandler {
     // Network errors
     if (errorLower.contains('network') ||
         errorLower.contains('connection') ||
-        errorLower.contains('timeout')) {
+        errorLower.contains('timeout') ||
+        errorLower.contains('socketexception') ||
+        errorLower.contains('failed host lookup') ||
+        errorLower.contains('no address associated with hostname') ||
+        errorLower.contains('dns')) {
       return 'Connection error. Check your internet';
     }
 
@@ -63,6 +69,29 @@ class ErrorHandler {
 
     // Default message - show actual error in debug mode
     return 'An error occurred. Please try again\n(${error.toString().length > 100 ? "${error.toString().substring(0, 100)}..." : error.toString()})';
+  }
+
+  /// Report an exception to Sentry with optional context.
+  static Future<void> reportException(
+    Object error, {
+    StackTrace? stackTrace,
+    String? operation,
+    Map<String, Object?>? data,
+  }) async {
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        category: 'exception',
+        message: operation == null ? error.toString() : '$operation failed',
+        level: SentryLevel.error,
+        data: {
+          if (operation != null) 'operation': operation,
+          if (data != null) ...data,
+          'error': extractErrorMessage(error),
+        },
+      ),
+    );
+
+    await Sentry.captureException(error, stackTrace: stackTrace);
   }
 
   /// Extract clean error message from exception

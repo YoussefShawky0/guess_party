@@ -79,7 +79,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
             if (_isHost != true) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('المضيف غادر الغرفة. تم إغلاق الغرفة.'),
+                  content: const Text('Host has closed the room. Returning to home.'),
                   backgroundColor: AppColors.error,
                 ),
               );

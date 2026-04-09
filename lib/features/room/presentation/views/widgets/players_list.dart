@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -16,11 +18,22 @@ class PlayersList extends StatefulWidget {
 
 class _PlayersListState extends State<PlayersList> {
   RealtimeChannel? _playersChannel;
+  Timer? _pollTimer;
+
+  void _refreshPlayers() {
+    if (!mounted) return;
+    context.read<RoomCubit>().loadRoomPlayers(roomId: widget.roomId);
+  }
+
   @override
   void initState() {
     super.initState();
-    context.read<RoomCubit>().loadRoomPlayers(roomId: widget.roomId);
+    _refreshPlayers();
     _subscribeToRealtimeUpdates();
+    // Fallback in case realtime drops or misses events.
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _refreshPlayers();
+    });
   }
 
   void _subscribeToRealtimeUpdates() {
@@ -37,11 +50,7 @@ class _PlayersListState extends State<PlayersList> {
               value: widget.roomId,
             ),
             callback: (payload) {
-              if (mounted) {
-                context.read<RoomCubit>().loadRoomPlayers(
-                  roomId: widget.roomId,
-                );
-              }
+              _refreshPlayers();
             },
           );
 
@@ -67,6 +76,7 @@ class _PlayersListState extends State<PlayersList> {
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _playersChannel?.unsubscribe();
     super.dispose();
   }

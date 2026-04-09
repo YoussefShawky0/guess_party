@@ -11,6 +11,7 @@ import 'package:guess_party/features/game/domain/usecases/advance_phase.dart';
 import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 part 'game_state.dart';
 
@@ -52,6 +53,17 @@ class GameCubit extends Cubit<GameState> {
     required this.gameRepository,
   }) : super(GameInitial());
 
+  void _addBreadcrumb(String message, {Map<String, Object?> data = const {}}) {
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        category: 'game',
+        message: message,
+        level: SentryLevel.info,
+        data: data,
+      ),
+    );
+  }
+
   // Load initial game state for a room
   Future<void> loadGameState({
     required String roomId,
@@ -59,6 +71,7 @@ class GameCubit extends Cubit<GameState> {
     Map<String, int>? preservedScores,
   }) async {
     if (isClosed) return;
+    _addBreadcrumb('loadGameState:start', data: {'roomId': roomId});
     _currentPlayerId = currentPlayerId;
     emit(GameLoading());
 
@@ -73,6 +86,10 @@ class GameCubit extends Cubit<GameState> {
     if (isClosed) return;
     result.fold(
       (failure) {
+        _addBreadcrumb(
+          'loadGameState:failure',
+          data: {'roomId': roomId, 'error': failure.message},
+        );
         emit(GameError(failure.message));
       },
       (gameState) {
@@ -82,14 +99,90 @@ class GameCubit extends Cubit<GameState> {
             preservedScores != null && preservedScores.isNotEmpty
             ? gameState.copyWith(playerScores: preservedScores)
             : gameState;
+        _addBreadcrumb(
+          'loadGameState:success',
+          data: {'roomId': roomId, 'roundId': stateToEmit.currentRound.id},
+        );
         emit(GameLoaded(stateToEmit));
         _subscribeToGameUpdates(stateToEmit.currentRound.id);
       },
     );
   }
 
+  /// Refresh game state when app is resumed.
+  /// Keeps current UI state on transient network failures and retries silently.
+  Future<void> refreshGameStateOnResume({
+    required String roomId,
+    int maxRetries = 3,
+  }) async {
+    if (isClosed || _currentPlayerId.isEmpty) return;
+
+    final previousState = state;
+    if (previousState is GameLoaded) {
+      emit(GameLoaded(previousState.gameState, isReconnecting: true));
+    }
+
+    _addBreadcrumb(
+      'resumeRefresh:start',
+      data: {'roomId': roomId, 'maxRetries': maxRetries},
+    );
+
+    for (var attempt = 1; attempt <= maxRetries; attempt++) {
+      final result = await getGameState(
+        roomId: roomId,
+        currentPlayerId: _currentPlayerId,
+      );
+
+      if (isClosed) return;
+
+      final succeeded = result.fold((_) => false, (_) => true);
+      if (succeeded) {
+        final refreshed = result.fold((_) => null, (value) => value);
+        if (refreshed != null) {
+          final fallbackScores = _lastKnownScores.isNotEmpty
+              ? _lastKnownScores
+              : refreshed.playerScores;
+          final mergedState = refreshed.copyWith(playerScores: fallbackScores);
+
+          _addBreadcrumb(
+            'resumeRefresh:success',
+            data: {
+              'roomId': roomId,
+              'attempt': attempt,
+              'roundId': mergedState.currentRound.id,
+            },
+          );
+
+          emit(GameLoaded(mergedState, isReconnecting: false));
+          _subscribeToGameUpdates(mergedState.currentRound.id);
+        }
+        return;
+      }
+
+      final failure = result.fold((value) => value, (_) => null);
+      _addBreadcrumb(
+        'resumeRefresh:failure',
+        data: {
+          'roomId': roomId,
+          'attempt': attempt,
+          'error': failure?.message ?? 'unknown error',
+        },
+      );
+
+      if (attempt < maxRetries) {
+        await Future.delayed(Duration(seconds: attempt));
+      } else if (previousState is! GameLoaded) {
+        // If there is no previously visible game state, show the error.
+        emit(GameError(failure?.message ?? 'Connection error. Try again.'));
+      } else {
+        emit(GameLoaded(previousState.gameState, isReconnecting: false));
+      }
+    }
+  }
+
   // Subscribe to real-time game updates
   void _subscribeToGameUpdates(String roundId) {
+    _addBreadcrumb('subscribeToGameUpdates', data: {'roundId': roundId});
     // Subscribe to round updates
     _roundSubscription?.cancel();
     _roundSubscription = gameRepository
@@ -154,6 +247,10 @@ class GameCubit extends Cubit<GameState> {
     required String hint,
   }) async {
     if (isClosed) return;
+    _addBreadcrumb(
+      'sendHint:start',
+      data: {'roundId': roundId, 'playerId': playerId},
+    );
 
     final result = await submitHint(
       roundId: roundId,
@@ -162,10 +259,23 @@ class GameCubit extends Cubit<GameState> {
     );
 
     if (isClosed) return;
-    result.fold((failure) => emit(GameError(failure.message)), (_) {
-      // Hint submitted successfully - realtime will update the state
-      // No need to emit here, the _hintsSubscription will handle it
-    });
+    result.fold(
+      (failure) {
+        _addBreadcrumb(
+          'sendHint:failure',
+          data: {
+            'roundId': roundId,
+            'playerId': playerId,
+            'error': failure.message,
+          },
+        );
+        emit(GameError(failure.message));
+      },
+      (_) {
+        // Hint submitted successfully - realtime will update the state
+        // No need to emit here, the _hintsSubscription will handle it
+      },
+    );
   }
 
   // Submit a vote for a player
@@ -175,6 +285,10 @@ class GameCubit extends Cubit<GameState> {
     required String votedPlayerId,
   }) async {
     if (isClosed) return;
+    _addBreadcrumb(
+      'sendVote:start',
+      data: {'roundId': roundId, 'voterId': voterId},
+    );
 
     final result = await submitVote(
       roundId: roundId,
@@ -183,37 +297,55 @@ class GameCubit extends Cubit<GameState> {
     );
 
     if (isClosed) return;
-    result.fold((failure) => emit(GameError(failure.message)), (_) {
-      // Optimistic update: Update state immediately for better UX
-      // Especially important in Local Mode where multiple players vote sequentially
-      if (state is GameLoaded) {
-        final currentState = (state as GameLoaded).gameState;
-        final updatedVotes = Map<String, String?>.from(
-          currentState.currentRound.playerVotes,
+    result.fold(
+      (failure) {
+        _addBreadcrumb(
+          'sendVote:failure',
+          data: {
+            'roundId': roundId,
+            'voterId': voterId,
+            'error': failure.message,
+          },
         );
-        updatedVotes[voterId] = votedPlayerId;
+        emit(GameError(failure.message));
+      },
+      (_) {
+        // Optimistic update: Update state immediately for better UX
+        // Especially important in Local Mode where multiple players vote sequentially
+        if (state is GameLoaded) {
+          final currentState = (state as GameLoaded).gameState;
+          final updatedVotes = Map<String, String?>.from(
+            currentState.currentRound.playerVotes,
+          );
+          updatedVotes[voterId] = votedPlayerId;
 
-        final updatedRound = currentState.currentRound.copyWith(
-          playerVotes: updatedVotes,
-        );
-        final updatedGameState = currentState.copyWith(
-          currentRound: updatedRound,
-        );
-        emit(GameLoaded(updatedGameState));
-      }
-      // Realtime subscription will sync any changes from other devices
-    });
+          final updatedRound = currentState.currentRound.copyWith(
+            playerVotes: updatedVotes,
+          );
+          final updatedGameState = currentState.copyWith(
+            currentRound: updatedRound,
+          );
+          emit(GameLoaded(updatedGameState));
+        }
+        // Realtime subscription will sync any changes from other devices
+      },
+    );
   }
 
   // Advance to next phase (Host only)
   Future<void> progressPhase(String roundId) async {
     if (isClosed) return;
+    _addBreadcrumb('progressPhase:start', data: {'roundId': roundId});
 
     final result = await advancePhase(roundId: roundId);
 
     if (isClosed) return;
     result.fold(
       (failure) {
+        _addBreadcrumb(
+          'progressPhase:failure',
+          data: {'roundId': roundId, 'error': failure.message},
+        );
         emit(GameError(failure.message));
       },
       (updatedRound) {
@@ -232,6 +364,7 @@ class GameCubit extends Cubit<GameState> {
   // Calculate scores after voting (Host only)
   Future<void> calculateRoundScores(String roundId) async {
     if (isClosed) return;
+    _addBreadcrumb('calculateRoundScores:start', data: {'roundId': roundId});
 
     // Guard: skip if already calculated for this round (prevents double scoring
     // when both the timer expiry and the "Show Results" button fire)
@@ -260,6 +393,10 @@ class GameCubit extends Cubit<GameState> {
     if (isClosed) return;
     result.fold(
       (failure) {
+        _addBreadcrumb(
+          'calculateRoundScores:failure',
+          data: {'roundId': roundId, 'error': failure.message},
+        );
         emit(GameError(failure.message));
       },
       (scores) {
@@ -281,6 +418,10 @@ class GameCubit extends Cubit<GameState> {
   }) async {
     if (isClosed || _isCreatingRound) return;
     _isCreatingRound = true;
+    _addBreadcrumb(
+      'createNewRound:start',
+      data: {'roomId': roomId, 'roundNumber': roundNumber},
+    );
 
     try {
       final result = await gameRepository.createNextRound(
@@ -291,6 +432,14 @@ class GameCubit extends Cubit<GameState> {
       if (isClosed) return;
       result.fold(
         (failure) {
+          _addBreadcrumb(
+            'createNewRound:failure',
+            data: {
+              'roomId': roomId,
+              'roundNumber': roundNumber,
+              'error': failure.message,
+            },
+          );
           emit(GameError(failure.message));
         },
         (newRound) {
@@ -324,20 +473,30 @@ class GameCubit extends Cubit<GameState> {
   // End the game (Host only)
   Future<void> finishGame(String roomId) async {
     if (isClosed) return;
+    _addBreadcrumb('finishGame:start', data: {'roomId': roomId});
 
     final snapshot = state;
     final result = await gameRepository.endGame(roomId: roomId);
 
     if (isClosed) return;
-    result.fold((failure) => emit(GameError(failure.message)), (_) {
-      final players = snapshot is GameLoaded
-          ? snapshot.gameState.players
-          : <Player>[];
-      final scores = snapshot is GameLoaded
-          ? snapshot.gameState.playerScores
-          : <String, int>{};
-      emit(GameEnded('انتهت اللعبة', players: players, playerScores: scores));
-    });
+    result.fold(
+      (failure) {
+        _addBreadcrumb(
+          'finishGame:failure',
+          data: {'roomId': roomId, 'error': failure.message},
+        );
+        emit(GameError(failure.message));
+      },
+      (_) {
+        final players = snapshot is GameLoaded
+            ? snapshot.gameState.players
+            : <Player>[];
+        final scores = snapshot is GameLoaded
+            ? snapshot.gameState.playerScores
+            : <String, int>{};
+        emit(GameEnded('انتهت اللعبة', players: players, playerScores: scores));
+      },
+    );
   }
 
   @override

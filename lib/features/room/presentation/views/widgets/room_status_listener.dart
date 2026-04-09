@@ -86,7 +86,7 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
   void _handleRoomClosed() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('المضيف غادر الغرفة. تم إغلاق الغرفة.'),
+        content: Text('Room has been closed. Returning to home.'),
         backgroundColor: AppColors.error,
       ),
     );

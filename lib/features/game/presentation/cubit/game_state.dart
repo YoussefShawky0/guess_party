@@ -13,11 +13,12 @@ final class GameLoading extends GameState {}
 
 final class GameLoaded extends GameState {
   final GameStateEntity gameState;
+  final bool isReconnecting;
 
-  const GameLoaded(this.gameState);
+  const GameLoaded(this.gameState, {this.isReconnecting = false});
 
   @override
-  List<Object> get props => [gameState];
+  List<Object> get props => [gameState, isReconnecting];
 }
 
 final class GameEnded extends GameState {

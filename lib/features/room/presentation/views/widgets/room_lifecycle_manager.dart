@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 class RoomLifecycleManager extends StatefulWidget {
   final String roomId;
@@ -22,9 +25,39 @@ class RoomLifecycleManager extends StatefulWidget {
 
 class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
     with WidgetsBindingObserver {
+  static const _heartbeatInterval = Duration(seconds: 25);
+
   String? _currentPlayerId;
   bool? _isHost;
   RoomCubit? _roomCubit;
+  Timer? _heartbeatTimer;
+
+  Future<void> _setOnlineStatus(bool isOnline) async {
+    if (_currentPlayerId == null || _roomCubit == null) return;
+
+    try {
+      await _roomCubit!.setPlayerStatus(
+        playerId: _currentPlayerId!,
+        isOnline: isOnline,
+      );
+    } catch (_) {
+      // Best-effort heartbeat/update; failures are handled by periodic retries.
+    }
+  }
+
+  void _startHeartbeat() {
+    if (_currentPlayerId == null || _roomCubit == null) return;
+
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
+      _setOnlineStatus(true);
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
 
   @override
   void initState() {
@@ -41,6 +74,7 @@ class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _stopHeartbeat();
 
     // Leave room when disposing
     if (_currentPlayerId != null && _isHost != null && _roomCubit != null) {
@@ -57,36 +91,52 @@ class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_currentPlayerId == null || _roomCubit == null) return;
 
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        category: 'lifecycle',
+        message: 'app lifecycle: $state',
+        level: SentryLevel.info,
+        data: {'roomId': widget.roomId, 'playerId': _currentPlayerId},
+      ),
+    );
+
     switch (state) {
       case AppLifecycleState.resumed:
-        _roomCubit!.setPlayerStatus(
-          playerId: _currentPlayerId!,
-          isOnline: true,
-        );
+        _setOnlineStatus(true);
+        _startHeartbeat();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
-        _roomCubit!.setPlayerStatus(
-          playerId: _currentPlayerId!,
-          isOnline: false,
-        );
+        _stopHeartbeat();
+        _setOnlineStatus(false);
         break;
     }
   }
 
   void updatePlayerInfo(String playerId, bool isHost) {
-    if (_currentPlayerId == null) {
+    if (_currentPlayerId == null || _currentPlayerId != playerId) {
       setState(() {
         _currentPlayerId = playerId;
         _isHost = isHost;
       });
       widget.onPlayerIdentified(playerId, isHost);
+      _setOnlineStatus(true);
+      _startHeartbeat();
     }
   }
 
   Future<void> handleBackNavigation() async {
+    Sentry.addBreadcrumb(
+      Breadcrumb(
+        category: 'navigation',
+        message: 'back navigation from room lifecycle manager',
+        level: SentryLevel.info,
+        data: {'roomId': widget.roomId, 'playerId': _currentPlayerId},
+      ),
+    );
+
     if (_currentPlayerId != null && _isHost != null && _roomCubit != null) {
       await _roomCubit!.leaveRoomSession(
         playerId: _currentPlayerId!,

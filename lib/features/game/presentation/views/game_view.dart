@@ -1,4 +1,6 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -8,6 +10,7 @@ import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/character_card.dart';
 import 'widgets/hints_phase_content.dart';
@@ -32,9 +35,111 @@ class GameView extends StatelessWidget {
           currentPlayerId: currentUserId,
           preservedScores: preservedScores,
         ),
-      child: GameViewContent(roomId: roomId),
+      child: GameLifecycleManager(
+        roomId: roomId,
+        child: GameViewContent(roomId: roomId),
+      ),
     );
   }
+}
+
+class GameLifecycleManager extends StatefulWidget {
+  final String roomId;
+  final Widget child;
+
+  const GameLifecycleManager({
+    super.key,
+    required this.roomId,
+    required this.child,
+  });
+
+  @override
+  State<GameLifecycleManager> createState() => _GameLifecycleManagerState();
+}
+
+class _GameLifecycleManagerState extends State<GameLifecycleManager>
+    with WidgetsBindingObserver {
+  static const _heartbeatInterval = Duration(seconds: 25);
+  Timer? _heartbeatTimer;
+
+  Future<void> _setCurrentUserOnlineStatus(bool isOnline) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      await Supabase.instance.client
+          .from('players')
+          .update({
+            'is_online': isOnline,
+            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('room_id', widget.roomId)
+          .eq('user_id', userId);
+    } catch (_) {
+      // Best-effort heartbeat/status update.
+    }
+  }
+
+  void _startHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
+      _setCurrentUserOnlineStatus(true);
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _setCurrentUserOnlineStatus(true);
+    _startHeartbeat();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopHeartbeat();
+    _setCurrentUserOnlineStatus(false);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!mounted) return;
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _setCurrentUserOnlineStatus(true);
+        _startHeartbeat();
+
+        Sentry.addBreadcrumb(
+          Breadcrumb(
+            category: 'lifecycle',
+            message: 'game resumed: refreshing state',
+            level: SentryLevel.info,
+            data: {'roomId': widget.roomId},
+          ),
+        );
+
+        context.read<GameCubit>().refreshGameStateOnResume(roomId: widget.roomId);
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        _stopHeartbeat();
+        _setCurrentUserOnlineStatus(false);
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class GameViewContent extends StatelessWidget {
@@ -66,7 +171,10 @@ class GameViewContent extends StatelessWidget {
             ),
             content: Text(
               'Are you sure you want to leave? Other players will be notified and the game may end.',
-              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
+              style: TextStyle(
+                color: AppColors.of(context).textSecondary,
+                fontSize: 16,
+              ),
             ),
             actions: [
               TextButton(
@@ -91,13 +199,15 @@ class GameViewContent extends StatelessWidget {
   }
 
   Future<void> _handleLeaveGame(BuildContext context) async {
-    final shouldLeave = await _showLeaveConfirmation(context);
-    if (!shouldLeave) return;
+    final gameCubit = context.read<GameCubit>();
 
-    final currentUserId = context.read<GameCubit>().currentPlayerId;
+    final shouldLeave = await _showLeaveConfirmation(context);
+    if (!shouldLeave || !context.mounted) return;
+
+    final currentUserId = gameCubit.currentPlayerId;
 
     // Get player info from game state
-    final gameState = context.read<GameCubit>().state;
+    final gameState = gameCubit.state;
     if (gameState is GameLoaded) {
       final players = gameState.gameState.players;
       final currentPlayer = players.firstWhere(
@@ -139,6 +249,12 @@ class GameViewContent extends StatelessWidget {
           ),
         ),
         body: BlocConsumer<GameCubit, GameState>(
+          listenWhen: (previous, current) {
+            if (previous is GameLoaded && current is GameLoaded) {
+              return previous.isReconnecting != current.isReconnecting;
+            }
+            return current is GameError || current is GameEnded;
+          },
           listener: (context, state) {
             // Show error messages with better styling
             if (state is GameError) {
@@ -147,7 +263,10 @@ class GameViewContent extends StatelessWidget {
                 SnackBar(
                   content: Row(
                     children: [
-                      Icon(Icons.error_outline, color: AppColors.of(context).textPrimary),
+                      Icon(
+                        Icons.error_outline,
+                        color: AppColors.of(context).textPrimary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -162,6 +281,35 @@ class GameViewContent extends StatelessWidget {
                   ),
                   backgroundColor: AppColors.error,
                   duration: const Duration(seconds: 4),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              );
+            } else if (state is GameLoaded && !state.isReconnecting) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(
+                        Icons.wifi,
+                        color: AppColors.of(context).textPrimary,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Back online. Game synced.',
+                          style: TextStyle(
+                            color: AppColors.of(context).textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: AppColors.success,
+                  duration: const Duration(seconds: 2),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -189,7 +337,9 @@ class GameViewContent extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       'Loading game...',
-                      style: TextStyle(color: AppColors.of(context).textSecondary),
+                      style: TextStyle(
+                        color: AppColors.of(context).textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -248,7 +398,49 @@ class GameViewContent extends StatelessWidget {
             }
 
             if (state is GameLoaded) {
-              return _buildGameContent(context, state);
+              return Stack(
+                children: [
+                  _buildGameContent(context, state),
+                  if (state.isReconnecting)
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.95),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.of(context).textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Reconnecting to game...',
+                                style: TextStyle(
+                                  color: AppColors.of(context).textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              );
             }
 
             return const Center(child: Text('Preparing...'));

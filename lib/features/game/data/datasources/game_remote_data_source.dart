@@ -135,6 +135,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
           .from('players')
           .select('*')
           .eq('room_id', roomId)
+          .eq('is_online', true)
           .order('created_at', ascending: true);
 
       return (response as List)

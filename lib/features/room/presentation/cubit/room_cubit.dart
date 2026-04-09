@@ -124,13 +124,18 @@ class RoomCubit extends Cubit<RoomState> {
     // Guard against emitting after cubit is closed
     if (isClosed) return;
 
+    final currentState = state;
     final result = await getRoomPlayers(roomId: roomId);
 
     // Check again after async operation
     if (isClosed) return;
 
-    result.fold((failure) => emit(RoomError(failure.message)), (players) {
-      final currentState = state;
+    result.fold((failure) {
+      // Keep current waiting-room state stable on transient refresh failures.
+      if (currentState is! RoomDetailsLoaded) {
+        emit(RoomError(failure.message));
+      }
+    }, (players) {
       if (currentState is RoomDetailsLoaded) {
         emit(currentState.copyWith(players: players));
       }

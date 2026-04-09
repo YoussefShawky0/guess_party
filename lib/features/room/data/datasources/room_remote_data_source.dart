@@ -110,6 +110,29 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
           ? const Uuid().v4() 
           : user.id;
 
+      final existing = await client
+          .from('players')
+          .select('*')
+          .eq('room_id', roomId)
+          .eq('user_id', playerId)
+          .maybeSingle();
+
+      if (existing != null) {
+        final response = await client
+            .from('players')
+            .update({
+              'username': username,
+              'is_host': isHost,
+              'is_online': true,
+              'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .eq('id', existing['id'] as String)
+            .select()
+            .single();
+
+        return PlayerModel.fromJson(response);
+      }
+
       final response = await client
           .from('players')
           .insert({
@@ -119,6 +142,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
             'score': 0,
             'is_host': isHost,
             'is_online': true,
+            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
           })
           .select()
           .single();
@@ -151,6 +175,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
           .from('players')
           .select()
           .eq('room_id', roomId)
+          .eq('is_online', true)
           .order('created_at', ascending: true);
 
       return (response as List)
@@ -206,7 +231,10 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     try {
       await client
           .from('players')
-          .update({'is_online': isOnline})
+          .update({
+            'is_online': isOnline,
+            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+          })
           .eq('id', playerId);
     } catch (e) {
       rethrow;
@@ -226,10 +254,27 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
             .from('rooms')
             .update({'status': 'finished'})
             .eq('id', roomId);
+
+        // Keep rows for FK integrity (rounds -> players), but mark everyone offline.
+        await client
+            .from('players')
+            .update({
+              'is_online': false,
+              'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+            })
+            .eq('room_id', roomId);
+        return;
       }
 
-      // Remove player from room
-      await client.from('players').delete().eq('id', playerId);
+      // Do not delete player rows because rounds may reference them.
+      // Marking offline is enough and keeps referential integrity.
+      await client
+          .from('players')
+          .update({
+            'is_online': false,
+            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('id', playerId);
     } catch (e) {
       rethrow;
     }
