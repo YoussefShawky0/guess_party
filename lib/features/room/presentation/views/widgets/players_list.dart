@@ -147,7 +147,9 @@ class _PlayersListState extends State<PlayersList> {
                     return Center(
                       child: Text(
                         'No players yet',
-                        style: TextStyle(color: AppColors.of(context).textSecondary),
+                        style: TextStyle(
+                          color: AppColors.of(context).textSecondary,
+                        ),
                       ),
                     );
                   }
@@ -206,9 +208,9 @@ class _PlayersListState extends State<PlayersList> {
                               decoration: BoxDecoration(
                                 color: player.isOnline
                                     ? AppColors.success.withValues(alpha: 0.2)
-                                    : AppColors.of(context).textSecondary.withValues(
-                                        alpha: 0.2,
-                                      ),
+                                    : AppColors.of(
+                                        context,
+                                      ).textSecondary.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(

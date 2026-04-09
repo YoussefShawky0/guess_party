@@ -130,16 +130,19 @@ class RoomCubit extends Cubit<RoomState> {
     // Check again after async operation
     if (isClosed) return;
 
-    result.fold((failure) {
-      // Keep current waiting-room state stable on transient refresh failures.
-      if (currentState is! RoomDetailsLoaded) {
-        emit(RoomError(failure.message));
-      }
-    }, (players) {
-      if (currentState is RoomDetailsLoaded) {
-        emit(currentState.copyWith(players: players));
-      }
-    });
+    result.fold(
+      (failure) {
+        // Keep current waiting-room state stable on transient refresh failures.
+        if (currentState is! RoomDetailsLoaded) {
+          emit(RoomError(failure.message));
+        }
+      },
+      (players) {
+        if (currentState is RoomDetailsLoaded) {
+          emit(currentState.copyWith(players: players));
+        }
+      },
+    );
   }
 
   Future<void> startGameSession(String roomId) async {

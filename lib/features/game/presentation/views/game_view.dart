@@ -126,7 +126,9 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
           ),
         );
 
-        context.read<GameCubit>().refreshGameStateOnResume(roomId: widget.roomId);
+        context.read<GameCubit>().refreshGameStateOnResume(
+          roomId: widget.roomId,
+        );
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:

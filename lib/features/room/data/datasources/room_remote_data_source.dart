@@ -106,9 +106,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
 
       // For local mode players (except host), generate a unique UUID
       // This allows multiple players on the same device
-      final playerId = isLocalPlayer && !isHost 
-          ? const Uuid().v4() 
-          : user.id;
+      final playerId = isLocalPlayer && !isHost ? const Uuid().v4() : user.id;
 
       final existing = await client
           .from('players')
