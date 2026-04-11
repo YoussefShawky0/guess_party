@@ -52,20 +52,69 @@ class CreateRoomView extends StatefulWidget {
 }
 
 class _CreateRoomViewState extends State<CreateRoomView> {
-  String _selectedCategory = 'football_players';
+  String _selectedCategory = 'mix';
   int _selectedRounds = GameConstants.defaultRounds;
   int _selectedMaxPlayers = 4;
   int _selectedRoundDuration = 300; // 5 minutes
   String _selectedGameMode = GameConstants.gameModeOnline; // Default to online
   List<String> _localPlayerNames = []; // For local mode
   String? _createdRoomId; // Store room ID for listener
+  bool _isLoadingCategories = true;
+
+  static const Map<String, String> _fallbackCategories = {
+    'mix': 'Mix (All)',
+    'places': 'Places',
+    'foods': 'Foods',
+    'animals': 'Animals',
+  };
+
+  Map<String, String> _categories = Map<String, String>.from(
+    _fallbackCategories,
+  );
 
   @override
   void initState() {
     super.initState();
-    // Ensure valid category key
-    if (!GameConstants.categories.contains(_selectedCategory)) {
-      _selectedCategory = 'football_players';
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('categories')
+          .select('key, name')
+          .eq('is_active', true)
+          .order('sort_order', ascending: true);
+
+      final fetched = <String, String>{'mix': 'Mix (All)'};
+
+      for (final row in (response as List)) {
+        final key = (row['key'] as String?)?.trim();
+        final name = (row['name'] as String?)?.trim();
+        if (key != null && key.isNotEmpty && name != null && name.isNotEmpty) {
+          fetched[key] = name;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _categories = fetched.length > 1 ? fetched : _fallbackCategories;
+          if (!_categories.containsKey(_selectedCategory)) {
+            _selectedCategory = _categories.keys.first;
+          }
+          _isLoadingCategories = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _categories = Map<String, String>.from(_fallbackCategories);
+          if (!_categories.containsKey(_selectedCategory)) {
+            _selectedCategory = _categories.keys.first;
+          }
+          _isLoadingCategories = false;
+        });
+      }
     }
   }
 
@@ -155,9 +204,10 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                     // Category Selector
                     CategorySelector(
                       selectedCategory: _selectedCategory,
+                      categories: _categories,
                       onChanged: (value) =>
                           setState(() => _selectedCategory = value),
-                      enabled: !isLoading,
+                      enabled: !isLoading && !_isLoadingCategories,
                     ),
                     const SizedBox(height: 24),
 

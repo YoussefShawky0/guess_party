@@ -15,6 +15,16 @@ class CharacterCard extends StatelessWidget {
     required this.gameMode,
   });
 
+  String _formatCategoryLabel(String key) {
+    return key
+        .split('_')
+        .where((part) => part.isNotEmpty)
+        .map(
+          (part) => '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
@@ -88,8 +98,7 @@ class CharacterCard extends StatelessWidget {
                   ),
                   SizedBox(width: isTablet ? 10 : 8),
                   Text(
-                    GameConstants.categoryNames[character.category] ??
-                        character.category,
+                    _formatCategoryLabel(character.category),
                     style: TextStyle(
                       color: AppColors.of(context).characterCardSubtext,
                       fontSize: isTablet ? 16 : 14,

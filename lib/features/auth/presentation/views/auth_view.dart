@@ -57,8 +57,10 @@ class _AuthViewState extends State<AuthView> {
         listener: (context, state) {
           if (state is AuthSuccess) {
             // Account created successfully
+            final router = GoRouter.of(context);
             Future.delayed(const Duration(milliseconds: 500), () {
-              context.go(AppRoutes.home);
+              if (!mounted) return;
+              router.go(AppRoutes.home);
             });
           } else if (state is AuthError) {
             ErrorSnackBar.show(context, state.message);

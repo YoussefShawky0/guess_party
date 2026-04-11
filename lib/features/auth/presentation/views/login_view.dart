@@ -74,8 +74,10 @@ class _LoginViewState extends State<LoginView> {
         listener: (context, state) {
           if (state is AuthSuccess) {
             // Login successful
+            final router = GoRouter.of(context);
             Future.delayed(const Duration(milliseconds: 500), () {
-              context.go(AppRoutes.home);
+              if (!mounted) return;
+              router.go(AppRoutes.home);
             });
           } else if (state is AuthError) {
             ErrorSnackBar.show(context, state.message);
@@ -122,7 +124,9 @@ class _LoginViewState extends State<LoginView> {
                         ),
                         decoration: InputDecoration(
                           labelText: 'Username',
-                          labelStyle: TextStyle(color: AppColors.of(context).textSecondary),
+                          labelStyle: TextStyle(
+                            color: AppColors.of(context).textSecondary,
+                          ),
                           prefixIcon: Icon(
                             Icons.person_outline,
                             color: AppColors.of(context).textSecondary,
@@ -160,7 +164,9 @@ class _LoginViewState extends State<LoginView> {
                         ),
                         decoration: InputDecoration(
                           labelText: 'Password',
-                          labelStyle: TextStyle(color: AppColors.of(context).textSecondary),
+                          labelStyle: TextStyle(
+                            color: AppColors.of(context).textSecondary,
+                          ),
                           prefixIcon: Icon(
                             Icons.lock_outline,
                             color: AppColors.of(context).textSecondary,

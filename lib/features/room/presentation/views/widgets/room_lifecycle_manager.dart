@@ -75,15 +75,6 @@ class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stopHeartbeat();
-
-    // Leave room when disposing
-    if (_currentPlayerId != null && _isHost != null && _roomCubit != null) {
-      _roomCubit!.leaveRoomSession(
-        playerId: _currentPlayerId!,
-        roomId: widget.roomId,
-        isHost: _isHost!,
-      );
-    }
     super.dispose();
   }
 

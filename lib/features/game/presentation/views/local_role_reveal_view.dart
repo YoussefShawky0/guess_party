@@ -64,7 +64,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
     final isTablet = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.of(context).background,
+      backgroundColor: AppColors.background,
       body: BlocConsumer<GameCubit, GameState>(
         listener: (context, state) {
           if (state is GameLoaded) {
@@ -90,7 +90,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                   Text(
                     'Loading game...',
                     style: TextStyle(
-                      color: AppColors.of(context).textSecondary,
+                      color: AppColors.textSecondary,
                       fontSize: isTablet ? 20 : 16,
                     ),
                   ),
@@ -137,14 +137,14 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
         Text(
           'Player ${_currentPlayerIndex + 1} of ${_players.length}',
           style: TextStyle(
-            color: AppColors.of(context).textSecondary,
+            color: AppColors.textSecondary,
             fontSize: isTablet ? 18 : 14,
           ),
         ),
         const SizedBox(height: 12),
         LinearProgressIndicator(
           value: (_currentPlayerIndex + 1) / _players.length,
-          backgroundColor: AppColors.of(context).surface,
+          backgroundColor: AppColors.surface,
           valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
           minHeight: isTablet ? 8 : 6,
           borderRadius: BorderRadius.circular(4),
@@ -157,7 +157,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
     return Container(
       padding: EdgeInsets.all(isTablet ? 48 : 32),
       decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: AppColors.primary.withValues(alpha: 0.3),
@@ -176,7 +176,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           Text(
             'Pass the phone to',
             style: TextStyle(
-              color: AppColors.of(context).textSecondary,
+              color: AppColors.textSecondary,
               fontSize: isTablet ? 22 : 18,
             ),
           ),
@@ -227,7 +227,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
       decoration: BoxDecoration(
         color: isImposter
             ? AppColors.error.withValues(alpha: 0.15)
-            : AppColors.of(context).surface,
+            : AppColors.surface,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isImposter ? AppColors.error : AppColors.success,
@@ -241,7 +241,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           Text(
             player.username,
             style: TextStyle(
-              color: AppColors.of(context).textSecondary,
+              color: AppColors.textSecondary,
               fontSize: isTablet ? 20 : 16,
             ),
           ),
@@ -267,7 +267,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           Text(
             isImposter ? 'You are the' : 'You are',
             style: TextStyle(
-              color: AppColors.of(context).textSecondary,
+              color: AppColors.textSecondary,
               fontSize: isTablet ? 20 : 16,
             ),
           ),
@@ -296,7 +296,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                   Text(
                     'The Character is',
                     style: TextStyle(
-                      color: AppColors.of(context).textSecondary,
+                      color: AppColors.textSecondary,
                       fontSize: isTablet ? 16 : 14,
                     ),
                   ),
@@ -386,7 +386,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                         : FontAwesomeIcons.arrowRight)
                   : FontAwesomeIcons.eye,
               size: isTablet ? 24 : 20,
-              color: AppColors.of(context).textPrimary,
+              color: AppColors.textPrimary,
             ),
             const SizedBox(width: 12),
             Text(
@@ -396,7 +396,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
               style: TextStyle(
                 fontSize: isTablet ? 20 : 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.of(context).textPrimary,
+                color: AppColors.textPrimary,
               ),
             ),
           ],

@@ -1,17 +1,18 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/constants/game_constants.dart';
 
 class CategorySelector extends StatelessWidget {
   final String selectedCategory;
   final ValueChanged<String> onChanged;
+  final Map<String, String> categories;
   final bool enabled;
 
   const CategorySelector({
     super.key,
     required this.selectedCategory,
     required this.onChanged,
+    required this.categories,
     this.enabled = true,
   });
 
@@ -71,11 +72,11 @@ class CategorySelector extends StatelessWidget {
               fontSize: isTablet ? 18 : 16,
               color: AppColors.of(context).textPrimary,
             ),
-            items: GameConstants.categories.map((category) {
+            items: categories.entries.map((entry) {
               return DropdownMenuItem<String>(
-                value: category,
+                value: entry.key,
                 child: Text(
-                  GameConstants.categoryNames[category] ?? category,
+                  entry.value,
                   style: TextStyle(
                     fontSize: isTablet ? 18 : 16,
                     fontWeight: FontWeight.w500,

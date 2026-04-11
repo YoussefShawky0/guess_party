@@ -20,6 +20,12 @@ class RoomStatusListener extends StatefulWidget {
 
 class _RoomStatusListenerState extends State<RoomStatusListener> {
   RealtimeChannel? _roomChannel;
+  bool _isActive = true;
+
+  void _unsubscribeFromRealtime() {
+    _roomChannel?.unsubscribe();
+    _roomChannel = null;
+  }
 
   @override
   void initState() {
@@ -28,13 +34,35 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
   }
 
   @override
+  void deactivate() {
+    // Prevent realtime callbacks from touching widget tree after deactivation.
+    _isActive = false;
+    _unsubscribeFromRealtime();
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _isActive = true;
+    if (_roomChannel == null) {
+      _listenToRoomStatus();
+    }
+  }
+
+  @override
   void dispose() {
-    _roomChannel?.unsubscribe();
+    _isActive = false;
+    _unsubscribeFromRealtime();
     super.dispose();
   }
 
   void _listenToRoomStatus() {
+    if (!_isActive) return;
+
     try {
+      _unsubscribeFromRealtime();
+
       final channel = Supabase.instance.client.channel(
         'room_status_${widget.roomId}',
       );
@@ -49,6 +77,8 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
           value: widget.roomId,
         ),
         callback: (payload) {
+          if (!_isActive || !mounted) return;
+
           final newStatus = payload.newRecord['status'];
 
           if (newStatus == 'finished' && mounted) {
@@ -64,8 +94,8 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
             status == RealtimeSubscribeStatus.closed) {
           // Retry connection after a delay
           Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              _roomChannel?.unsubscribe();
+            if (mounted && _isActive) {
+              _unsubscribeFromRealtime();
               _listenToRoomStatus();
             }
           });
@@ -76,7 +106,7 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
     } catch (e) {
       // Retry after delay
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) {
+        if (mounted && _isActive) {
           _listenToRoomStatus();
         }
       });
@@ -84,6 +114,8 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
   }
 
   void _handleRoomClosed() {
+    if (!_isActive || !mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Room has been closed. Returning to home.'),
@@ -92,7 +124,7 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
     );
 
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted && context.mounted) {
+      if (mounted && _isActive && context.mounted) {
         context.go(AppRoutes.home);
       }
     });
@@ -101,7 +133,7 @@ class _RoomStatusListenerState extends State<RoomStatusListener> {
   void _handleGameStarted() {
     // Navigate to countdown when game starts
     // No need to load players data when navigating away
-    if (mounted && context.mounted) {
+    if (mounted && _isActive && context.mounted) {
       context.go(AppRoutes.roomCountdown(widget.roomId));
     }
   }

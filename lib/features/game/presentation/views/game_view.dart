@@ -62,6 +62,10 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
   static const _heartbeatInterval = Duration(seconds: 25);
   Timer? _heartbeatTimer;
 
+  late final GameCubit _gameCubit;
+  bool _isActive = true;
+  bool _isObserving = false;
+
   Future<void> _setCurrentUserOnlineStatus(bool isOnline) async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
@@ -95,22 +99,57 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
   @override
   void initState() {
     super.initState();
+
+    // Cache cubit reference to avoid ancestor lookup during lifecycle callbacks.
+    _gameCubit = context.read<GameCubit>();
+
     WidgetsBinding.instance.addObserver(this);
+    _isObserving = true;
+    _setCurrentUserOnlineStatus(true);
+    _startHeartbeat();
+  }
+
+  @override
+  void deactivate() {
+    _isActive = false;
+    _stopHeartbeat();
+
+    if (_isObserving) {
+      WidgetsBinding.instance.removeObserver(this);
+      _isObserving = false;
+    }
+
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _isActive = true;
+
+    if (!_isObserving) {
+      WidgetsBinding.instance.addObserver(this);
+      _isObserving = true;
+    }
+
     _setCurrentUserOnlineStatus(true);
     _startHeartbeat();
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    _isActive = false;
+    if (_isObserving) {
+      WidgetsBinding.instance.removeObserver(this);
+      _isObserving = false;
+    }
     _stopHeartbeat();
-    _setCurrentUserOnlineStatus(false);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!mounted) return;
+    if (!mounted || !_isActive || _gameCubit.isClosed) return;
 
     switch (state) {
       case AppLifecycleState.resumed:
@@ -126,9 +165,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
           ),
         );
 
-        context.read<GameCubit>().refreshGameStateOnResume(
-          roomId: widget.roomId,
-        );
+        _gameCubit.refreshGameStateOnResume(roomId: widget.roomId);
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:

@@ -328,11 +328,37 @@ class GameRepositoryImpl implements GameRepository {
       // Fetch room details to get roundDuration and category
       final room = await roomRemoteDataSource.getRoomDetails(roomId: roomId);
 
+      // Best-effort: avoid repeating characters across rounds.
+      // We prefer:
+      // 1) not repeating the immediately previous round's character, and
+      // 2) not repeating any character in room.usedCharacterIds (if maintained).
+      String? previousCharacterId;
+      try {
+        final latestRound = await client
+            .from('rounds')
+            .select('character_id')
+            .eq('room_id', roomId)
+            .order('round_number', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        if (latestRound != null) {
+          previousCharacterId = latestRound['character_id'] as String?;
+        }
+      } catch (_) {
+        // Ignore — we can still pick randomly.
+      }
+
+      final trackedUsedIds = <String>{
+        ...room.usedCharacterIds,
+        if (previousCharacterId != null) previousCharacterId,
+      };
+
       // Fetch a random character matching the room's category
       final isRoomMix = room.category == 'mix';
       var charactersQuery = client
           .from('characters')
-          .select()
+          .select('id')
           .eq('is_active', true);
 
       // Filter by category unless room is set to mix
@@ -340,15 +366,66 @@ class GameRepositoryImpl implements GameRepository {
         charactersQuery = charactersQuery.eq('category', room.category);
       }
 
-      final charactersResponse = await charactersQuery.limit(100);
+      // Select only IDs to keep payload small. Use a higher limit so large
+      // seed sets (e.g. 200+/category) are actually considered.
+      final charactersResponse = await charactersQuery.limit(5000);
 
-      final characters = charactersResponse as List;
-      if (characters.isEmpty) {
+      final allCharacters = (charactersResponse as List)
+          .cast<Map<String, dynamic>>();
+      if (allCharacters.isEmpty) {
         throw Exception('No characters available');
       }
 
-      final characterIndex = rng.nextInt(characters.length);
-      final characterId = characters[characterIndex]['id'] as String;
+      final excludedIds = <String>{
+        ...trackedUsedIds,
+        if (previousCharacterId != null) previousCharacterId,
+      };
+
+      var availableCharacters = allCharacters;
+      var resetUsedCharacters = false;
+
+      // Only filter when we have meaningful choice.
+      if (allCharacters.length > 1 && excludedIds.isNotEmpty) {
+        final filtered = allCharacters
+            .where((c) => !excludedIds.contains(c['id'] as String))
+            .toList();
+
+        if (filtered.isNotEmpty) {
+          availableCharacters = filtered;
+        } else {
+          // Everything is "used" — start a new cycle, but still try to avoid
+          // repeating the immediately previous character if possible.
+          resetUsedCharacters = true;
+          if (previousCharacterId != null) {
+            final avoidImmediate = allCharacters
+                .where((c) => (c['id'] as String) != previousCharacterId)
+                .toList();
+            if (avoidImmediate.isNotEmpty) {
+              availableCharacters = avoidImmediate;
+            }
+          }
+        }
+      }
+
+      final characterIndex = rng.nextInt(availableCharacters.length);
+      final characterId = availableCharacters[characterIndex]['id'] as String;
+
+      // Persist used-character tracking (best-effort; ignore if blocked by RLS).
+      try {
+        final nextUsedIds = resetUsedCharacters
+            ? <String>[characterId]
+            : <String>{...trackedUsedIds, characterId}.toList();
+
+        await client
+            .from('rooms')
+            .update({
+              'used_character_ids': nextUsedIds,
+              'current_round': roundNumber,
+            })
+            .eq('id', roomId);
+      } catch (_) {
+        // Ignore — round creation should still succeed.
+      }
 
       // Create new round with duration from room settings
       final newRound = await remoteDataSource.createRound(

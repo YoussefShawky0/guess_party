@@ -20,23 +20,51 @@ class _PlayersListState extends State<PlayersList> {
   RealtimeChannel? _playersChannel;
   Timer? _pollTimer;
 
-  void _refreshPlayers() {
-    if (!mounted) return;
-    context.read<RoomCubit>().loadRoomPlayers(roomId: widget.roomId);
-  }
+  late final RoomCubit _roomCubit;
+  bool _isActive = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _refreshPlayers();
-    _subscribeToRealtimeUpdates();
-    // Fallback in case realtime drops or misses events.
+  void _startPolling() {
+    _pollTimer?.cancel();
     _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _refreshPlayers();
     });
   }
 
+  void _stopPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = null;
+  }
+
+  void _unsubscribeFromRealtime() {
+    _playersChannel?.unsubscribe();
+    _playersChannel = null;
+  }
+
+  void _refreshPlayers() {
+    if (!_isActive || !mounted) return;
+    if (_roomCubit.isClosed) return;
+    _roomCubit.loadRoomPlayers(roomId: widget.roomId);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Cache cubit reference to avoid ancestor lookup from async callbacks.
+    _roomCubit = context.read<RoomCubit>();
+
+    _refreshPlayers();
+    _subscribeToRealtimeUpdates();
+    // Fallback in case realtime drops or misses events.
+    _startPolling();
+  }
+
   void _subscribeToRealtimeUpdates() {
+    if (!_isActive) return;
+
+    // Ensure we don't create duplicate subscriptions.
+    _unsubscribeFromRealtime();
+
     try {
       final channel = Supabase.instance.client
           .channel('players_${widget.roomId}')
@@ -58,8 +86,8 @@ class _PlayersListState extends State<PlayersList> {
         if (status == RealtimeSubscribeStatus.channelError ||
             status == RealtimeSubscribeStatus.closed) {
           Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              _playersChannel?.unsubscribe();
+            if (mounted && _isActive) {
+              _unsubscribeFromRealtime();
               _subscribeToRealtimeUpdates();
             }
           });
@@ -69,15 +97,34 @@ class _PlayersListState extends State<PlayersList> {
       _playersChannel = channel;
     } catch (_) {
       Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) _subscribeToRealtimeUpdates();
+        if (mounted && _isActive) _subscribeToRealtimeUpdates();
       });
     }
   }
 
   @override
+  void deactivate() {
+    // Prevent async callbacks (timer/realtime) from touching widget tree.
+    _isActive = false;
+    _stopPolling();
+    _unsubscribeFromRealtime();
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _isActive = true;
+    _refreshPlayers();
+    _subscribeToRealtimeUpdates();
+    _startPolling();
+  }
+
+  @override
   void dispose() {
-    _pollTimer?.cancel();
-    _playersChannel?.unsubscribe();
+    _isActive = false;
+    _stopPolling();
+    _unsubscribeFromRealtime();
     super.dispose();
   }
 
