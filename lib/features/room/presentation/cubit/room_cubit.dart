@@ -200,6 +200,15 @@ class RoomCubit extends Cubit<RoomState> {
 
       // Check current player count against the room's max limit
       final playersResult = await getRoomPlayers(roomId: room.id);
+      if (playersResult.isLeft()) {
+        emit(
+          RoomError(
+            playersResult.fold((failure) => failure.message, (_) => ''),
+          ),
+        );
+        return;
+      }
+
       final int currentCount = playersResult.fold((_) => 0, (p) => p.length);
       if (currentCount >= room.maxPlayers) {
         emit(RoomError('This room is full (${room.maxPlayers} players max)'));

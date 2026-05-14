@@ -27,7 +27,7 @@ CREATE INDEX IF NOT EXISTS idx_characters_active ON characters(is_active);
 CREATE TABLE IF NOT EXISTS rooms (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   host_id UUID NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('mix', 'places', 'foods', 'animals', 'football_players', 'islamic_figures', 'daily_products')),
+  category TEXT NOT NULL CHECK (category IN ('football_players', 'islamic_figures', 'daily_products', 'places', 'foods', 'animals')),
   max_rounds INTEGER NOT NULL DEFAULT 5 CHECK (max_rounds BETWEEN 1 AND 10),
   max_players INTEGER NOT NULL DEFAULT 6 CHECK (max_players BETWEEN 4 AND 10),
   round_duration INTEGER NOT NULL DEFAULT 60 CHECK (round_duration BETWEEN 30 AND 300),
@@ -59,6 +59,50 @@ CREATE TABLE IF NOT EXISTS players (
 CREATE INDEX IF NOT EXISTS idx_players_room ON players(room_id);
 CREATE INDEX IF NOT EXISTS idx_players_online ON players(room_id, is_online);
 CREATE INDEX IF NOT EXISTS idx_players_host ON players(room_id, is_host);
+
+CREATE OR REPLACE FUNCTION enforce_room_capacity()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_room_status TEXT;
+  v_max_players INTEGER;
+  v_online_count INTEGER;
+BEGIN
+  SELECT status, max_players
+  INTO v_room_status, v_max_players
+  FROM rooms
+  WHERE id = NEW.room_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Room not found';
+  END IF;
+
+  IF TG_OP = 'INSERT' AND v_room_status <> 'waiting' THEN
+    RAISE EXCEPTION 'This room has already started';
+  END IF;
+
+  IF COALESCE(NEW.is_online, true) THEN
+    SELECT COUNT(*)
+    INTO v_online_count
+    FROM players
+    WHERE room_id = NEW.room_id
+      AND is_online = true
+      AND id <> NEW.id;
+
+    IF v_online_count >= v_max_players THEN
+      RAISE EXCEPTION 'This room is full (% players max)', v_max_players;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS trigger_enforce_room_capacity ON players;
+CREATE TRIGGER trigger_enforce_room_capacity
+BEFORE INSERT OR UPDATE OF room_id, is_online
+ON players
+FOR EACH ROW
+EXECUTE FUNCTION enforce_room_capacity();
 
 -- ========================================
 -- 4. Rounds Table
@@ -110,17 +154,99 @@ CREATE INDEX IF NOT EXISTS idx_votes_round ON votes(round_id);
 CREATE INDEX IF NOT EXISTS idx_votes_voted ON votes(round_id, voted_player_id);
 
 -- ========================================
--- 7. Enable Realtime
+-- 7. Messages Table
 -- ========================================
-ALTER PUBLICATION supabase_realtime ADD TABLE characters;
-ALTER PUBLICATION supabase_realtime ADD TABLE rooms;
-ALTER PUBLICATION supabase_realtime ADD TABLE players;
-ALTER PUBLICATION supabase_realtime ADD TABLE rounds;
-ALTER PUBLICATION supabase_realtime ADD TABLE hints;
-ALTER PUBLICATION supabase_realtime ADD TABLE votes;
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  round_id UUID REFERENCES rounds(id) ON DELETE CASCADE,
+  player_id UUID NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  content TEXT NOT NULL CHECK (length(content) >= 1 AND length(content) <= 500),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id);
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_room_created_at
+ON messages(room_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_messages_round_created_at
+ON messages(round_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_messages_room_round_created_at
+ON messages(room_id, round_id, created_at ASC);
+
+ALTER TABLE messages REPLICA IDENTITY FULL;
 
 -- ========================================
--- 8. Row Level Security (RLS)
+-- 8. Enable Realtime
+-- ========================================
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'characters'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.characters;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'rooms'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'players'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.players;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'rounds'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.rounds;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'hints'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.hints;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'votes'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.votes;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+  END IF;
+END $$;
+
+-- ========================================
+-- 9. Row Level Security (RLS)
 -- ========================================
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE players ENABLE ROW LEVEL SECURITY;
@@ -128,40 +254,50 @@ ALTER TABLE rounds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE characters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 -- Characters: الكل يقدر يقرأها
+DROP POLICY IF EXISTS "Anyone can view characters" ON characters;
 CREATE POLICY "Anyone can view characters" ON characters
   FOR SELECT USING (true);
 
 -- Rooms: الكل يقدر يقرأها
+DROP POLICY IF EXISTS "Anyone can view rooms" ON rooms;
 CREATE POLICY "Anyone can view rooms" ON rooms
   FOR SELECT USING (true);
 
 -- Rooms: أي حد يقدر يعمل روم
+DROP POLICY IF EXISTS "Anyone can create room" ON rooms;
 CREATE POLICY "Anyone can create room" ON rooms
   FOR INSERT WITH CHECK (true);
 
 -- Rooms: الـ HOST بس يقدر يعدل
+DROP POLICY IF EXISTS "Only host can update room" ON rooms;
 CREATE POLICY "Only host can update room" ON rooms
   FOR UPDATE USING (host_id = (SELECT auth.uid()));
 
 -- Players: الكل يقدر يقرأهم
+DROP POLICY IF EXISTS "Anyone can view players" ON players;
 CREATE POLICY "Anyone can view players" ON players
   FOR SELECT USING (true);
 
 -- Players: أي حد يقدر ينضم
+DROP POLICY IF EXISTS "Anyone can join as player" ON players;
 CREATE POLICY "Anyone can join as player" ON players
   FOR INSERT WITH CHECK (true);
 
 -- Players: كل لاعب يعدل بياناته بس
+DROP POLICY IF EXISTS "Players can update themselves" ON players;
 CREATE POLICY "Players can update themselves" ON players
   FOR UPDATE USING (user_id = (SELECT auth.uid()));
 
 -- Rounds: الكل يقدر يقرأها
+DROP POLICY IF EXISTS "Anyone can view rounds" ON rounds;
 CREATE POLICY "Anyone can view rounds" ON rounds
   FOR SELECT USING (true);
 
 -- Rounds: الـ HOST بس يقدر يديرها (INSERT, UPDATE, DELETE)
+DROP POLICY IF EXISTS "Only host can manage rounds" ON rounds;
 CREATE POLICY "Only host can manage rounds" ON rounds
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -173,6 +309,7 @@ CREATE POLICY "Only host can manage rounds" ON rounds
     )
   );
 
+DROP POLICY IF EXISTS "Only host can modify rounds" ON rounds;
 CREATE POLICY "Only host can modify rounds" ON rounds
   FOR UPDATE USING (
     EXISTS (
@@ -184,6 +321,7 @@ CREATE POLICY "Only host can modify rounds" ON rounds
     )
   );
 
+DROP POLICY IF EXISTS "Only host can delete rounds" ON rounds;
 CREATE POLICY "Only host can delete rounds" ON rounds
   FOR DELETE USING (
     EXISTS (
@@ -196,10 +334,12 @@ CREATE POLICY "Only host can delete rounds" ON rounds
   );
 
 -- Hints: الكل يقدر يقرأها
+DROP POLICY IF EXISTS "Anyone can view hints" ON hints;
 CREATE POLICY "Anyone can view hints" ON hints
   FOR SELECT USING (true);
 
 -- Hints: اللاعيبة يقدروا يضيفوا hints
+DROP POLICY IF EXISTS "Players can add hints" ON hints;
 CREATE POLICY "Players can add hints" ON hints
   FOR INSERT WITH CHECK (
     EXISTS (
@@ -210,35 +350,91 @@ CREATE POLICY "Players can add hints" ON hints
   );
 
 -- Votes: الكل يقدر يقرأها
+DROP POLICY IF EXISTS "Anyone can view votes" ON votes;
 CREATE POLICY "Anyone can view votes" ON votes
   FOR SELECT USING (true);
 
 -- Votes: اللاعيبة يقدروا يصوتوا (Local Mode: all players in same room share user_id)
+DROP POLICY IF EXISTS "Players can vote" ON votes;
 CREATE POLICY "Players can vote" ON votes
   FOR INSERT WITH CHECK (
     EXISTS (
+      SELECT 1 FROM rounds r
+      JOIN players p_voter ON p_voter.id = votes.voter_player_id
+        AND p_voter.room_id = r.room_id
+      JOIN players p_target ON p_target.id = votes.voted_player_id
+        AND p_target.room_id = r.room_id
+      JOIN players p_auth ON p_auth.room_id = r.room_id
+        AND p_auth.user_id = (SELECT auth.uid())
+      WHERE r.id = votes.round_id
+    )
+  );
+
+-- Votes: اللاعيبة يقدروا يعدلوا صوتهم
+DROP POLICY IF EXISTS "Players can update their vote" ON votes;
+DROP POLICY IF EXISTS "Players can update their votes" ON votes;
+CREATE POLICY "Players can update their vote" ON votes
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM rounds r
+      JOIN players p_voter ON p_voter.id = votes.voter_player_id
+        AND p_voter.room_id = r.room_id
+      JOIN players p_target ON p_target.id = votes.voted_player_id
+        AND p_target.room_id = r.room_id
+      JOIN players p_auth ON p_auth.room_id = r.room_id
+        AND p_auth.user_id = (SELECT auth.uid())
+      WHERE r.id = votes.round_id
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM rounds r
+      JOIN players p_voter ON p_voter.id = votes.voter_player_id
+        AND p_voter.room_id = r.room_id
+      JOIN players p_target ON p_target.id = votes.voted_player_id
+        AND p_target.room_id = r.room_id
+      JOIN players p_auth ON p_auth.room_id = r.room_id
+        AND p_auth.user_id = (SELECT auth.uid())
+      WHERE r.id = votes.round_id
+    )
+  );
+
+-- ========================================
+-- Messages: room players can read and send general chat messages
+DROP POLICY IF EXISTS "Room players can view messages" ON messages;
+DROP POLICY IF EXISTS "Room players can send messages" ON messages;
+DROP POLICY IF EXISTS "Anyone can view messages" ON messages;
+DROP POLICY IF EXISTS "Players can send messages" ON messages;
+
+CREATE POLICY "Room players can view messages" ON messages
+  FOR SELECT USING (
+    round_id IS NOT NULL
+    AND
+    EXISTS (
       SELECT 1 FROM players p
-      JOIN rounds r ON r.id = votes.round_id
-      WHERE p.id = votes.voter_player_id
+      JOIN rounds r ON r.id = messages.round_id
+      WHERE r.room_id = messages.room_id
       AND p.room_id = r.room_id
       AND p.user_id = (SELECT auth.uid())
     )
   );
 
--- Votes: اللاعيبة يقدروا يعدلوا صوتهم
-CREATE POLICY "Players can update their vote" ON votes
-  FOR UPDATE USING (
+CREATE POLICY "Room players can send messages" ON messages
+  FOR INSERT WITH CHECK (
+    round_id IS NOT NULL
+    AND
     EXISTS (
       SELECT 1 FROM players p
-      JOIN rounds r ON r.id = votes.round_id
-      WHERE p.id = votes.voter_player_id
+      JOIN rounds r ON r.id = messages.round_id
+      WHERE p.id = messages.player_id
+      AND r.room_id = messages.room_id
       AND p.room_id = r.room_id
       AND p.user_id = (SELECT auth.uid())
     )
   );
 
 -- ========================================
--- 9. Insert Sample Characters
+-- 10. Insert Sample Characters
 -- ========================================
 INSERT INTO characters (name, category, difficulty) VALUES
 -- لاعيبة كورة

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -16,19 +16,20 @@ class ImposterRevealCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
+    final accent = imposterCaught ? AppColors.success : AppColors.error;
+    final title = imposterCaught ? 'Imposter Caught' : 'Imposter Escaped';
+    final subtitle = imposterCaught
+        ? 'The group found the hidden player.'
+        : 'The imposter avoided the vote.';
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.resultsImposterBg,
+        color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: imposterCaught ? AppColors.success : AppColors.error,
-          width: 2,
-        ),
+        border: Border.all(color: accent.withValues(alpha: 0.7), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: (imposterCaught ? AppColors.success : AppColors.error)
-                .withValues(alpha: 0.3),
+            color: accent.withValues(alpha: 0.16),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -38,24 +39,43 @@ class ImposterRevealCard extends StatelessWidget {
         padding: EdgeInsets.all(isTablet ? 28 : 24),
         child: Column(
           children: [
-            FaIcon(
-              imposterCaught
-                  ? FontAwesomeIcons.circleCheck
-                  : FontAwesomeIcons.xmark,
-              size: isTablet ? 80 : 64,
-              color: imposterCaught
-                  ? AppColors.resultsCaughtIcon
-                  : AppColors.resultsEscapedIcon,
+            Container(
+              width: isTablet ? 78 : 64,
+              height: isTablet ? 78 : 64,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: accent.withValues(alpha: 0.45),
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: FaIcon(
+                  imposterCaught
+                      ? FontAwesomeIcons.check
+                      : FontAwesomeIcons.userSecret,
+                  size: isTablet ? 34 : 28,
+                  color: accent,
+                ),
+              ),
             ),
-            SizedBox(height: isTablet ? 20 : 16),
+            SizedBox(height: isTablet ? 18 : 14),
             Text(
-              imposterCaught ? '🎉 Imposter Caught!' : '😈 Imposter Won!',
+              title,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: imposterCaught
-                    ? AppColors.resultsCaughtIcon
-                    : AppColors.resultsEscapedIcon,
-                fontSize: isTablet ? 32 : 24,
+                color: AppColors.of(context).textPrimary,
+                fontSize: isTablet ? 30 : 23,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: AppColors.of(context).textSecondary,
+                fontSize: isTablet ? 16 : 14,
               ),
               textAlign: TextAlign.center,
             ),
@@ -63,12 +83,11 @@ class ImposterRevealCard extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(isTablet ? 20 : 16),
               decoration: BoxDecoration(
-                color: AppColors.of(context).surface,
+                color: AppColors.of(
+                  context,
+                ).surfaceLight.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.imposterCardBorder,
-                  width: 2,
-                ),
+                border: Border.all(color: accent.withValues(alpha: 0.35)),
               ),
               child: Column(
                 children: [
@@ -85,7 +104,7 @@ class ImposterRevealCard extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: isTablet ? 32 : 24,
-                        backgroundColor: AppColors.imposterCardBorder,
+                        backgroundColor: accent.withValues(alpha: 0.85),
                         child: Text(
                           imposter.username[0].toUpperCase(),
                           style: TextStyle(

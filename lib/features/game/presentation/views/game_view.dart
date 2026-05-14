@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,6 +10,7 @@ import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/shared/widgets/chat_widget.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/character_card.dart';
@@ -526,12 +527,19 @@ class GameViewContent extends StatelessWidget {
 
           // Phase-specific content
           if (round.phase == GamePhase.hints)
-            HintsPhaseContent(
-              round: round,
-              players: state.gameState.players,
-              gameMode: state.gameState.gameMode,
-              currentUserId: currentUserId,
-            ),
+            if (gameState.gameMode == GameConstants.gameModeOnline)
+              ChatWidget(
+                roomId: roomId,
+                roundId: round.id,
+                currentPlayerId: currentPlayer.id,
+              )
+            else
+              HintsPhaseContent(
+                round: round,
+                players: state.gameState.players,
+                gameMode: state.gameState.gameMode,
+                currentUserId: currentUserId,
+              ),
           if (round.phase == GamePhase.voting)
             VotingPhaseContent(
               round: round,

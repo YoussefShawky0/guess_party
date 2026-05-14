@@ -1,15 +1,17 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatWidget extends StatefulWidget {
   final String roomId;
+  final String roundId;
   final String currentPlayerId;
 
   const ChatWidget({
     super.key,
     required this.roomId,
+    required this.roundId,
     required this.currentPlayerId,
   });
 
@@ -23,6 +25,7 @@ class _ChatWidgetState extends State<ChatWidget> {
   final _supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
+  bool _isSending = false;
   RealtimeChannel? _channel;
 
   @override
@@ -30,6 +33,19 @@ class _ChatWidgetState extends State<ChatWidget> {
     super.initState();
     _loadMessages();
     _subscribeToMessages();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.roundId != widget.roundId ||
+        oldWidget.roomId != widget.roomId) {
+      _channel?.unsubscribe();
+      _messages = [];
+      _isLoading = true;
+      _loadMessages();
+      _subscribeToMessages();
+    }
   }
 
   @override
@@ -46,30 +62,35 @@ class _ChatWidgetState extends State<ChatWidget> {
           .from('messages')
           .select('*, players!inner(username)')
           .eq('room_id', widget.roomId)
+          .eq('round_id', widget.roundId)
           .order('created_at', ascending: true);
 
+      if (!mounted) return;
       setState(() {
         _messages = List<Map<String, dynamic>>.from(response);
+        _sortMessages();
         _isLoading = false;
       });
       _scrollToBottom();
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   void _subscribeToMessages() {
     try {
       final channel = _supabase
-          .channel('messages:${widget.roomId}')
+          .channel('messages:${widget.roomId}:${widget.roundId}')
           .onPostgresChanges(
             event: PostgresChangeEvent.insert,
             schema: 'public',
             table: 'messages',
             filter: PostgresChangeFilter(
               type: PostgresChangeFilterType.eq,
-              column: 'room_id',
-              value: widget.roomId,
+              column: 'round_id',
+              value: widget.roundId,
             ),
             callback: (payload) {
               _handleNewMessage(payload.newRecord);
@@ -98,20 +119,42 @@ class _ChatWidgetState extends State<ChatWidget> {
 
   Future<void> _handleNewMessage(Map<String, dynamic> newMessage) async {
     try {
+      final messageId = newMessage['id'] as String?;
+      if (messageId != null &&
+          _messages.any((message) => message['id'] == messageId)) {
+        return;
+      }
+
       // Fetch player info for the new message
       final playerData = await _supabase
           .from('players')
           .select('username')
           .eq('id', newMessage['player_id'])
-          .single();
+          .maybeSingle();
 
+      if (!mounted) return;
       setState(() {
-        _messages.add({...newMessage, 'players': playerData});
+        _messages.add({
+          ...newMessage,
+          'players': playerData ?? {'username': 'Player'},
+        });
+        _sortMessages();
       });
       _scrollToBottom();
     } catch (e) {
       // Error handling new message
     }
+  }
+
+  void _sortMessages() {
+    _messages.sort((a, b) {
+      final aCreatedAt = DateTime.tryParse(a['created_at']?.toString() ?? '');
+      final bCreatedAt = DateTime.tryParse(b['created_at']?.toString() ?? '');
+      if (aCreatedAt == null && bCreatedAt == null) return 0;
+      if (aCreatedAt == null) return -1;
+      if (bCreatedAt == null) return 1;
+      return aCreatedAt.compareTo(bCreatedAt);
+    });
   }
 
   void _scrollToBottom() {
@@ -127,12 +170,23 @@ class _ChatWidgetState extends State<ChatWidget> {
   }
 
   Future<void> _sendMessage() async {
+    if (_isSending) return;
+
     final content = _messageController.text.trim();
     if (content.isEmpty) return;
 
+    if (content.length > 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Message must be 500 characters or less')),
+      );
+      return;
+    }
+
+    setState(() => _isSending = true);
     try {
       await _supabase.from('messages').insert({
         'room_id': widget.roomId,
+        'round_id': widget.roundId,
         'player_id': widget.currentPlayerId,
         'content': content,
       });
@@ -143,6 +197,10 @@ class _ChatWidgetState extends State<ChatWidget> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to send message: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
       }
     }
   }
@@ -202,7 +260,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                 ? Center(
                     child: Text(
                       'No messages yet',
-                      style: TextStyle(color: AppColors.of(context).textSecondary),
+                      style: TextStyle(
+                        color: AppColors.of(context).textSecondary,
+                      ),
                     ),
                   )
                 : ListView.builder(
@@ -213,10 +273,13 @@ class _ChatWidgetState extends State<ChatWidget> {
                       final message = _messages[index];
                       final isCurrentUser =
                           message['player_id'] == widget.currentPlayerId;
-                      final username = message['players']['username'];
+                      final players = message['players'];
+                      final username = players is Map<String, dynamic>
+                          ? players['username'] as String? ?? 'Player'
+                          : 'Player';
 
                       return _MessageBubble(
-                        content: message['content'],
+                        content: message['content']?.toString() ?? '',
                         username: username,
                         isCurrentUser: isCurrentUser,
                         isTablet: isTablet,
@@ -242,7 +305,9 @@ class _ChatWidgetState extends State<ChatWidget> {
                     style: TextStyle(color: AppColors.of(context).textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
-                      hintStyle: TextStyle(color: AppColors.of(context).textMuted),
+                      hintStyle: TextStyle(
+                        color: AppColors.of(context).textMuted,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
@@ -256,13 +321,20 @@ class _ChatWidgetState extends State<ChatWidget> {
                     ),
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => _sendMessage(),
-                    maxLines: 1,
+                    minLines: 1,
+                    maxLines: 3,
                   ),
                 ),
                 const SizedBox(width: 12),
                 IconButton(
-                  onPressed: _sendMessage,
-                  icon: const FaIcon(FontAwesomeIcons.paperPlane, size: 18),
+                  onPressed: _isSending ? null : _sendMessage,
+                  icon: _isSending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const FaIcon(FontAwesomeIcons.paperPlane, size: 18),
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.of(context).textPrimary,
@@ -302,7 +374,9 @@ class _MessageBubble extends StatelessWidget {
           maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
         decoration: BoxDecoration(
-          color: isCurrentUser ? AppColors.primary : AppColors.of(context).surfaceLight,
+          color: isCurrentUser
+              ? AppColors.primary
+              : AppColors.of(context).surfaceLight,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(

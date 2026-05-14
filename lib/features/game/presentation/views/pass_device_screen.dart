@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
 class PassDeviceScreen extends StatefulWidget {
@@ -192,23 +192,13 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
 
   Widget _buildRevealedView(Size size, bool isTablet) {
     final roleColor = widget.isImpostor ? AppColors.error : AppColors.primary;
-    final roleText = widget.isImpostor ? 'IMPOSTOR' : 'CHARACTER';
+    final roleText = widget.isImpostor ? 'IMPOSTER' : 'CHARACTER';
 
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              roleColor.withValues(alpha: 0.2),
-              roleColor.withValues(alpha: 0.05),
-            ],
-          ),
-          color: AppColors.of(context).background,
-        ),
+        color: AppColors.of(context).background,
         child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
@@ -222,15 +212,15 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                 children: [
                   Container(
                     padding: EdgeInsets.symmetric(
-                      horizontal: isTablet ? 40 : 24,
-                      vertical: isTablet ? 16 : 12,
+                      horizontal: isTablet ? 32 : 22,
+                      vertical: isTablet ? 14 : 10,
                     ),
                     decoration: BoxDecoration(
-                      color: roleColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(50),
+                      color: roleColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: roleColor.withValues(alpha: 0.5),
-                        width: 2,
+                        color: roleColor.withValues(alpha: 0.42),
+                        width: 1.5,
                       ),
                     ),
                     child: Text(
@@ -239,11 +229,10 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                         color: roleColor,
                         fontWeight: FontWeight.bold,
                         fontSize: isTablet ? 24 : 20,
-                        letterSpacing: 2,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 52),
                   Text(
                     'You are',
                     style: TextStyle(
@@ -252,22 +241,29 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  if (widget.isImpostor)
-                    Icon(
-                      Icons.masks,
-                      size: isTablet ? 120 : 100,
-                      color: roleColor,
-                    )
-                  else
-                    Icon(
-                      Icons.person_rounded,
-                      size: isTablet ? 120 : 100,
+                  Container(
+                    width: isTablet ? 118 : 96,
+                    height: isTablet ? 118 : 96,
+                    decoration: BoxDecoration(
+                      color: roleColor.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: roleColor.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Icon(
+                      widget.isImpostor
+                          ? Icons.visibility_off_rounded
+                          : Icons.person_rounded,
+                      size: isTablet ? 58 : 46,
                       color: roleColor,
                     ),
+                  ),
                   const SizedBox(height: 20),
                   Text(
                     widget.isImpostor
-                        ? 'The Impostor'
+                        ? 'The Imposter'
                         : widget.characterName ?? '',
                     style: TextStyle(
                       color: roleColor,
@@ -283,7 +279,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                       color: AppColors.of(context).surface,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppColors.of(context).surfaceLight.withValues(alpha: 0.2),
+                        color: roleColor.withValues(alpha: 0.28),
                       ),
                     ),
                     child: Text(

@@ -19,9 +19,12 @@ ON public.categories (is_active, sort_order, name);
 -- 2) Seed required categories
 INSERT INTO public.categories (key, name, sort_order)
 VALUES
-  ('places', 'Places', 10),
-  ('foods', 'Foods', 20),
-  ('animals', 'Animals', 30)
+  ('football_players', 'Football Players', 10),
+  ('islamic_figures', 'Islamic Figures', 20),
+  ('daily_products', 'Daily Products', 30),
+  ('places', 'Places', 40),
+  ('foods', 'Foods', 50),
+  ('animals', 'Animals', 60)
 ON CONFLICT (key) DO UPDATE
 SET name = EXCLUDED.name,
     sort_order = EXCLUDED.sort_order,
@@ -52,12 +55,11 @@ ALTER TABLE public.rooms
 ADD CONSTRAINT rooms_category_check
 CHECK (
   category IN (
-    'mix',
-    'places',
-    'foods',
-    'animals',
     'football_players',
     'islamic_figures',
-    'daily_products'
+    'daily_products',
+    'places',
+    'foods',
+    'animals'
   )
 );

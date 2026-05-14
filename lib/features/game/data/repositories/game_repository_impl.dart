@@ -354,17 +354,12 @@ class GameRepositoryImpl implements GameRepository {
         if (previousCharacterId != null) previousCharacterId,
       };
 
-      // Fetch a random character matching the room's category
-      final isRoomMix = room.category == 'mix';
+      // Fetch a random character matching the room's category.
       var charactersQuery = client
           .from('characters')
           .select('id')
-          .eq('is_active', true);
-
-      // Filter by category unless room is set to mix
-      if (!isRoomMix) {
-        charactersQuery = charactersQuery.eq('category', room.category);
-      }
+          .eq('is_active', true)
+          .eq('category', room.category);
 
       // Select only IDs to keep payload small. Use a higher limit so large
       // seed sets (e.g. 200+/category) are actually considered.
@@ -373,7 +368,9 @@ class GameRepositoryImpl implements GameRepository {
       final allCharacters = (charactersResponse as List)
           .cast<Map<String, dynamic>>();
       if (allCharacters.isEmpty) {
-        throw Exception('No characters available');
+        throw Exception(
+          'No characters available for category "${room.category}"',
+        );
       }
 
       final excludedIds = <String>{

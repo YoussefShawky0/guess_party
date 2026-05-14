@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -222,17 +222,24 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
   }
 
   Widget _buildRoleRevealCard(Player player, bool isImposter, bool isTablet) {
+    final accent = isImposter ? AppColors.error : AppColors.success;
+    final roleIcon = isImposter
+        ? FontAwesomeIcons.userSecret
+        : FontAwesomeIcons.userCheck;
+
     return Container(
       padding: EdgeInsets.all(isTablet ? 48 : 32),
       decoration: BoxDecoration(
-        color: isImposter
-            ? AppColors.error.withValues(alpha: 0.15)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isImposter ? AppColors.error : AppColors.success,
-          width: 3,
-        ),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: accent.withValues(alpha: 0.65), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.14),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -251,15 +258,14 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           Container(
             padding: EdgeInsets.all(isTablet ? 24 : 20),
             decoration: BoxDecoration(
-              color: (isImposter ? AppColors.error : AppColors.success)
-                  .withValues(alpha: 0.2),
+              color: accent.withValues(alpha: 0.14),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: accent.withValues(alpha: 0.45),
+                width: 1.5,
+              ),
             ),
-            child: FaIcon(
-              isImposter ? FontAwesomeIcons.userSecret : FontAwesomeIcons.user,
-              color: isImposter ? AppColors.error : AppColors.success,
-              size: isTablet ? 64 : 48,
-            ),
+            child: FaIcon(roleIcon, color: accent, size: isTablet ? 56 : 42),
           ),
           SizedBox(height: isTablet ? 24 : 16),
 
@@ -273,12 +279,11 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           ),
           const SizedBox(height: 8),
           Text(
-            isImposter ? 'IMPOSTER!' : 'INNOCENT',
+            isImposter ? 'IMPOSTER' : 'INNOCENT',
             style: TextStyle(
-              color: isImposter ? AppColors.error : AppColors.success,
-              fontSize: isTablet ? 36 : 28,
+              color: accent,
+              fontSize: isTablet ? 34 : 27,
               fontWeight: FontWeight.bold,
-              letterSpacing: 2,
             ),
           ),
           SizedBox(height: isTablet ? 32 : 24),
@@ -329,14 +334,17 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
             Container(
               padding: EdgeInsets.all(isTablet ? 20 : 16),
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(16),
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.28),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   FaIcon(
-                    FontAwesomeIcons.circleQuestion,
+                    FontAwesomeIcons.userSecret,
                     color: AppColors.error,
                     size: isTablet ? 24 : 20,
                   ),
@@ -345,7 +353,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                     child: Text(
                       'Blend in! Don\'t get caught!',
                       style: TextStyle(
-                        color: AppColors.error,
+                        color: AppColors.errorLight,
                         fontSize: isTablet ? 18 : 14,
                         fontWeight: FontWeight.w500,
                       ),

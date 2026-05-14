@@ -24,6 +24,15 @@ class ErrorHandler {
     }
 
     // User already exists
+    if (errorLower.contains('room is full')) {
+      return 'This room is full';
+    }
+
+    if (errorLower.contains('room has already started') ||
+        errorLower.contains('already started')) {
+      return 'This room has already started';
+    }
+
     if (errorLower.contains('user already registered') ||
         errorLower.contains('already exists') ||
         errorLower.contains('duplicate')) {

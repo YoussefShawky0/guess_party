@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -52,7 +52,7 @@ class CreateRoomView extends StatefulWidget {
 }
 
 class _CreateRoomViewState extends State<CreateRoomView> {
-  String _selectedCategory = 'mix';
+  String _selectedCategory = GameConstants.categories.first;
   int _selectedRounds = GameConstants.defaultRounds;
   int _selectedMaxPlayers = 4;
   int _selectedRoundDuration = 300; // 5 minutes
@@ -61,12 +61,8 @@ class _CreateRoomViewState extends State<CreateRoomView> {
   String? _createdRoomId; // Store room ID for listener
   bool _isLoadingCategories = true;
 
-  static const Map<String, String> _fallbackCategories = {
-    'mix': 'Mix (All)',
-    'places': 'Places',
-    'foods': 'Foods',
-    'animals': 'Animals',
-  };
+  static const Map<String, String> _fallbackCategories =
+      GameConstants.categoryNames;
 
   Map<String, String> _categories = Map<String, String>.from(
     _fallbackCategories,
@@ -86,19 +82,22 @@ class _CreateRoomViewState extends State<CreateRoomView> {
           .eq('is_active', true)
           .order('sort_order', ascending: true);
 
-      final fetched = <String, String>{'mix': 'Mix (All)'};
+      final fetched = <String, String>{};
 
       for (final row in (response as List)) {
         final key = (row['key'] as String?)?.trim();
         final name = (row['name'] as String?)?.trim();
-        if (key != null && key.isNotEmpty && name != null && name.isNotEmpty) {
+        if (key != null &&
+            GameConstants.categories.contains(key) &&
+            name != null &&
+            name.isNotEmpty) {
           fetched[key] = name;
         }
       }
 
       if (mounted) {
         setState(() {
-          _categories = fetched.length > 1 ? fetched : _fallbackCategories;
+          _categories = fetched.isNotEmpty ? fetched : _fallbackCategories;
           if (!_categories.containsKey(_selectedCategory)) {
             _selectedCategory = _categories.keys.first;
           }

@@ -10,16 +10,20 @@ class GameConstants {
   static const String gameModeLocal = 'local';
 
   static const List<String> categories = [
-    'mix',
     'football_players',
     'islamic_figures',
     'daily_products',
+    'places',
+    'foods',
+    'animals',
   ];
 
   static const Map<String, String> categoryNames = {
-    'mix': 'Mix (All)',
     'football_players': 'Football Players',
     'islamic_figures': 'Islamic Figures',
     'daily_products': 'Daily Products',
+    'places': 'Places',
+    'foods': 'Foods',
+    'animals': 'Animals',
   };
 }
