@@ -23,6 +23,7 @@ dependencies:
   supabase_flutter: ^2.10.3
   url_launcher: ^6.3.2
   uuid: ^4.5.2
+  flutter_native_splash: ^2.4.7
 
 dev_dependencies:
   flutter_lints: ^5.0.0
@@ -41,6 +42,17 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/Icon(512x512).png"
+  image_path: "assets/icons/app_icon.png"
   min_sdk_android: 21
   remove_alpha_ios: true
+
+  # Adaptive Icon Configuration
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icons/Icon_Transparent_background.png"
+
+# Splash Screen Configuration
+flutter_native_splash:
+  color: "#ffffff"
+  image: assets/icons/Icon_Transparent_background.png
+  android: true
+  ios: true
