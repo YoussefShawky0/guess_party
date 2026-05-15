@@ -44,7 +44,7 @@ class GameOverView extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                   child: Column(
                     children: [
-                      Text('🎉', style: const TextStyle(fontSize: 48)),
+                      Text('🏆', style: const TextStyle(fontSize: 48)),
                       const SizedBox(height: 8),
                       Text(
                         'Game Over!',

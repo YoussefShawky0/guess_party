@@ -79,22 +79,27 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
           final isLoading = state is RoomLoading;
 
           return SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: isTablet ? size.width * 0.25 : 24,
-                vertical: 24,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const JoinRoomHeader(),
-                    SizedBox(height: isTablet ? 32 : 24),
-                    RoomCodeInput(controller: _roomCodeController),
-                    SizedBox(height: isTablet ? 40 : 32),
-                    JoinRoomButton(onPressed: _joinRoom, isLoading: isLoading),
-                  ],
+            child: Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isTablet ? size.width * 0.25 : 24,
+                  vertical: 24,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const JoinRoomHeader(),
+                      SizedBox(height: isTablet ? 32 : 24),
+                      RoomCodeInput(controller: _roomCodeController),
+                      SizedBox(height: isTablet ? 40 : 32),
+                      JoinRoomButton(
+                        onPressed: _joinRoom,
+                        isLoading: isLoading,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -105,12 +105,6 @@ class LeaderboardListWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              // Decorative chevron
-              Icon(
-                Icons.keyboard_arrow_up_rounded,
-                color: AppColors.of(context).textMuted,
-                size: 22,
-              ),
             ],
           ),
         );

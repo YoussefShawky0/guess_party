@@ -32,6 +32,8 @@ class PodiumWidget extends StatelessWidget {
                   barHeight: 148,
                   barColor: AppColors.of(context).surfaceLight,
                   medalColor: AppColors.silverMedal,
+                  showCrown: true,
+                  crownColor: AppColors.silverMedal,
                   avatarIndex: 1,
                 )
               : const SizedBox(),
@@ -48,6 +50,7 @@ class PodiumWidget extends StatelessWidget {
                   medalColor: AppColors.goldMedal,
                   avatarIndex: 0,
                   showCrown: true,
+                  crownColor: AppColors.goldMedal,
                 )
               : const SizedBox(),
         ),
@@ -61,7 +64,9 @@ class PodiumWidget extends StatelessWidget {
                   barHeight: 112,
                   barColor: AppColors.primaryDark,
                   medalColor: AppColors.bronzeMedal,
+                  showCrown: true,
                   avatarIndex: 2,
+                  crownColor: AppColors.bronzeMedal,
                 )
               : const SizedBox(),
         ),
@@ -79,6 +84,7 @@ class _PodiumBar extends StatelessWidget {
   final Color medalColor;
   final int avatarIndex;
   final bool showCrown;
+  final Color crownColor;
 
   const _PodiumBar({
     required this.player,
@@ -89,6 +95,7 @@ class _PodiumBar extends StatelessWidget {
     required this.medalColor,
     required this.avatarIndex,
     this.showCrown = false,
+    this.crownColor = AppColors.goldMedal,
   });
 
   @override
@@ -131,7 +138,7 @@ class _PodiumBar extends StatelessWidget {
         const SizedBox(height: 6),
         // Crown for 1st place
         if (showCrown)
-          Icon(Icons.workspace_premium, color: AppColors.goldMedal, size: 26)
+          Icon(Icons.workspace_premium, color: crownColor, size: 26)
         else
           const SizedBox(height: 26),
         const SizedBox(height: 4),
