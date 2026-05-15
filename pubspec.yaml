@@ -42,17 +42,17 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/app_icon.png"
+  image_path: "assets/icons/Icon_Transparent_background.png"
   min_sdk_android: 21
   remove_alpha_ios: true
 
   # Adaptive Icon Configuration
-  adaptive_icon_background: "#ffffff"
+  adaptive_icon_background: "#091929"
   adaptive_icon_foreground: "assets/icons/Icon_Transparent_background.png"
 
 # Splash Screen Configuration
 flutter_native_splash:
-  color: "#ffffff"
+  color: "#091929"
   image: assets/icons/Icon_Transparent_background.png
   android: true
   ios: true
