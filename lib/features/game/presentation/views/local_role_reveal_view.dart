@@ -291,7 +291,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           // Character info (only for innocents)
           if (!isImposter) ...[
             Container(
-              padding: EdgeInsets.all(isTablet ? 20 : 16),
+              padding: EdgeInsets.all(isTablet ? 20 : 15),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(16),
@@ -332,7 +332,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
             ),
           ] else ...[
             Container(
-              padding: EdgeInsets.all(isTablet ? 20 : 16),
+              padding: EdgeInsets.all(isTablet ? 40 : 15),
               decoration: BoxDecoration(
                 color: AppColors.error.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),

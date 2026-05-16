@@ -68,6 +68,7 @@ class CategorySelector extends StatelessWidget {
               ),
             ),
             dropdownColor: AppColors.of(context).surface,
+            borderRadius: BorderRadius.circular(12),
             style: TextStyle(
               fontSize: isTablet ? 18 : 16,
               color: AppColors.of(context).textPrimary,
