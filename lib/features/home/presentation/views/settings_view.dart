@@ -4,7 +4,9 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/services/update_service.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
+import 'package:in_app_update/in_app_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -135,10 +137,9 @@ class _SettingsViewState extends State<SettingsView> {
                 subtitle: 'View our privacy policy',
                 isTablet: isTablet,
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Privacy policy coming soon!'),
-                      backgroundColor: AppColors.primary,
+                  launchUrl(
+                    Uri.parse(
+                      'https://youssefshawky0.github.io/guess-party-privacy/',
                     ),
                   );
                 },
@@ -273,7 +274,51 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
-  void _checkForUpdates(BuildContext context) {
+  Future<void> _checkForUpdates(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Checking for updates...',
+          style: TextStyle(color: AppColors.of(context).textPrimary),
+        ),
+        content: Row(
+          children: [
+            CircularProgressIndicator(color: AppColors.primary),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Please wait a moment.',
+                style: TextStyle(color: AppColors.of(context).textSecondary),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final updateInfo = await UpdateService.checkForUpdate();
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+
+    if (updateInfo == null) {
+      _showUpdateErrorDialog(context);
+      return;
+    }
+
+    if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
+      _showUpdateAvailableDialog(context, updateInfo);
+      return;
+    }
+
+    _showUpToDateDialog(context);
+  }
+
+  void _showUpToDateDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -294,7 +339,104 @@ class _SettingsViewState extends State<SettingsView> {
           ],
         ),
         content: Text(
-          'You are running the latest version of Guess Party (0.1.0).',
+          'You are running the latest version of Guess Party ($_appVersion).',
+          style: TextStyle(
+            color: AppColors.of(context).textSecondary,
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('OK', style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateAvailableDialog(
+    BuildContext context,
+    AppUpdateInfo updateInfo,
+  ) {
+    final canImmediate = updateInfo.immediateUpdateAllowed;
+    final canFlexible = updateInfo.flexibleUpdateAllowed;
+
+    if (!canImmediate && !canFlexible) {
+      _showUpdateErrorDialog(context);
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.system_update, color: AppColors.primary, size: 24),
+            const SizedBox(width: 12),
+            Text(
+              'Update Available',
+              style: TextStyle(color: AppColors.of(context).textPrimary),
+            ),
+          ],
+        ),
+        content: Text(
+          'A newer version of Guess Party is available on the Play Store.',
+          style: TextStyle(
+            color: AppColors.of(context).textSecondary,
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Later',
+              style: TextStyle(color: AppColors.of(context).textMuted),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              if (canImmediate) {
+                UpdateService.performImmediateUpdate();
+              } else {
+                UpdateService.startFlexibleUpdate();
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: Text(canImmediate ? 'Update Now' : 'Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUpdateErrorDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            FaIcon(
+              FontAwesomeIcons.triangleExclamation,
+              color: AppColors.warning,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Update Check Failed',
+              style: TextStyle(color: AppColors.of(context).textPrimary),
+            ),
+          ],
+        ),
+        content: Text(
+          'We could not check for updates right now. Please try again later.',
           style: TextStyle(
             color: AppColors.of(context).textSecondary,
             fontSize: 16,

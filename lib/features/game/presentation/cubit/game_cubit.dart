@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart'
@@ -337,6 +338,15 @@ class GameCubit extends Cubit<GameState> {
     if (isClosed) return;
     _addBreadcrumb('progressPhase:start', data: {'roundId': roundId});
 
+    // Validate player count before advancing
+    if (state is GameLoaded) {
+      final players = (state as GameLoaded).gameState.players;
+      if (!_validatePlayerCount(players)) {
+        emit(GameError('Not enough players. Minimum ${GameConstants.minPlayers} required.'));
+        return;
+      }
+    }
+
     final result = await advancePhase(roundId: roundId);
 
     if (isClosed) return;
@@ -470,6 +480,51 @@ class GameCubit extends Cubit<GameState> {
     }
   }
 
+  // Adjust round timer by adding additional seconds (for local mode role reveals)
+  Future<void> adjustRoundTimer({
+    required String roundId,
+    required int additionalSeconds,
+  }) async {
+    if (isClosed) return;
+    _addBreadcrumb(
+      'adjustRoundTimer:start',
+      data: {'roundId': roundId, 'additionalSeconds': additionalSeconds},
+    );
+
+    final currentState = state;
+    if (currentState is! GameLoaded) return;
+
+    final currentPhaseEndTime = currentState.gameState.currentRound.phaseEndTime;
+    final newPhaseEndTime = currentPhaseEndTime.add(
+      Duration(seconds: additionalSeconds),
+    );
+
+    final result = await gameRepository.updatePhaseEndTime(
+      roundId: roundId,
+      phaseEndTime: newPhaseEndTime,
+    );
+
+    if (isClosed) return;
+    result.fold(
+      (failure) {
+        _addBreadcrumb(
+          'adjustRoundTimer:failure',
+          data: {'roundId': roundId, 'error': failure.message},
+        );
+      },
+      (updatedRound) {
+        _addBreadcrumb(
+          'adjustRoundTimer:success',
+          data: {'roundId': roundId, 'newPhaseEndTime': newPhaseEndTime},
+        );
+        final updatedGameState = currentState.gameState.copyWith(
+          currentRound: updatedRound,
+        );
+        emit(GameLoaded(updatedGameState));
+      },
+    );
+  }
+
   // End the game (Host only)
   Future<void> finishGame(String roomId) async {
     if (isClosed) return;
@@ -497,6 +552,11 @@ class GameCubit extends Cubit<GameState> {
         emit(GameEnded('انتهت اللعبة', players: players, playerScores: scores));
       },
     );
+  }
+
+  /// Validates that there are enough players to continue the game
+  bool _validatePlayerCount(List<Player> players) {
+    return players.length >= GameConstants.minPlayers;
   }
 
   @override

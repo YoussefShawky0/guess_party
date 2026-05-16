@@ -7,6 +7,7 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
+import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
@@ -387,53 +388,15 @@ class GameViewContent extends StatelessWidget {
             }
 
             if (state is GameError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, size: 64, color: AppColors.error),
-                    const SizedBox(height: 16),
-                    Text(
-                      'An error occurred',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.of(context).textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      state.message,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.of(context).textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        context.read<GameCubit>().loadGameState(
-                          roomId: roomId,
-                          currentPlayerId: context
-                              .read<GameCubit>()
-                              .currentPlayerId,
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.buttonPrimary,
-                        foregroundColor: AppColors.of(context).textPrimary,
-                      ),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => context.go(AppRoutes.home),
-                      child: const Text('Back to Home'),
-                    ),
-                  ],
-                ),
+              return ErrorScreen(
+                message: state.message,
+                onRetry: () {
+                  context.read<GameCubit>().loadGameState(
+                    roomId: roomId,
+                    currentPlayerId: context.read<GameCubit>().currentPlayerId,
+                  );
+                },
+                onGoBack: () => context.go(AppRoutes.home),
               );
             }
 
@@ -497,7 +460,7 @@ class GameViewContent extends StatelessWidget {
     final isImposter = round.isImposter(currentUserId);
     final isTablet = MediaQuery.of(context).size.width > 600;
 
-    // حساب الـ host
+    // الـ current user الـ host
     final currentPlayer = gameState.players.firstWhere(
       (p) => p.userId == currentUserId,
       orElse: () => gameState.players.first,

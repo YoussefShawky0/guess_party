@@ -34,6 +34,11 @@ abstract class GameRemoteDataSource {
     required DateTime phaseEndTime,
   });
 
+  Future<RoundInfoModel> updatePhaseEndTime({
+    required String roundId,
+    required DateTime phaseEndTime,
+  });
+
   Future<void> updatePlayerScores({required Map<String, int> scores});
 
   Future<RoundInfoModel> createRound({
@@ -319,6 +324,47 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
       );
     } catch (e) {
       throw Exception('Failed to update round phase: $e');
+    }
+  }
+
+  @override
+  Future<RoundInfoModel> updatePhaseEndTime({
+    required String roundId,
+    required DateTime phaseEndTime,
+  }) async {
+    try {
+      await client
+          .from('rounds')
+          .update({'phase_end_time': phaseEndTime.toIso8601String()})
+          .eq('id', roundId);
+
+      final response = await client
+          .from('rounds')
+          .select('*')
+          .eq('id', roundId)
+          .single();
+
+      final character = await getCharacter(
+        characterId: response['character_id'] as String,
+      );
+
+      final players = await getRoomPlayers(
+        roomId: response['room_id'] as String,
+      );
+      final playerIds = players.map((p) => p.id).toList();
+
+      final hints = await getHintsForRound(roundId: roundId);
+      final votes = await getVotesForRound(roundId: roundId);
+
+      return RoundInfoModel.fromJson(
+        response,
+        character.toEntity(),
+        playerIds,
+        hints,
+        votes,
+      );
+    } catch (e) {
+      throw Exception('Failed to update phase end time: $e');
     }
   }
 

@@ -35,17 +35,13 @@ class VotingPhaseContent extends StatelessWidget {
       orElse: () => players.first,
     );
 
-    // In local mode, check if ALL players have voted (not just current player)
+    // In local mode, check if ALL current players have voted
     // In online mode, check if current player has voted
     final hasVoted = gameMode == GameConstants.gameModeLocal
-        ? round.playerVotes.length >=
-              players
-                  .length // All players voted
-        : round.playerVotes.containsKey(
-            currentPlayer.id,
-          ); // Current player voted
+        ? players.every((p) => round.playerVotes.containsKey(p.id))
+        : round.playerVotes.containsKey(currentPlayer.id);
 
-    final allVoted = round.playerVotes.length >= players.length;
+    final allVoted = players.every((p) => round.playerVotes.containsKey(p.id));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -406,7 +402,7 @@ class VotingPhaseContent extends StatelessWidget {
   }
 
   Widget _buildVotingProgress(BuildContext context, bool isTablet) {
-    final progress = round.playerVotes.length / round.playerIds.length;
+    final progress = round.playerVotes.length / players.length;
 
     return Container(
       decoration: BoxDecoration(
@@ -419,7 +415,7 @@ class VotingPhaseContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Votes (${round.playerVotes.length}/${round.playerIds.length})',
+            'Votes (${round.playerVotes.length}/${players.length})',
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,

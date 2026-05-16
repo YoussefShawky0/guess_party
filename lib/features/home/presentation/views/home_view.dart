@@ -4,9 +4,11 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
+import 'package:guess_party/core/services/update_service.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 import 'widgets/home_action_buttons.dart';
 import 'widgets/welcome_section.dart';
@@ -23,8 +25,81 @@ class HomeView extends StatelessWidget {
   }
 }
 
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
+
+  @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdates();
+  }
+
+// Check for app updates using the UpdateService
+  Future<void> _checkForUpdates() async {
+    // Wait a bit for the UI to settle
+    await Future.delayed(const Duration(seconds: 2));
+
+    final updateInfo = await UpdateService.checkForUpdate();
+
+    if (!mounted) return;
+
+    if (updateInfo?.updateAvailability == UpdateAvailability.updateAvailable) {
+      if (updateInfo!.flexibleUpdateAllowed) {
+        _showUpdateDialog();
+      }
+    }
+  }
+
+// Show a dialog prompting the user to update the app
+  void _showUpdateDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.system_update, color: AppColors.primary, size: 28),
+            const SizedBox(width: 12),
+            Text(
+              'Update Available',
+              style: TextStyle(color: AppColors.of(context).textPrimary),
+            ),
+          ],
+        ),
+        content: Text(
+          'A new version of Guess Party is available. Would you like to update now?',
+          style: TextStyle(
+            color: AppColors.of(context).textSecondary,
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Later',
+              style: TextStyle(color: AppColors.of(context).textMuted),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              UpdateService.startFlexibleUpdate();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

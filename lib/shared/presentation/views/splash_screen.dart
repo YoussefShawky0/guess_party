@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
           children: [
             // Logo Image
             Image.asset(
-              'assets/icons/Icon_Transparent_background.png',
+              'assets/icons/app_icon.png',
               width: isTablet ? 420 : 320,
               height: isTablet ? 320 : 240,
               fit: BoxFit.contain,

@@ -206,6 +206,29 @@ class GameRepositoryImpl implements GameRepository {
   }
 
   @override
+  Future<Either<Failure, RoundInfo>> updatePhaseEndTime({
+    required String roundId,
+    required DateTime phaseEndTime,
+  }) async {
+    try {
+      final updatedRound = await remoteDataSource.updatePhaseEndTime(
+        roundId: roundId,
+        phaseEndTime: phaseEndTime,
+      );
+      return Right(updatedRound.toEntity());
+    } catch (e, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'updatePhaseEndTime',
+          e,
+          stackTrace,
+          data: {'roundId': roundId},
+        ),
+      );
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, int>>> calculateScores({
     required String roundId,
     required Map<String, int> currentScores,
@@ -319,6 +342,14 @@ class GameRepositoryImpl implements GameRepository {
 
       // ── Normal flow ─────────────────────────────────────────────────────
       final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
+
+      // Validate player count
+      if (players.isEmpty) {
+        throw Exception('No players available');
+      }
+      if (players.length < GameConstants.minPlayers) {
+        throw Exception('Not enough players. Minimum ${GameConstants.minPlayers} required.');
+      }
 
       // Pick a random imposter
       final rng = Random();

@@ -30,6 +30,12 @@ abstract class GameRepository {
   /// Start next phase (hints -> voting -> results)
   Future<Either<Failure, RoundInfo>> advancePhase({required String roundId});
 
+  /// Update phase end time (for local mode timer adjustment)
+  Future<Either<Failure, RoundInfo>> updatePhaseEndTime({
+    required String roundId,
+    required DateTime phaseEndTime,
+  });
+
   // Calculate and update scores after voting
   Future<Either<Failure, Map<String, int>>> calculateScores({
     required String roundId,

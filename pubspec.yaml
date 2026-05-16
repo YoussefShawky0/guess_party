@@ -1,7 +1,7 @@
 name: guess_party
 description: "A new Flutter project."
 publish_to: "none"
-version: 1.0.0
+version: 1.0.1+1
 
 environment:
   sdk: ^3.9.2
@@ -24,6 +24,8 @@ dependencies:
   url_launcher: ^6.3.2
   uuid: ^4.5.2
   flutter_native_splash: ^2.4.7
+  in_app_update: ^4.2.5
+  profanity_filter: ^2.0.0
 
 dev_dependencies:
   flutter_lints: ^5.0.0
@@ -42,17 +44,26 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icons/Icon_Transparent_background.png"
+  image_path: "assets/icons/app_icon.png"
   min_sdk_android: 21
   remove_alpha_ios: true
 
   # Adaptive Icon Configuration
   adaptive_icon_background: "#091929"
-  adaptive_icon_foreground: "assets/icons/Icon_Transparent_background.png"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
 
 # Splash Screen Configuration
 flutter_native_splash:
   color: "#091929"
-  image: assets/icons/Icon_Transparent_background.png
+  image: "assets/icons/app_icon.png"
+  color_dark: "#091929"
+  image_dark: "assets/icons/app_icon.png"
+  android_12:
+    color: "#091929"
+    image: "assets/icons/app_icon.png"
   android: true
   ios: true
+  web: false
+  android_gravity: center
+  ios_content_mode: center
+  fullscreen: true
