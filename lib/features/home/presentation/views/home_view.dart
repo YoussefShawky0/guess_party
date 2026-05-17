@@ -39,7 +39,7 @@ class _HomeContentState extends State<HomeContent> {
     _checkForUpdates();
   }
 
-// Check for app updates using the UpdateService
+  // Check for app updates using the UpdateService
   Future<void> _checkForUpdates() async {
     // Wait a bit for the UI to settle
     await Future.delayed(const Duration(seconds: 2));
@@ -55,7 +55,7 @@ class _HomeContentState extends State<HomeContent> {
     }
   }
 
-// Show a dialog prompting the user to update the app
+  // Show a dialog prompting the user to update the app
   void _showUpdateDialog() {
     showDialog(
       context: context,
