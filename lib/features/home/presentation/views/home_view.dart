@@ -143,6 +143,8 @@ class _HomeContentState extends State<HomeContent> {
                         'assets/images/Front_Imposter_ingroup.png',
                         height: 28,
                         fit: BoxFit.contain,
+                        cacheHeight: 78,
+                        cacheWidth: 89,
                       ),
                     ),
                   ),

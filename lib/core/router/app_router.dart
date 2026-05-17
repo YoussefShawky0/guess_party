@@ -42,10 +42,12 @@ class AppRouter {
       );
     },
     routes: [
+      //splash screen
       GoRoute(
         path: AppRoutes.splash,
         builder: (context, state) => const SplashScreen(),
       ),
+      //auth flow
       GoRoute(
         path: AppRoutes.auth,
         builder: (context, state) => const AuthScreen(),
@@ -62,6 +64,7 @@ class AppRouter {
         path: AppRoutes.settings,
         builder: (context, state) => const SettingsView(),
       ),
+      //room flow
       GoRoute(
         path: AppRoutes.createRoom,
         builder: (context, state) => const CreateRoomScreen(),
