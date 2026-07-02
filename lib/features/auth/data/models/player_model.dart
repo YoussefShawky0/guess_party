@@ -9,6 +9,7 @@ class PlayerModel extends Player {
     required super.score,
     required super.isHost,
     super.isOnline,
+    super.lastSeenAt,
   });
 
   Player toEntity() => Player(
@@ -19,7 +20,18 @@ class PlayerModel extends Player {
     score: score,
     isHost: isHost,
     isOnline: isOnline,
+    lastSeenAt: lastSeenAt,
   );
+
+  static DateTime _parseLastSeenAt(dynamic value) {
+    if (value == null) {
+      return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    }
+
+    final parsed = DateTime.tryParse(value.toString());
+    return parsed?.toUtc() ??
+        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+  }
 
   factory PlayerModel.fromJson(Map<String, dynamic> json) {
     return PlayerModel(
@@ -30,6 +42,7 @@ class PlayerModel extends Player {
       score: json['score'] as int? ?? 0,
       isHost: json['is_host'] as bool? ?? false,
       isOnline: json['is_online'] as bool? ?? true,
+      lastSeenAt: _parseLastSeenAt(json['last_seen_at']),
     );
   }
 
@@ -42,6 +55,7 @@ class PlayerModel extends Player {
       'score': score,
       'is_host': isHost,
       'is_online': isOnline,
+      'last_seen_at': lastSeenAt?.toIso8601String(),
     };
   }
 }

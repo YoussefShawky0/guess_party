@@ -13,7 +13,7 @@ dependencies:
     sdk: flutter
   flutter_bloc: ^9.1.1
   flutter_dotenv: ^6.0.0
-  font_awesome_flutter: ^10.12.0
+  font_awesome_flutter: ^11.0.0
   get_it: ^9.2.0
   go_router: ^17.0.0
   package_info_plus: ^9.0.0
@@ -55,15 +55,16 @@ flutter_launcher_icons:
 # Splash Screen Configuration
 flutter_native_splash:
   color: "#091929"
-  image: "assets/icons/app_icon.png"
+  image: "assets/icons/splash_logo.png"
   color_dark: "#091929"
-  image_dark: "assets/icons/app_icon.png"
+  image_dark: "assets/icons/splash_logo.png"
   android_12:
     color: "#091929"
-    image: "assets/icons/app_icon.png"
+    image: "assets/icons/splash_logo.png"
+    image_dark: "assets/icons/splash_logo.png"
   android: true
   ios: true
   web: false
   android_gravity: center
-  ios_content_mode: center
+  ios_content_mode: scaleAspectFit
   fullscreen: true

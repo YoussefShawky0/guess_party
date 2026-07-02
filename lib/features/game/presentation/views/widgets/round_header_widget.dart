@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
@@ -45,7 +45,7 @@ class RoundHeaderWidget extends StatelessWidget {
     }
   }
 
-  IconData get _phaseIcon {
+  FaIconData get _phaseIcon {
     switch (round.phase) {
       case GamePhase.hints:
         return FontAwesomeIcons.lightbulb;
@@ -148,7 +148,7 @@ class RoundHeaderWidget extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  FaIcon(
                     _phaseIcon,
                     color: AppColors.primary,
                     size: isTablet ? 24 : 20,

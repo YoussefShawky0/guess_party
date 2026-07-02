@@ -1,12 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/auth/presentation/views/auth_view.dart';
 import 'package:guess_party/features/auth/presentation/views/login_view.dart';
 import 'package:guess_party/features/game/presentation/views/game_over_view.dart';
 import 'package:guess_party/features/game/presentation/views/game_view.dart';
+import 'package:guess_party/features/game/presentation/views/local_mode_game_screen.dart';
 import 'package:guess_party/features/game/presentation/views/local_role_reveal_view.dart';
 import 'package:guess_party/features/home/presentation/views/home_view.dart';
 import 'package:guess_party/features/home/presentation/views/settings_view.dart';
@@ -101,6 +104,22 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.roomGameTemplate,
+        redirect: (context, state) async {
+          final roomId = state.pathParameters['roomId']!;
+          try {
+            final room = await Supabase.instance.client
+                .from('rooms')
+                .select('status')
+                .eq('id', roomId)
+                .maybeSingle();
+            if (room == null || room['status'] == 'finished') {
+              return AppRoutes.home;
+            }
+          } catch (_) {
+            // If we can't check, let the game screen handle it
+          }
+          return null; // No redirect — proceed to game
+        },
         builder: (context, state) {
           final roomId = state.pathParameters['roomId']!;
           final extra = state.extra as Map<String, dynamic>?;
@@ -109,17 +128,65 @@ class AppRouter {
         },
       ),
       GoRoute(
+        path: AppRoutes.roomLocalGameTemplate,
+        redirect: (context, state) async {
+          final roomId = state.pathParameters['roomId']!;
+          try {
+            final room = await Supabase.instance.client
+                .from('rooms')
+                .select('status')
+                .eq('id', roomId)
+                .maybeSingle();
+            if (room == null || room['status'] == 'finished') {
+              return AppRoutes.home;
+            }
+          } catch (_) {
+            // If we can't check, let the game screen handle it
+          }
+          return null;
+        },
+        builder: (context, state) {
+          final roomId = state.pathParameters['roomId']!;
+          final extra = state.extra as Map<String, dynamic>?;
+          final preservedScores = extra?['playerScores'] as Map<String, int>?;
+          return LocalModeGameScreen(
+            roomId: roomId,
+            preservedScores: preservedScores,
+          );
+        },
+      ),
+      GoRoute(
         path: AppRoutes.roomGameOverTemplate,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          if (extra == null) {
-            return const Scaffold(
-              body: Center(child: Text('Game data unavailable.')),
+          final players = extra?['players'];
+          final playerScores = extra?['playerScores'];
+          if (extra == null ||
+              players is! List<Player> ||
+              playerScores is! Map<String, int>) {
+            return Scaffold(
+              backgroundColor: AppColors.background,
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Game data unavailable.',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.go(AppRoutes.home),
+                      child: const Text('Go Home'),
+                    ),
+                  ],
+                ),
+              ),
             );
           }
           return GameOverView(
-            players: extra['players'] as List<Player>,
-            playerScores: extra['playerScores'] as Map<String, int>,
+            players: players,
+            playerScores: playerScores,
           );
         },
       ),

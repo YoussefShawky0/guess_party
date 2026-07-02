@@ -4,7 +4,7 @@ sealed class GameState extends Equatable {
   const GameState();
 
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 final class GameInitial extends GameState {}
@@ -14,11 +14,23 @@ final class GameLoading extends GameState {}
 final class GameLoaded extends GameState {
   final GameStateEntity gameState;
   final bool isReconnecting;
+  final String? nonFatalMessage;
+  final int nonFatalMessageId;
 
-  const GameLoaded(this.gameState, {this.isReconnecting = false});
+  const GameLoaded(
+    this.gameState, {
+    this.isReconnecting = false,
+    this.nonFatalMessage,
+    this.nonFatalMessageId = 0,
+  });
 
   @override
-  List<Object> get props => [gameState, isReconnecting];
+  List<Object?> get props => [
+    gameState,
+    isReconnecting,
+    nonFatalMessage,
+    nonFatalMessageId,
+  ];
 }
 
 final class GameEnded extends GameState {
@@ -38,8 +50,12 @@ final class GameEnded extends GameState {
 
 final class GameError extends GameState {
   final String message;
-  const GameError(this.message);
+
+  /// Monotonically increasing ID to ensure identical error messages
+  /// are never deduplicated by Equatable. Each emission is unique.
+  final int errorId;
+  const GameError(this.message, {this.errorId = 0});
 
   @override
-  List<Object> get props => [message];
+  List<Object> get props => [message, errorId];
 }

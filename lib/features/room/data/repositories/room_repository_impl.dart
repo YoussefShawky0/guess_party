@@ -70,6 +70,11 @@ class RoomRepositoryImpl implements RoomRepository {
   }
 
   @override
+  Stream<Room> watchRoomDetails({required String roomId}) {
+    return remoteDataSource.watchRoomDetails(roomId: roomId);
+  }
+
+  @override
   Future<Either<Failure, List<Player>>> getRoomPlayers({
     required String roomId,
   }) async {
@@ -119,6 +124,20 @@ class RoomRepositoryImpl implements RoomRepository {
         playerId: playerId,
         isOnline: isOnline,
       );
+      return const Right(null);
+    } catch (e) {
+      final errorMsg = ErrorHandler.extractErrorMessage(e);
+      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
+      return Left(ServerFailure(userFriendlyMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> markStalePlayersOffline({
+    required int staleSeconds,
+  }) async {
+    try {
+      await remoteDataSource.markStalePlayersOffline(staleSeconds: staleSeconds);
       return const Right(null);
     } catch (e) {
       final errorMsg = ErrorHandler.extractErrorMessage(e);

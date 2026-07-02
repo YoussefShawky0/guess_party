@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:guess_party/features/auth/data/models/player_model.dart';
@@ -25,6 +26,8 @@ abstract class RoomRemoteDataSource {
 
   Future<Room> getRoomDetails({required String roomId});
 
+  Stream<Room> watchRoomDetails({required String roomId});
+
   Future<List<Player>> getRoomPlayers({required String roomId});
 
   Future<Room> getRoomByCode({required String roomCode});
@@ -35,6 +38,8 @@ abstract class RoomRemoteDataSource {
     required String playerId,
     required bool isOnline,
   });
+
+  Future<void> markStalePlayersOffline({required int staleSeconds});
 
   Future<void> leaveRoom({
     required String playerId,
@@ -167,6 +172,67 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   }
 
   @override
+  Stream<Room> watchRoomDetails({required String roomId}) {
+    late final StreamController<Room> controller;
+    RealtimeChannel? channel;
+
+    Future<void> emitCurrentRoom() async {
+      try {
+        final room = await getRoomDetails(roomId: roomId);
+        if (!controller.isClosed) {
+          controller.add(room);
+        }
+      } catch (e, stackTrace) {
+        if (!controller.isClosed) {
+          controller.addError(e, stackTrace);
+        }
+      }
+    }
+
+    controller = StreamController<Room>(
+      onListen: () {
+        unawaited(emitCurrentRoom());
+
+        final realtimeChannel = client.channel('room_details_$roomId');
+        realtimeChannel.onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'rooms',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: roomId,
+          ),
+          callback: (payload) {
+            try {
+              controller.add(RoomModel.fromJson(payload.newRecord));
+            } catch (_) {
+              unawaited(emitCurrentRoom());
+            }
+          },
+        );
+
+        realtimeChannel.subscribe((status, error) {
+          if (error != null && !controller.isClosed) {
+            controller.addError(error);
+          }
+        });
+
+        channel = realtimeChannel;
+      },
+      onCancel: () async {
+        final activeChannel = channel;
+        channel = null;
+        if (activeChannel != null) {
+          await activeChannel.unsubscribe();
+        }
+      },
+    );
+
+    return controller.stream;
+  }
+
+  @override
   Future<List<Player>> getRoomPlayers({required String roomId}) async {
     try {
       final response = await client
@@ -195,6 +261,13 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
 
       return RoomModel.fromJson(response);
     } catch (e) {
+      // Catch "no rows found" error and provide specific message for room code validation
+      final errorText = e.toString().toLowerCase();
+      if (errorText.contains('no rows') ||
+          errorText.contains('norowsfoundexception') ||
+          errorText.contains('pgrst116')) {
+        throw Exception('Room not found. Please check the code and try again.');
+      }
       rethrow;
     }
   }
@@ -240,32 +313,27 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   }
 
   @override
+  Future<void> markStalePlayersOffline({required int staleSeconds}) async {
+    try {
+      await client.rpc(
+        'mark_stale_players_offline',
+        params: {'p_stale_seconds': staleSeconds},
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> leaveRoom({
     required String playerId,
     required String roomId,
     required bool isHost,
   }) async {
     try {
-      if (isHost) {
-        // If host leaves, close the room
-        await client
-            .from('rooms')
-            .update({'status': 'finished'})
-            .eq('id', roomId);
-
-        // Keep rows for FK integrity (rounds -> players), but mark everyone offline.
-        await client
-            .from('players')
-            .update({
-              'is_online': false,
-              'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .eq('room_id', roomId);
-        return;
-      }
-
-      // Do not delete player rows because rounds may reference them.
-      // Marking offline is enough and keeps referential integrity.
+      // Host migration / empty-room cleanup is handled in database triggers.
+      // Leaving client only marks its own player as offline.
+      final _ = isHost;
       await client
           .from('players')
           .update({

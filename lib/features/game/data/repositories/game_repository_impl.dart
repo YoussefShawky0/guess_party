@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/utils/error_handler.dart';
+import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/data/datasources/game_remote_data_source.dart';
 import 'package:guess_party/features/game/data/models/round_info_model.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart';
@@ -152,6 +153,7 @@ class GameRepositoryImpl implements GameRepository {
   @override
   Future<Either<Failure, RoundInfo>> advancePhase({
     required String roundId,
+    required String requestingPlayerId,
   }) async {
     try {
       // Fetch current round phase only (no JOIN needed - durations are fixed)
@@ -180,6 +182,20 @@ class GameRepositoryImpl implements GameRepository {
             roomId: currentRoundResponse['room_id'] as String,
           );
           return Right(roundModel.toEntity());
+      }
+
+      final requestingPlayerResponse = await client
+          .from('players')
+          .select('id, is_host, room_id')
+          .eq('id', requestingPlayerId)
+          .eq('room_id', currentRoundResponse['room_id'] as String)
+          .maybeSingle();
+
+      if (requestingPlayerResponse == null ||
+          requestingPlayerResponse['is_host'] != true) {
+        return Left(
+          ServerFailure('Only the current host can skip this phase.'),
+        );
       }
 
       final phaseEndTime = DateTime.now().toUtc().add(
@@ -348,7 +364,9 @@ class GameRepositoryImpl implements GameRepository {
         throw Exception('No players available');
       }
       if (players.length < GameConstants.minPlayers) {
-        throw Exception('Not enough players. Minimum ${GameConstants.minPlayers} required.');
+        throw Exception(
+          'Not enough players. Minimum ${GameConstants.minPlayers} required.',
+        );
       }
 
       // Pick a random imposter
@@ -627,6 +645,28 @@ class GameRepositoryImpl implements GameRepository {
           stackTrace: stackTrace,
           operation: 'watchVotesUpdates.subscribe',
           data: {'roundId': roundId},
+        );
+        await Future.delayed(const Duration(seconds: 3));
+      }
+    }
+  }
+
+  @override
+  Stream<List<Player>> watchRoomPlayers({required String roomId}) async* {
+    while (true) {
+      try {
+        await for (final players in remoteDataSource.watchPlayersChanges(
+          roomId: roomId,
+        )) {
+          yield players.map((player) => player.toEntity()).toList();
+        }
+        break;
+      } catch (e, stackTrace) {
+        await ErrorHandler.reportException(
+          e,
+          stackTrace: stackTrace,
+          operation: 'watchRoomPlayers.subscribe',
+          data: {'roomId': roomId},
         );
         await Future.delayed(const Duration(seconds: 3));
       }

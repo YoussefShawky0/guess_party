@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -112,7 +112,7 @@ class _ScoreRow extends StatelessWidget {
     }
   }
 
-  IconData? _getRankIcon() {
+  FaIconData? _getRankIcon() {
     switch (rank) {
       case 1:
         return FontAwesomeIcons.trophy;
@@ -138,7 +138,7 @@ class _ScoreRow extends StatelessWidget {
           ),
           child: Center(
             child: _getRankIcon() != null
-                ? Icon(
+                ? FaIcon(
                     _getRankIcon(),
                     color: AppColors.of(context).textPrimary,
                     size: isTablet ? 24 : 18,

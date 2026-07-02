@@ -5,6 +5,26 @@ class ErrorHandler {
   static String getUserFriendlyMessage(String error) {
     final errorLower = error.toLowerCase();
 
+    if (errorLower.contains('cannot vote for yourself') ||
+        errorLower.contains('self vote') ||
+        errorLower.contains('self-vote')) {
+      return 'You cannot vote for yourself';
+    }
+
+    if (errorLower.contains('room not found') ||
+        errorLower.contains('invalid room code') ||
+        errorLower.contains('no rows') ||
+        errorLower.contains('pgrst116')) {
+      return 'Room not found. Please check the code and try again.';
+    }
+
+    if (errorLower.contains('not enough connected players') ||
+        errorLower.contains('not enough players') ||
+        errorLower.contains('minimum 2 required to skip/advance') ||
+        errorLower.contains('minimum 2')) {
+      return 'Not enough connected players. Minimum 2 required to skip or advance.';
+    }
+
     // Email confirmation required
     if (errorLower.contains('email not confirmed') ||
         errorLower.contains('confirmation')) {
@@ -47,12 +67,13 @@ class ErrorHandler {
     // Network errors
     if (errorLower.contains('network') ||
         errorLower.contains('connection') ||
+        errorLower.contains('reconnect') ||
         errorLower.contains('timeout') ||
         errorLower.contains('socketexception') ||
         errorLower.contains('failed host lookup') ||
         errorLower.contains('no address associated with hostname') ||
         errorLower.contains('dns')) {
-      return 'Connection error. Check your internet';
+      return 'Connection lost. Reconnecting...';
     }
 
     // Rate limit

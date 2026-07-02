@@ -30,6 +30,8 @@ class CharacterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
 
+    // Imposters should always see "You are the Imposter" card during gameplay,
+    // in both local and online modes. They only learn from this card, not the character.
     if (isImposter) {
       return _buildImposterCard(context, isTablet);
     } else {
