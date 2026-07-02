@@ -10,6 +10,7 @@ class WaitingRoomBody extends StatefulWidget {
   final bool isHost;
   final int playerCount;
   final VoidCallback onStartGame;
+  final Widget Function(String roomId)? playersListBuilder;
 
   const WaitingRoomBody({
     super.key,
@@ -18,6 +19,7 @@ class WaitingRoomBody extends StatefulWidget {
     required this.isHost,
     required this.playerCount,
     required this.onStartGame,
+    this.playersListBuilder,
   });
 
   @override
@@ -64,7 +66,11 @@ class _WaitingRoomBodyState extends State<WaitingRoomBody> {
             SizedBox(height: isTablet ? 24 : 20),
             ShareRoomButton(roomCode: widget.roomCode),
             SizedBox(height: isTablet ? 32 : 24),
-            Expanded(child: PlayersList(roomId: widget.roomId)),
+            Expanded(
+              child: widget.playersListBuilder != null
+                  ? widget.playersListBuilder!(widget.roomId)
+                  : PlayersList(roomId: widget.roomId),
+            ),
             if (widget.isHost) ...[
               SizedBox(height: isTablet ? 24 : 20),
               StartGameButton(

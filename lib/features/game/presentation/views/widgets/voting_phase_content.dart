@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -6,6 +6,7 @@ import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/shared/widgets/error_snackbar.dart';
 
 class VotingPhaseContent extends StatelessWidget {
   final RoundInfo round;
@@ -13,6 +14,7 @@ class VotingPhaseContent extends StatelessWidget {
   final String gameMode;
   final String currentUserId;
   final bool isHost;
+  final bool isFinalizingVoting;
   final VoidCallback? onShowResults;
 
   const VotingPhaseContent({
@@ -22,24 +24,38 @@ class VotingPhaseContent extends StatelessWidget {
     required this.gameMode,
     required this.currentUserId,
     this.isHost = false,
+    this.isFinalizingVoting = false,
     this.onShowResults,
   });
+
+  Player? _resolveCurrentPlayer() {
+    if (currentUserId.isEmpty) {
+      return null;
+    }
+
+    for (final player in players) {
+      if (player.userId == currentUserId) {
+        return player;
+      }
+    }
+
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
 
-    // Find current player
-    final currentPlayer = players.firstWhere(
-      (p) => p.userId == currentUserId,
-      orElse: () => players.first,
-    );
+    // Safely resolve current player (returns null if not found)
+    final currentPlayer = _resolveCurrentPlayer();
 
     // In local mode, check if ALL current players have voted
     // In online mode, check if current player has voted
     final hasVoted = gameMode == GameConstants.gameModeLocal
         ? players.every((p) => round.playerVotes.containsKey(p.id))
-        : round.playerVotes.containsKey(currentPlayer.id);
+        : currentPlayer != null
+        ? round.playerVotes.containsKey(currentPlayer.id)
+        : false;
 
     final allVoted = players.every((p) => round.playerVotes.containsKey(p.id));
 
@@ -51,7 +67,9 @@ class VotingPhaseContent extends StatelessWidget {
         _buildDescription(context, isTablet),
         SizedBox(height: isTablet ? 20 : 16),
         if (gameMode == GameConstants.gameModeLocal || !hasVoted)
-          _buildVotingList(context, isTablet, currentPlayer, hasVoted)
+          currentPlayer != null
+              ? _buildVotingList(context, isTablet, currentPlayer, hasVoted)
+              : _buildPlayerNotFoundCard(context, isTablet)
         else
           _buildVoteSubmittedCard(context, isTablet),
         SizedBox(height: isTablet ? 20 : 16),
@@ -172,6 +190,11 @@ class VotingPhaseContent extends StatelessWidget {
     bool hasVoted,
     bool iVotedForThis,
   ) {
+    if (votedPlayer.id == currentPlayer.id) {
+      ErrorSnackBar.show(context, 'You cannot vote for yourself');
+      return;
+    }
+
     final cubit = context.read<GameCubit>();
     if (cubit.state is! GameLoaded) return;
 
@@ -227,6 +250,7 @@ class VotingPhaseContent extends StatelessWidget {
   void _showTargetSelectionDialog(BuildContext context, String voterId) {
     final gameCubit = context.read<GameCubit>();
     final voter = players.firstWhere((p) => p.id == voterId);
+    final theme = AppColors.of(context);
 
     showDialog(
       context: context,
@@ -235,20 +259,20 @@ class VotingPhaseContent extends StatelessWidget {
           bloc: gameCubit,
           builder: (_, state) {
             return AlertDialog(
-              backgroundColor: AppColors.of(context).surface,
+              backgroundColor: theme.surface,
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     '${voter.username}, who do you suspect?',
-                    style: TextStyle(color: AppColors.of(context).textPrimary),
+                    style: TextStyle(color: theme.textPrimary),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Tap the player you think is the Impostor',
                     style: TextStyle(
-                      color: AppColors.of(context).textSecondary,
+                      color: theme.textSecondary,
                       fontSize: 13,
                       fontWeight: FontWeight.normal,
                     ),
@@ -264,14 +288,14 @@ class VotingPhaseContent extends StatelessWidget {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: isVotingForSelf
-                            ? AppColors.of(context).surfaceLight
+                            ? theme.surfaceLight
                             : AppColors.primary,
                         child: Text(
                           player.username[0].toUpperCase(),
                           style: TextStyle(
                             color: isVotingForSelf
-                                ? AppColors.of(context).textMuted
-                                : AppColors.of(context).textPrimary,
+                                ? theme.textMuted
+                                : theme.textPrimary,
                           ),
                         ),
                       ),
@@ -279,8 +303,8 @@ class VotingPhaseContent extends StatelessWidget {
                         player.username,
                         style: TextStyle(
                           color: isVotingForSelf
-                              ? AppColors.of(context).textMuted
-                              : AppColors.of(context).textPrimary,
+                              ? theme.textMuted
+                              : theme.textPrimary,
                         ),
                       ),
                       subtitle: isVotingForSelf
@@ -292,19 +316,23 @@ class VotingPhaseContent extends StatelessWidget {
                               ),
                             )
                           : null,
-                      enabled: !isVotingForSelf,
-                      onTap: isVotingForSelf
-                          ? null
-                          : () async {
-                              await gameCubit.sendVote(
-                                roundId: round.id,
-                                voterId: voterId,
-                                votedPlayerId: player.id,
-                              );
-                              if (dialogContext.mounted) {
-                                Navigator.of(dialogContext).pop();
-                              }
-                            },
+                      onTap: () async {
+                        if (isVotingForSelf) {
+                          if (!context.mounted) return;
+                          ErrorSnackBar.show(
+                            context,
+                            'You cannot vote for yourself',
+                          );
+                          return;
+                        }
+
+                        Navigator.of(dialogContext).pop();
+                        gameCubit.sendVote(
+                          roundId: round.id,
+                          voterId: voterId,
+                          votedPlayerId: player.id,
+                        );
+                      },
                     );
                   }).toList(),
                 ),
@@ -314,7 +342,7 @@ class VotingPhaseContent extends StatelessWidget {
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(color: AppColors.of(context).textMuted),
+                    style: TextStyle(color: theme.textMuted),
                   ),
                 ),
               ],
@@ -355,12 +383,44 @@ class VotingPhaseContent extends StatelessWidget {
     );
   }
 
+  Widget _buildPlayerNotFoundCard(BuildContext context, bool isTablet) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.of(context).surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
+      ),
+      padding: EdgeInsets.all(isTablet ? 20 : 16),
+      child: Row(
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.warning,
+            size: isTablet ? 28 : 24,
+          ),
+          SizedBox(width: isTablet ? 16 : 12),
+          Expanded(
+            child: Text(
+              'Syncing player info... Please wait.',
+              style: TextStyle(
+                color: AppColors.of(context).textSecondary,
+                fontSize: isTablet ? 14 : 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildShowResultsSection(BuildContext context, bool isTablet) {
     if (isHost) {
       return ElevatedButton.icon(
-        onPressed: onShowResults,
+        onPressed: isFinalizingVoting ? null : onShowResults,
         icon: const Icon(Icons.check_circle_outline),
-        label: const Text('Show Results Now →'),
+        label: Text(
+          isFinalizingVoting ? 'Finalizing Results...' : 'Show Results Now →',
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.success,
           foregroundColor: AppColors.of(context).textPrimary,
@@ -402,7 +462,9 @@ class VotingPhaseContent extends StatelessWidget {
   }
 
   Widget _buildVotingProgress(BuildContext context, bool isTablet) {
-    final progress = round.playerVotes.length / players.length;
+    final progress = players.isEmpty
+        ? 0.0
+        : round.playerVotes.length / players.length;
 
     return Container(
       decoration: BoxDecoration(
@@ -505,7 +567,10 @@ class _VotePlayerTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.error,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.of(context).surface, width: 1.5),
+                      border: Border.all(
+                        color: AppColors.of(context).surface,
+                        width: 1.5,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Text(

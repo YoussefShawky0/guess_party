@@ -59,6 +59,8 @@ abstract class GameRemoteDataSource {
   Stream<Map<String, dynamic>> watchHintsChanges({required String roundId});
 
   Stream<Map<String, dynamic>> watchVotesChanges({required String roundId});
+
+  Stream<List<PlayerModel>> watchPlayersChanges({required String roomId});
 }
 
 class GameRemoteDataSourceImpl implements GameRemoteDataSource {
@@ -140,7 +142,6 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
           .from('players')
           .select('*')
           .eq('room_id', roomId)
-          .eq('is_online', true)
           .order('created_at', ascending: true);
 
       return (response as List)
@@ -462,5 +463,33 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
         .stream(primaryKey: ['id'])
         .eq('round_id', roundId)
         .map((data) => {'votes': data});
+  }
+
+  @override
+  Stream<List<PlayerModel>> watchPlayersChanges({required String roomId}) {
+    return client
+        .from('players')
+        .stream(primaryKey: ['id'])
+        .eq('room_id', roomId)
+        .map((data) {
+          final rows = data.cast<Map<String, dynamic>>().toList();
+          rows.sort((a, b) {
+            final aCreatedAt = DateTime.tryParse(
+              a['created_at']?.toString() ?? '',
+            );
+            final bCreatedAt = DateTime.tryParse(
+              b['created_at']?.toString() ?? '',
+            );
+
+            if (aCreatedAt == null && bCreatedAt == null) return 0;
+            if (aCreatedAt == null) return -1;
+            if (bCreatedAt == null) return 1;
+            return aCreatedAt.compareTo(bCreatedAt);
+          });
+
+          return rows
+              .map(PlayerModel.fromJson)
+              .toList();
+        });
   }
 }

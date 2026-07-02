@@ -9,7 +9,11 @@ class AdvancePhase {
 
   Future<Either<Failure, RoundInfo>> call({
     required String roundId,
-  }) async{
-    return await repository.advancePhase(roundId: roundId);
+    required String requestingPlayerId,
+  }) async {
+    return await repository.advancePhase(
+      roundId: roundId,
+      requestingPlayerId: requestingPlayerId,
+    );
   }
 }

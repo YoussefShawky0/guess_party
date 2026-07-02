@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -10,28 +10,61 @@ import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'widgets/room_lifecycle_manager.dart';
-import 'widgets/room_status_listener.dart';
 import 'widgets/waiting_room_app_bar.dart';
 import 'widgets/waiting_room_body.dart';
 
 class WaitingRoomView extends StatelessWidget {
   final String roomId;
+  final RoomCubit? roomCubit;
+  final String? Function()? currentUserIdResolver;
+  final Widget Function(String roomId)? playersListBuilder;
 
-  const WaitingRoomView({super.key, required this.roomId});
+  const WaitingRoomView({
+    super.key,
+    required this.roomId,
+    this.roomCubit,
+    this.currentUserIdResolver,
+    this.playersListBuilder,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final providedCubit = roomCubit;
+    if (providedCubit != null) {
+      return BlocProvider.value(
+        value: providedCubit,
+        child: WaitingRoomContent(
+          roomId: roomId,
+          currentUserIdResolver: currentUserIdResolver,
+          playersListBuilder: playersListBuilder,
+        ),
+      );
+    }
+
     return BlocProvider(
-      create: (context) => di.sl<RoomCubit>()..loadRoomDetails(roomId: roomId),
-      child: WaitingRoomContent(roomId: roomId),
+      create: (context) => di.sl<RoomCubit>()
+        ..loadRoomDetails(roomId: roomId)
+        ..watchRoomStatus(roomId: roomId),
+      child: WaitingRoomContent(
+        roomId: roomId,
+        currentUserIdResolver: currentUserIdResolver,
+        playersListBuilder: playersListBuilder,
+      ),
     );
   }
 }
 
 class WaitingRoomContent extends StatefulWidget {
   final String roomId;
+  final String? Function()? currentUserIdResolver;
+  final Widget Function(String roomId)? playersListBuilder;
 
-  const WaitingRoomContent({super.key, required this.roomId});
+  const WaitingRoomContent({
+    super.key,
+    required this.roomId,
+    this.currentUserIdResolver,
+    this.playersListBuilder,
+  });
 
   @override
   State<WaitingRoomContent> createState() => _WaitingRoomContentState();
@@ -40,6 +73,8 @@ class WaitingRoomContent extends StatefulWidget {
 class _WaitingRoomContentState extends State<WaitingRoomContent> {
   String? _currentPlayerId;
   bool? _isHost;
+  bool _hasNavigatedToCountdown = false;
+  bool _hasHandledFinishedRoom = false;
 
   void _updatePlayerInfo(String playerId, bool isHost) {
     setState(() {
@@ -48,15 +83,45 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
     });
   }
 
+  void _goToCountdownOnce(BuildContext context) {
+    if (_hasNavigatedToCountdown || !mounted) {
+      return;
+    }
+
+    _hasNavigatedToCountdown = true;
+    context.go(AppRoutes.roomCountdown(widget.roomId));
+  }
+
+  void _handleRoomFinishedOnce(BuildContext context) {
+    if (_hasHandledFinishedRoom || !mounted) {
+      return;
+    }
+
+    _hasHandledFinishedRoom = true;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: const Text('Host has closed the room. Returning to home.'),
+        backgroundColor: AppColors.error,
+      ),
+    );
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        router.go(AppRoutes.home);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return RoomLifecycleManager(
       roomId: widget.roomId,
       onPlayerIdentified: _updatePlayerInfo,
-      child: RoomStatusListener(
-        roomId: widget.roomId,
-        builder: (context) => _buildScaffold(),
-      ),
+      child: _buildScaffold(),
     );
   }
 
@@ -75,20 +140,14 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
             ErrorSnackBar.show(context, state.message);
           }
 
-          if (state is RoomDetailsLoaded && state.room.status == 'finished') {
-            if (_isHost != true) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('Host has closed the room. Returning to home.'),
-                  backgroundColor: AppColors.error,
-                ),
-              );
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted && context.mounted) {
-                  context.go(AppRoutes.home);
-                }
-              });
-            }
+          if (state is RoomDetailsLoaded && state.room.status == 'active') {
+            _goToCountdownOnce(context);
+          }
+
+          if (state is RoomDetailsLoaded &&
+              state.room.status == 'finished' &&
+              _isHost != true) {
+            _handleRoomFinishedOnce(context);
           }
         },
         builder: (context, state) {
@@ -99,15 +158,17 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
           }
 
           if (state is RoomDetailsLoaded) {
-            final currentUser = Supabase.instance.client.auth.currentUser;
+            final currentUserId = widget.currentUserIdResolver != null
+                ? widget.currentUserIdResolver!()
+                : _resolveCurrentUserId();
             final players = state.players ?? [];
 
             // Find current player safely - avoid firstWhere type mismatch
             Player? currentPlayer;
-            if (players.isNotEmpty && currentUser != null) {
+            if (players.isNotEmpty && currentUserId != null) {
               // Use loop instead of firstWhere to avoid Player/PlayerModel generic issue
               for (final player in players) {
-                if (player.userId == currentUser.id) {
+                if (player.userId == currentUserId) {
                   currentPlayer = player;
                   break;
                 }
@@ -121,13 +182,14 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
               final playerId = currentPlayer.id;
               final isHost = currentPlayer.isHost;
               WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
                 _updatePlayerInfo(playerId, isHost);
               });
             }
 
             final isHost =
                 currentPlayer?.isHost == true &&
-                currentPlayer?.userId == currentUser?.id;
+                currentPlayer?.userId == currentUserId;
             final playerCount = players.length;
 
             return WaitingRoomBody(
@@ -135,15 +197,24 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
               roomCode: state.room.roomCode,
               isHost: isHost,
               playerCount: playerCount,
+              playersListBuilder: widget.playersListBuilder,
               onStartGame: () {
                 context.read<RoomCubit>().startGameSession(widget.roomId);
               },
             );
           }
 
-          return const Center(child: Text('حدث خطأ ما'));
+          return const Center(child: Text('Something went wrong'));
         },
       ),
     );
+  }
+
+  String? _resolveCurrentUserId() {
+    try {
+      return Supabase.instance.client.auth.currentUser?.id;
+    } catch (_) {
+      return null;
+    }
   }
 }

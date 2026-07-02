@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -82,15 +82,42 @@ class _CountdownScreenState extends State<CountdownScreen>
     setState(() => _countdown = -1);
     _animationController.forward(from: 0);
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) {
-        // For local mode, go to role reveal screen first
-        // For online mode, go directly to game
-        if (_gameMode == GameConstants.gameModeLocal) {
-          context.go(AppRoutes.roomRoleReveal(widget.roomId));
-        } else {
-          context.go(AppRoutes.roomGame(widget.roomId));
+    // Wait for "GO!" animation, then verify round exists before navigating.
+    Future.delayed(const Duration(milliseconds: 1500), () async {
+      if (!mounted) return;
+
+      // Poll for the round to be created (up to 5 seconds with 1s intervals).
+      // The DB trigger `create_first_round` should have run by now, but on
+      // slow networks there may be a delay.
+      bool roundExists = false;
+      for (var attempt = 0; attempt < 5; attempt++) {
+        try {
+          final rounds = await Supabase.instance.client
+              .from('rounds')
+              .select('id')
+              .eq('room_id', widget.roomId)
+              .limit(1);
+          if ((rounds as List).isNotEmpty) {
+            roundExists = true;
+            break;
+          }
+        } catch (_) {
+          // Network error — retry
         }
+        if (!mounted) return;
+        await Future.delayed(const Duration(seconds: 1));
+      }
+
+      if (!mounted) return;
+
+      if (!roundExists) {
+        debugPrint('First round not found after polling, navigating anyway.');
+      }
+
+      if (_gameMode == GameConstants.gameModeLocal) {
+        context.go(AppRoutes.roomRoleReveal(widget.roomId));
+      } else {
+        context.go(AppRoutes.roomGame(widget.roomId));
       }
     });
   }

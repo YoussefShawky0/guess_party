@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
@@ -66,7 +66,7 @@ class GameModeSelector extends StatelessWidget {
     required String mode,
     required String title,
     required String subtitle,
-    required IconData icon,
+    required FaIconData icon,
     required bool isSelected,
     required bool isTablet,
   }) {

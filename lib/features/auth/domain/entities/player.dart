@@ -8,6 +8,7 @@ class Player extends Equatable {
   final int score;
   final bool isHost;
   final bool isOnline;
+  final DateTime? lastSeenAt;
 
   const Player({
     required this.id,
@@ -17,6 +18,7 @@ class Player extends Equatable {
     required this.score,
     required this.isHost,
     this.isOnline = true,
+    this.lastSeenAt,
   });
 
   @override
@@ -28,5 +30,6 @@ class Player extends Equatable {
     score,
     isHost,
     isOnline,
+    lastSeenAt,
   ];
 }

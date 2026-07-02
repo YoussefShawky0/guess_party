@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
@@ -9,8 +11,10 @@ import 'package:guess_party/features/room/domain/usecases/get_room_by_code.dart'
 import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_players.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
+import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
 
 part 'room_state.dart';
 
@@ -22,7 +26,11 @@ class RoomCubit extends Cubit<RoomState> {
   final GetRoomByCode getRoomByCode;
   final StartGame startGame;
   final UpdatePlayerStatus updatePlayerStatus;
+  final MarkStalePlayersOffline markStalePlayersOffline;
   final LeaveRoom leaveRoom;
+  final WatchRoomDetails watchRoomDetails;
+  StreamSubscription<Room>? _roomDetailsSubscription;
+  Timer? _roomDetailsPollTimer;
 
   RoomCubit({
     required this.createRoom,
@@ -32,7 +40,9 @@ class RoomCubit extends Cubit<RoomState> {
     required this.getRoomByCode,
     required this.startGame,
     required this.updatePlayerStatus,
+    required this.markStalePlayersOffline,
     required this.leaveRoom,
+    required this.watchRoomDetails,
   }) : super(RoomInitial());
 
   Future<void> createNewRoom({
@@ -120,6 +130,42 @@ class RoomCubit extends Cubit<RoomState> {
     );
   }
 
+  Future<void> watchRoomStatus({required String roomId}) async {
+    await _roomDetailsSubscription?.cancel();
+    _roomDetailsPollTimer?.cancel();
+
+    _roomDetailsSubscription = watchRoomDetails(roomId: roomId).listen(
+      _emitWatchedRoom,
+      onError: (_) {
+        if (!isClosed && state is! RoomDetailsLoaded) {
+          emit(const RoomError('Connection lost. Reconnecting...'));
+        }
+      },
+    );
+
+    _roomDetailsPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      if (isClosed) return;
+
+      final result = await getRoomDetails(roomId: roomId);
+
+      if (isClosed) return;
+
+      result.fold((_) {}, _emitWatchedRoom);
+    });
+  }
+
+  void _emitWatchedRoom(Room room) {
+    if (isClosed) return;
+
+    final currentState = state;
+    emit(
+      RoomDetailsLoaded(
+        room,
+        players: currentState is RoomDetailsLoaded ? currentState.players : null,
+      ),
+    );
+  }
+
   Future<void> loadRoomPlayers({required String roomId}) async {
     // Guard against emitting after cubit is closed
     if (isClosed) return;
@@ -169,6 +215,18 @@ class RoomCubit extends Cubit<RoomState> {
     required bool isOnline,
   }) async {
     await updatePlayerStatus(playerId: playerId, isOnline: isOnline);
+  }
+
+  Future<void> cleanUpStalePlayers({required int staleSeconds}) async {
+    // Only clean up stale players in Online Mode; skip for Local Mode
+    if (state is RoomWithPlayerCreated) {
+      final room = (state as RoomWithPlayerCreated).room;
+      if (room.gameMode == GameConstants.gameModeLocal) return;
+    } else if (state is RoomDetailsLoaded) {
+      final room = (state as RoomDetailsLoaded).room;
+      if (room.gameMode == GameConstants.gameModeLocal) return;
+    }
+    await markStalePlayersOffline(staleSeconds: staleSeconds);
   }
 
   Future<void> leaveRoomSession({
@@ -226,5 +284,12 @@ class RoomCubit extends Cubit<RoomState> {
         (player) => emit(RoomWithPlayerCreated(room: room, player: player)),
       );
     });
+  }
+
+  @override
+  Future<void> close() async {
+    await _roomDetailsSubscription?.cancel();
+    _roomDetailsPollTimer?.cancel();
+    return super.close();
   }
 }

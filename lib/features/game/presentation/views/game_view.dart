@@ -8,14 +8,15 @@ import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
+import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/shared/widgets/chat_widget.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/character_card.dart';
-import 'widgets/hints_phase_content.dart';
 import 'widgets/results_phase_content.dart';
 import 'widgets/round_header_widget.dart';
 import 'widgets/voting_phase_content.dart';
@@ -63,10 +64,22 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     with WidgetsBindingObserver {
   static const _heartbeatInterval = Duration(seconds: 25);
   Timer? _heartbeatTimer;
+  Timer? _presenceRetryTimer;
+  RealtimeChannel? _playersChannel;
+  RealtimeChannel? _roomStatusChannel;
+  Map<String, Map<String, dynamic>> _previousOnlinePlayers = {};
+  String? _previousHostPlayerId;
+  String? _lastAnnouncedHostPlayerId;
+  String? _lastPresenceBannerKey;
+  DateTime? _lastPresenceBannerAt;
+  final Set<String> _announcedOfflinePlayerIds = <String>{};
+  bool _isRefreshingPresenceSnapshot = false;
+  int _presenceSubscriptionGeneration = 0;
 
   late final GameCubit _gameCubit;
   bool _isActive = true;
   bool _isObserving = false;
+  bool _isResumeRefreshInFlight = false;
 
   Future<void> _setCurrentUserOnlineStatus(bool isOnline) async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -86,16 +99,285 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     }
   }
 
+  Future<void> _cleanupStalePlayers() async {
+    await sl<MarkStalePlayersOffline>()(staleSeconds: 90);
+  }
+
+  /// Returns true if the authenticated user is currently the room host.
+  /// Used to restrict stale-player cleanup to the host only (Step 7).
+  bool _isCurrentUserHost() {
+    final cubitState = _gameCubit.state;
+    if (cubitState is! GameLoaded) return false;
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    if (currentUserId == null) return false;
+    for (final player in cubitState.gameState.players) {
+      if (player.userId == currentUserId) {
+        return player.isHost;
+      }
+    }
+    return false;
+  }
+
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
       _setCurrentUserOnlineStatus(true);
+      // Step 7: Only the host runs stale-player cleanup. Avoids N players
+      // all calling the same RPC every 25 seconds (~14x/min with 6 players).
+      if (_isCurrentUserHost()) {
+        unawaited(_cleanupStalePlayers());
+      }
     });
   }
 
   void _stopHeartbeat() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
+  }
+
+  void _cancelPresenceRetry() {
+    _presenceRetryTimer?.cancel();
+    _presenceRetryTimer = null;
+  }
+
+  void _schedulePresenceRetry({required int generation}) {
+    if (!mounted || !_isActive) return;
+
+    _cancelPresenceRetry();
+    _presenceRetryTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted || !_isActive) return;
+      if (generation != _presenceSubscriptionGeneration) return;
+      _subscribeToPresenceChanges();
+    });
+  }
+
+  void _unsubscribeFromPlayersRealtime() {
+    _cancelPresenceRetry();
+    _presenceSubscriptionGeneration++;
+
+    final channel = _playersChannel;
+    _playersChannel = null;
+    if (channel != null) {
+      channel.unsubscribe();
+      Supabase.instance.client.removeChannel(channel);
+    }
+  }
+
+  void _showPresenceBanner(String message, {Color? color, String? dedupeKey}) {
+    if (!mounted) return;
+    final key = dedupeKey ?? message;
+    final now = DateTime.now();
+    if (_lastPresenceBannerKey == key &&
+        _lastPresenceBannerAt != null &&
+        now.difference(_lastPresenceBannerAt!) < const Duration(seconds: 4)) {
+      return;
+    }
+
+    _lastPresenceBannerKey = key;
+    _lastPresenceBannerAt = now;
+
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color ?? AppColors.warning,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _refreshPresenceSnapshot({bool notify = true}) async {
+    if (_isRefreshingPresenceSnapshot) return;
+    _isRefreshingPresenceSnapshot = true;
+
+    try {
+      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      final response = await Supabase.instance.client
+          .from('players')
+          .select('id, user_id, username, is_host, is_online, created_at')
+          .eq('room_id', widget.roomId)
+          .order('created_at', ascending: true);
+
+      if (!mounted) return;
+
+      final onlinePlayers = <String, Map<String, dynamic>>{};
+      for (final row in (response as List).cast<Map<String, dynamic>>()) {
+        if ((row['is_online'] as bool? ?? true) == true) {
+          onlinePlayers[row['id'] as String] = row;
+        }
+      }
+
+      final currentHost = onlinePlayers.values.where(
+        (player) => player['is_host'] as bool? ?? false,
+      );
+      final currentHostPlayerId = currentHost.isEmpty
+          ? null
+          : currentHost.first['id'] as String;
+
+      _announcedOfflinePlayerIds.removeWhere(onlinePlayers.containsKey);
+
+      if (notify && _previousOnlinePlayers.isNotEmpty) {
+        final disconnected = _previousOnlinePlayers.values.where((previous) {
+          final previousId = previous['id'] as String?;
+          final previousUserId = previous['user_id'] as String?;
+          if (previousId == null) return false;
+          if (previousUserId == currentUserId) return false;
+          return !onlinePlayers.containsKey(previousId);
+        }).toList();
+
+        final newlyDisconnected = disconnected.where((player) {
+          final playerId = player['id'] as String?;
+          if (playerId == null) return false;
+          return _announcedOfflinePlayerIds.add(playerId);
+        }).toList();
+
+        if (newlyDisconnected.isNotEmpty) {
+          final names = newlyDisconnected
+              .map((player) => player['username']?.toString() ?? 'Player')
+              .toList();
+          final label = names.length == 1
+              ? '${names.first} has left the game'
+              : '${names.join(', ')} have left the game';
+          final offlineIds = newlyDisconnected
+            ..sort((a, b) {
+              final aId = a['id']?.toString() ?? '';
+              final bId = b['id']?.toString() ?? '';
+              return aId.compareTo(bId);
+            });
+          final dedupeIds = offlineIds
+              .map((player) => player['id']?.toString() ?? '')
+              .where((id) => id.isNotEmpty)
+              .join('|');
+          _showPresenceBanner(label, dedupeKey: 'left:$dedupeIds');
+        }
+
+        if (_previousHostPlayerId != null &&
+            currentHostPlayerId != null &&
+            _previousHostPlayerId != currentHostPlayerId &&
+            _lastAnnouncedHostPlayerId != currentHostPlayerId) {
+          final hostName = currentHost.isEmpty
+              ? 'A player'
+              : currentHost.first['username']?.toString() ?? 'A player';
+          _lastAnnouncedHostPlayerId = currentHostPlayerId;
+          _showPresenceBanner(
+            '$hostName is now the host',
+            color: AppColors.success,
+            dedupeKey: 'host:$currentHostPlayerId',
+          );
+        }
+      }
+
+      _previousOnlinePlayers = onlinePlayers;
+      _previousHostPlayerId = currentHostPlayerId;
+    } catch (_) {
+      // Presence updates are best-effort to avoid disrupting gameplay.
+    } finally {
+      _isRefreshingPresenceSnapshot = false;
+    }
+  }
+
+  void _subscribeToPresenceChanges() {
+    if (!_isActive || !mounted) return;
+
+    _unsubscribeFromPlayersRealtime();
+    final generation = _presenceSubscriptionGeneration;
+
+    try {
+      final channel = Supabase.instance.client
+          .channel('game_players_${widget.roomId}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'players',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'room_id',
+              value: widget.roomId,
+            ),
+            callback: (_) {
+              _refreshPresenceSnapshot();
+            },
+          );
+
+      channel.subscribe((status, error) {
+        if (generation != _presenceSubscriptionGeneration) return;
+        if (status == RealtimeSubscribeStatus.channelError ||
+            status == RealtimeSubscribeStatus.closed) {
+          _schedulePresenceRetry(generation: generation);
+        }
+      });
+
+      _playersChannel = channel;
+    } catch (_) {
+      if (generation == _presenceSubscriptionGeneration) {
+        _schedulePresenceRetry(generation: generation);
+      }
+    }
+  }
+
+  // ── Step 10: Room-status watcher ───────────────────────────────────────────
+  // Watches `rooms.status`. When the DB function reconcile_room_after_presence_change
+  // sets status='finished' (all players disconnected), navigates the client
+  // to game-over or home rather than leaving them on a stale game screen.
+
+  void _subscribeToRoomStatus() {
+    _unsubscribeFromRoomStatus();
+
+    _roomStatusChannel = Supabase.instance.client
+        .channel('room_status_${widget.roomId}')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'rooms',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'id',
+            value: widget.roomId,
+          ),
+          callback: (payload) {
+            final newRecord = payload.newRecord;
+            final status = newRecord['status'] as String?;
+            if (status == 'finished' && mounted && _isActive) {
+              _handleRoomFinished();
+            }
+          },
+        );
+
+    _roomStatusChannel!.subscribe();
+  }
+
+  void _handleRoomFinished() {
+    if (!mounted) return;
+    final cubitState = _gameCubit.state;
+    if (cubitState is GameLoaded) {
+      final ctx = context;
+      if (ctx.mounted) {
+        ctx.go(
+          AppRoutes.roomGameOver(widget.roomId),
+          extra: {
+            'players': cubitState.gameState.players,
+            'playerScores': cubitState.gameState.playerScores,
+          },
+        );
+      }
+    } else {
+      if (context.mounted) {
+        context.go(AppRoutes.home);
+      }
+    }
+  }
+
+  void _unsubscribeFromRoomStatus() {
+    final channel = _roomStatusChannel;
+    _roomStatusChannel = null;
+    if (channel != null) {
+      channel.unsubscribe();
+      Supabase.instance.client.removeChannel(channel);
+    }
   }
 
   @override
@@ -109,12 +391,19 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     _isObserving = true;
     _setCurrentUserOnlineStatus(true);
     _startHeartbeat();
+    _refreshPresenceSnapshot(notify: false);
+    // Run cleanup once on init regardless of host (catch-up); periodic is host-only.
+    unawaited(_cleanupStalePlayers());
+    _subscribeToPresenceChanges();
+    _subscribeToRoomStatus(); // Step 10
   }
 
   @override
   void deactivate() {
     _isActive = false;
     _stopHeartbeat();
+    _unsubscribeFromPlayersRealtime();
+    _unsubscribeFromRoomStatus(); // Step 10
 
     if (_isObserving) {
       WidgetsBinding.instance.removeObserver(this);
@@ -136,6 +425,12 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
 
     _setCurrentUserOnlineStatus(true);
     _startHeartbeat();
+    _refreshPresenceSnapshot(notify: false);
+    if (_isCurrentUserHost()) {
+      unawaited(_cleanupStalePlayers());
+    }
+    _subscribeToPresenceChanges();
+    _subscribeToRoomStatus(); // Step 10
   }
 
   @override
@@ -146,6 +441,8 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
       _isObserving = false;
     }
     _stopHeartbeat();
+    _unsubscribeFromPlayersRealtime();
+    _unsubscribeFromRoomStatus(); // Step 10
     super.dispose();
   }
 
@@ -157,6 +454,9 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
       case AppLifecycleState.resumed:
         _setCurrentUserOnlineStatus(true);
         _startHeartbeat();
+        if (_isCurrentUserHost()) {
+          unawaited(_cleanupStalePlayers()); // host-only on resume
+        }
 
         Sentry.addBreadcrumb(
           Breadcrumb(
@@ -167,7 +467,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
           ),
         );
 
-        _gameCubit.refreshGameStateOnResume(roomId: widget.roomId);
+        unawaited(_refreshGameStateOnResume());
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -179,14 +479,138 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     }
   }
 
+  Future<void> _refreshGameStateOnResume() async {
+    if (_isResumeRefreshInFlight || _gameCubit.isClosed) return;
+    _isResumeRefreshInFlight = true;
+    try {
+      await _gameCubit.refreshGameStateOnResume(roomId: widget.roomId);
+    } finally {
+      _isResumeRefreshInFlight = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) => widget.child;
 }
 
-class GameViewContent extends StatelessWidget {
+class GameViewContent extends StatefulWidget {
   final String roomId;
 
   const GameViewContent({super.key, required this.roomId});
+
+  @override
+  State<GameViewContent> createState() => _GameViewContentState();
+}
+
+class _GameViewContentState extends State<GameViewContent> {
+  static const _backOnlineCooldown = Duration(seconds: 6);
+  static const _minReconnectCycleForBackOnline = Duration(seconds: 1);
+  bool _isReconnectCycleActive = false;
+  bool _backOnlineShownForCycle = false;
+  DateTime? _reconnectCycleStartedAt;
+  DateTime? _lastBackOnlineAt;
+  String? _lastAutoFinalizedRoundId;
+  String? _isAdvancingHintsRoundId; // Step 8: guard hints→voting duplicate transitions
+  String?
+  _isFinalizingVotingRoundId; // Track which round is currently finalizing
+  GameLoaded? _previousGameLoadedState;
+
+  Player? _resolveCurrentRoomPlayer(GameStateEntity gameState) {
+    final currentPlayerIdentifier = gameState.currentPlayerId;
+    if (currentPlayerIdentifier.isEmpty) {
+      return null;
+    }
+
+    for (final player in gameState.players) {
+      if (player.id == currentPlayerIdentifier ||
+          player.userId == currentPlayerIdentifier) {
+        return player;
+      }
+    }
+
+    return null;
+  }
+
+  bool _isCurrentRoomHost(GameStateEntity gameState) =>
+      _resolveCurrentRoomPlayer(gameState)?.isHost ?? false;
+
+  bool _shouldAutoFinalizeVoting(GameLoaded previous, GameLoaded current) {
+    final prevRound = previous.gameState.currentRound;
+    final currRound = current.gameState.currentRound;
+    final currGameState = current.gameState;
+
+    // Only for online mode
+    if (currGameState.gameMode != GameConstants.gameModeOnline) {
+      return false;
+    }
+
+    // Only if current phase is voting
+    if (currRound.phase != GamePhase.voting) {
+      return false;
+    }
+
+    // Only if current player is host
+    if (!_isCurrentRoomHost(currGameState)) {
+      return false;
+    }
+
+    // Only if we haven't already auto-finalized this round
+    if (_lastAutoFinalizedRoundId == currRound.id) {
+      return false;
+    }
+
+    // Only if not currently finalizing (manual button or timer race guard)
+    if (_isFinalizingVotingRoundId == currRound.id) {
+      return false;
+    }
+
+    // Step 9: Use online player count instead of round-creation playerIds.length.
+    // A disconnected player's missing vote should not block auto-finalization.
+    final prevVotesCount = prevRound.playerVotes.length;
+    final currVotesCount = currRound.playerVotes.length;
+    final onlinePlayerCount = current.gameState.players
+        .where((p) => p.isOnline)
+        .length;
+
+    // Safety: need at least 2 online players for meaningful voting
+    if (onlinePlayerCount < 2) return false;
+
+    final votesJustCompleted =
+        prevVotesCount < onlinePlayerCount &&
+        currVotesCount >= onlinePlayerCount;
+
+    if (!votesJustCompleted) {
+      return false;
+    }
+
+    // All conditions met
+    return true;
+  }
+
+  void _finalizeVotingAndProgress(BuildContext context, String roundId) {
+    if (_isFinalizingVotingRoundId == roundId) {
+      return;
+    }
+
+    _isFinalizingVotingRoundId = roundId;
+    context.read<GameCubit>().calculateRoundScores(roundId).then((_) {
+      if (context.mounted) {
+        context
+            .read<GameCubit>()
+            .progressPhase(roundId)
+            .then((_) {
+              if (mounted) {
+                _isFinalizingVotingRoundId = null;
+              }
+            })
+            .catchError((_) {
+              if (mounted) {
+                _isFinalizingVotingRoundId = null;
+              }
+            });
+      }
+    });
+  }
 
   Future<bool> _showLeaveConfirmation(BuildContext context) async {
     return await showDialog<bool>(
@@ -211,7 +635,7 @@ class GameViewContent extends StatelessWidget {
               ],
             ),
             content: Text(
-              'Are you sure you want to leave? Other players will be notified and the game may end.',
+              'Are you sure you want to leave? This will affect the current game.',
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: 16,
@@ -241,28 +665,34 @@ class GameViewContent extends StatelessWidget {
 
   Future<void> _handleLeaveGame(BuildContext context) async {
     final gameCubit = context.read<GameCubit>();
+    final currentGameState = gameCubit.state;
+    final isActivePhase =
+        currentGameState is GameLoaded &&
+        (currentGameState.gameState.currentRound.phase == GamePhase.hints ||
+            currentGameState.gameState.currentRound.phase == GamePhase.voting);
 
-    final shouldLeave = await _showLeaveConfirmation(context);
-    if (!shouldLeave || !context.mounted) return;
+    if (isActivePhase) {
+      final shouldLeave = await _showLeaveConfirmation(context);
+      if (!shouldLeave || !context.mounted) return;
+    }
 
     final currentUserId = gameCubit.currentPlayerId;
 
     // Get player info from game state
-    final gameState = gameCubit.state;
+    final gameState = currentGameState;
     if (gameState is GameLoaded) {
-      final players = gameState.gameState.players;
-      final currentPlayer = players.firstWhere(
-        (p) => p.userId == currentUserId,
-        orElse: () => players.first,
-      );
-      final isHost = currentPlayer.isHost;
+      final currentPlayer = _resolveCurrentRoomPlayer(gameState.gameState);
+      final playerId = currentPlayer?.id ?? currentUserId;
+      if (playerId.isNotEmpty) {
+        final isHost = currentPlayer?.isHost ?? false;
 
-      // Call leave-room use case directly (avoids creating a stale RoomCubit instance)
-      await sl<LeaveRoom>()(
-        playerId: currentPlayer.id,
-        roomId: roomId,
-        isHost: isHost,
-      );
+        // Call leave-room use case directly (avoids creating a stale RoomCubit instance)
+        await sl<LeaveRoom>()(
+          playerId: playerId,
+          roomId: widget.roomId,
+          isHost: isHost,
+        );
+      }
     }
 
     if (context.mounted) {
@@ -292,11 +722,70 @@ class GameViewContent extends StatelessWidget {
         body: BlocConsumer<GameCubit, GameState>(
           listenWhen: (previous, current) {
             if (previous is GameLoaded && current is GameLoaded) {
-              return previous.isReconnecting != current.isReconnecting;
+              final hasNewInlineMessage =
+                  current.nonFatalMessage != null &&
+                  current.nonFatalMessageId != previous.nonFatalMessageId;
+              if (hasNewInlineMessage) return true;
+
+              final reconnectStarted =
+                  !previous.isReconnecting && current.isReconnecting;
+              if (reconnectStarted) {
+                _isReconnectCycleActive = true;
+                _backOnlineShownForCycle = false;
+                _reconnectCycleStartedAt = DateTime.now();
+                return false;
+              }
+
+              final reconnectEnded =
+                  previous.isReconnecting && !current.isReconnecting;
+              if (reconnectEnded) return true;
+
+              // Check for auto-finalize voting condition
+              final shouldAutoFinalizeVoting = _shouldAutoFinalizeVoting(
+                previous,
+                current,
+              );
+              if (shouldAutoFinalizeVoting) return true;
+
+              return false;
             }
-            return current is GameError || current is GameEnded;
+            return current is GameError ||
+                current is GameEnded ||
+                (current is GameLoaded && current.nonFatalMessage != null);
           },
           listener: (context, state) {
+            // Auto-finalize voting: trigger score calculation and phase advance
+            if (state is GameLoaded && _previousGameLoadedState != null) {
+              if (_shouldAutoFinalizeVoting(_previousGameLoadedState!, state)) {
+                _lastAutoFinalizedRoundId = state.gameState.currentRound.id;
+                final round = state.gameState.currentRound;
+                _isFinalizingVotingRoundId = round.id;
+                context.read<GameCubit>().calculateRoundScores(round.id).then((
+                  _,
+                ) {
+                  if (context.mounted) {
+                    context
+                        .read<GameCubit>()
+                        .progressPhase(round.id)
+                        .then((_) {
+                          if (mounted) {
+                            _isFinalizingVotingRoundId = null;
+                          }
+                        })
+                        .catchError((_) {
+                          if (mounted) {
+                            _isFinalizingVotingRoundId = null;
+                          }
+                        });
+                  }
+                });
+              }
+            }
+            // Track current state for next comparison
+            if (state is GameLoaded) {
+              _previousGameLoadedState = state;
+            }
+
             // Show error messages with better styling
             if (state is GameError) {
               if (!context.mounted) return;
@@ -328,8 +817,58 @@ class GameViewContent extends StatelessWidget {
                   ),
                 ),
               );
+            } else if (state is GameLoaded && state.nonFatalMessage != null) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: AppColors.of(context).textPrimary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          state.nonFatalMessage!,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.of(context).textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: AppColors.warning,
+                  duration: const Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              );
             } else if (state is GameLoaded && !state.isReconnecting) {
               if (!context.mounted) return;
+              final now = DateTime.now();
+              final reconnectDuration = _reconnectCycleStartedAt == null
+                  ? Duration.zero
+                  : now.difference(_reconnectCycleStartedAt!);
+              final isWithinCooldown =
+                  _lastBackOnlineAt != null &&
+                  now.difference(_lastBackOnlineAt!) < _backOnlineCooldown;
+
+              if (!_isReconnectCycleActive ||
+                  _backOnlineShownForCycle ||
+                  reconnectDuration < _minReconnectCycleForBackOnline ||
+                  isWithinCooldown) {
+                _isReconnectCycleActive = false;
+                return;
+              }
+
+              _isReconnectCycleActive = false;
+              _backOnlineShownForCycle = true;
+              _lastBackOnlineAt = now;
+
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Row(
@@ -360,7 +899,7 @@ class GameViewContent extends StatelessWidget {
             } else if (state is GameEnded) {
               if (!context.mounted) return;
               context.go(
-                AppRoutes.roomGameOver(roomId),
+                AppRoutes.roomGameOver(widget.roomId),
                 extra: {
                   'players': state.players,
                   'playerScores': state.playerScores,
@@ -392,7 +931,7 @@ class GameViewContent extends StatelessWidget {
                 message: state.message,
                 onRetry: () {
                   context.read<GameCubit>().loadGameState(
-                    roomId: roomId,
+                    roomId: widget.roomId,
                     currentPlayerId: context.read<GameCubit>().currentPlayerId,
                   );
                 },
@@ -456,16 +995,32 @@ class GameViewContent extends StatelessWidget {
   Widget _buildGameContent(BuildContext context, GameLoaded state) {
     final gameState = state.gameState;
     final round = gameState.currentRound;
-    final currentUserId = state.gameState.currentPlayerId;
-    final isImposter = round.isImposter(currentUserId);
-    final isTablet = MediaQuery.of(context).size.width > 600;
+    final currentPlayerIdentifier = gameState.currentPlayerId;
+    final players = gameState.players;
 
-    // الـ current user الـ host
-    final currentPlayer = gameState.players.firstWhere(
-      (p) => p.userId == currentUserId,
-      orElse: () => gameState.players.first,
-    );
-    final isHost = currentPlayer.isHost;
+    if (players.isEmpty) {
+      return Center(
+        child: Text(
+          'Waiting for players...',
+          style: TextStyle(color: AppColors.of(context).textSecondary),
+        ),
+      );
+    }
+
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    final currentPlayer = _resolveCurrentRoomPlayer(gameState);
+    final currentRoomPlayerId = currentPlayer?.id;
+    final isCurrentPlayerUnresolved =
+        gameState.gameMode == GameConstants.gameModeOnline &&
+        (currentRoomPlayerId == null || currentRoomPlayerId.isEmpty);
+    // SECURITY FIX: When player identity is unresolved, default to NOT
+    // imposter and show a syncing indicator. The old code defaulted to
+    // showing the imposter card, leaking information (only innocents
+    // experience a desync, not the real imposter).
+    final isImposter = !isCurrentPlayerUnresolved &&
+        currentRoomPlayerId != null &&
+        round.isImposter(currentRoomPlayerId);
+    final isHost = currentPlayer?.isHost == true;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isTablet ? 24 : 16),
@@ -480,45 +1035,119 @@ class GameViewContent extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // Character Card Widget
-          CharacterCard(
-            character: round.character,
-            isImposter: isImposter,
-            gameMode: state.gameState.gameMode,
-          ),
+          // Character Card Widget — show syncing card if player identity
+          // cannot yet be resolved (e.g. immediately after reconnection).
+          if (isCurrentPlayerUnresolved)
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.of(context).cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.of(context).cardBorder,
+                  width: 1.5,
+                ),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Syncing your role...',
+                    style: TextStyle(
+                      color: AppColors.of(context).textSecondary,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            CharacterCard(
+              character: round.character,
+              isImposter: isImposter,
+              gameMode: state.gameState.gameMode,
+            ),
           const SizedBox(height: 16),
+          if (gameState.gameMode == GameConstants.gameModeOnline &&
+              (round.phase == GamePhase.hints ||
+                  round.phase == GamePhase.voting) &&
+              isHost) ...[
+            ElevatedButton.icon(
+              onPressed: () async {
+                final isHintsPhase = round.phase == GamePhase.hints;
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: Text(isHintsPhase ? 'Skip hints?' : 'Skip voting?'),
+                    content: Text(
+                      isHintsPhase
+                          ? 'Are you sure you want to skip to voting?'
+                          : 'Are you sure you want to skip to results?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(true),
+                        child: const Text('Skip'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true && context.mounted) {
+                  if (isHintsPhase) {
+                    // Step 8: guard hints→voting duplicate transition
+                    if (_isAdvancingHintsRoundId == round.id) return;
+                    _isAdvancingHintsRoundId = round.id;
+                    context.read<GameCubit>().progressPhase(round.id).then((_) {
+                      if (mounted) _isAdvancingHintsRoundId = null;
+                    }).catchError((_) {
+                      if (mounted) _isAdvancingHintsRoundId = null;
+                    });
+                  } else {
+                    _finalizeVotingAndProgress(context, round.id);
+                  }
+                }
+              },
+              icon: const Icon(Icons.skip_next),
+              label: Text(
+                round.phase == GamePhase.hints
+                    ? 'Skip to Voting'
+                    : 'Skip to Results',
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Phase-specific content
           if (round.phase == GamePhase.hints)
-            if (gameState.gameMode == GameConstants.gameModeOnline)
-              ChatWidget(
-                roomId: roomId,
-                roundId: round.id,
-                currentPlayerId: currentPlayer.id,
-              )
-            else
-              HintsPhaseContent(
-                round: round,
-                players: state.gameState.players,
-                gameMode: state.gameState.gameMode,
-                currentUserId: currentUserId,
-              ),
+            ChatWidget(
+              roomId: widget.roomId,
+              roundId: round.id,
+              currentPlayerId: currentPlayer?.id ?? currentPlayerIdentifier,
+            ),
           if (round.phase == GamePhase.voting)
             VotingPhaseContent(
               round: round,
               players: state.gameState.players,
               gameMode: state.gameState.gameMode,
-              currentUserId: currentUserId,
+              currentUserId: currentPlayerIdentifier,
               isHost: isHost,
+              isFinalizingVoting: _isFinalizingVotingRoundId == round.id,
               onShowResults: () {
-                // Await scoring completion before advancing phase
-                context.read<GameCubit>().calculateRoundScores(round.id).then((
-                  _,
-                ) {
-                  if (context.mounted) {
-                    context.read<GameCubit>().progressPhase(round.id);
-                  }
-                });
+                _finalizeVotingAndProgress(context, round.id);
               },
             ),
           if (round.phase == GamePhase.results)
@@ -528,56 +1157,37 @@ class GameViewContent extends StatelessWidget {
     );
   }
 
+  void _startNextRound(BuildContext context, GameLoaded state) {
+    final round = state.gameState.currentRound;
+    final nextRoundNumber = round.roundNumber + 1;
+
+    context.read<GameCubit>().createNewRound(
+      roomId: widget.roomId,
+      roundNumber: nextRoundNumber,
+    );
+  }
+
   Widget _buildResultsPhase(BuildContext context, GameLoaded state) {
     final round = state.gameState.currentRound;
     final players = state.gameState.players;
+    if (players.isEmpty) {
+      return const SizedBox.shrink();
+    }
     final isLastRound = state.gameState.isLastRound;
 
     // Count votes
     final voteCounts = round.voteCounts;
 
-    final currentUserId = state.gameState.currentPlayerId;
-    final currentPlayer = players.firstWhere(
-      (p) => p.userId == currentUserId,
-      orElse: () => players.first,
-    );
-    final isHost = currentPlayer.isHost;
+    final isHost = _isCurrentRoomHost(state.gameState);
 
     return ResultsPhaseContent(
       roundInfo: round,
       players: players,
       playerScores: state.gameState.playerScores,
       voteCounts: voteCounts,
-      onNextRound: () {
-        final nextRoundNumber = round.roundNumber + 1;
-        final gameMode = state.gameState.gameMode;
-        // Capture scores BEFORE creating new round (in-memory accumulation)
-        final currentScores = Map<String, int>.from(
-          state.gameState.playerScores,
-        );
-
-        // Create new round
-        context.read<GameCubit>().createNewRound(
-          roomId: roomId,
-          roundNumber: nextRoundNumber,
-        );
-
-        // In local mode, navigate to role reveal screen after a short delay
-        // to allow the new round to be created.
-        // Pass scores via extra so the new cubit instance can restore them.
-        if (gameMode == GameConstants.gameModeLocal) {
-          Future.delayed(const Duration(milliseconds: 1000), () {
-            if (context.mounted) {
-              context.go(
-                AppRoutes.roomRoleReveal(roomId),
-                extra: {'playerScores': currentScores},
-              );
-            }
-          });
-        }
-      },
+      onNextRound: () => _startNextRound(context, state),
       onGameEnd: () {
-        context.read<GameCubit>().finishGame(roomId);
+        context.read<GameCubit>().finishGame(widget.roomId);
       },
       isHost: isHost,
       isLastRound: isLastRound,
@@ -587,11 +1197,7 @@ class GameViewContent extends StatelessWidget {
 
   void _handlePhaseTimeUp(BuildContext context, GameLoaded state) {
     final round = state.gameState.currentRound;
-    final currentUserId = state.gameState.currentPlayerId;
-    final hostUserId = state.gameState.players
-        .firstWhere((p) => p.isHost)
-        .userId;
-    final isHost = currentUserId == hostUserId;
+    final isHost = _isCurrentRoomHost(state.gameState);
 
     // Only host can advance phase
     if (!isHost) {
@@ -601,12 +1207,40 @@ class GameViewContent extends StatelessWidget {
     final phase = round.phase;
 
     if (phase == GamePhase.hints) {
-      context.read<GameCubit>().progressPhase(round.id);
+      // Step 8: Guard duplicate hints→voting transition (mirrors voting guard)
+      if (_isAdvancingHintsRoundId == round.id) {
+        return;
+      }
+      _isAdvancingHintsRoundId = round.id;
+      context.read<GameCubit>().progressPhase(round.id).then((_) {
+        if (mounted) _isAdvancingHintsRoundId = null;
+      }).catchError((_) {
+        if (mounted) _isAdvancingHintsRoundId = null;
+      });
     } else if (phase == GamePhase.voting) {
+      // Guard: do not fire timer if voting is already being finalized
+      // (by auto-transition or manual button)
+      if (_isFinalizingVotingRoundId == round.id) {
+        return;
+      }
+
+      _isFinalizingVotingRoundId = round.id;
       // Calculate scores first, then advance phase
       context.read<GameCubit>().calculateRoundScores(round.id).then((_) {
         if (context.mounted) {
-          context.read<GameCubit>().progressPhase(round.id);
+          context
+              .read<GameCubit>()
+              .progressPhase(round.id)
+              .then((_) {
+                if (mounted) {
+                  _isFinalizingVotingRoundId = null;
+                }
+              })
+              .catchError((_) {
+                if (mounted) {
+                  _isFinalizingVotingRoundId = null;
+                }
+              });
         }
       });
     }

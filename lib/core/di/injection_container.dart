@@ -30,8 +30,10 @@ import 'package:guess_party/features/room/domain/usecases/get_room_by_code.dart'
 import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_players.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
+import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -104,7 +106,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetRoomByCode(sl()));
   sl.registerLazySingleton(() => StartGame(sl()));
   sl.registerLazySingleton(() => UpdatePlayerStatus(sl()));
+  sl.registerLazySingleton(() => MarkStalePlayersOffline(sl()));
   sl.registerLazySingleton(() => LeaveRoom(sl()));
+  sl.registerLazySingleton(() => WatchRoomDetails(sl()));
 
   sl.registerFactory(
     () => RoomCubit(
@@ -115,7 +119,9 @@ Future<void> init() async {
       getRoomByCode: sl(),
       startGame: sl(),
       updatePlayerStatus: sl(),
+      markStalePlayersOffline: sl(),
       leaveRoom: sl(),
+      watchRoomDetails: sl(),
     ),
   );
 

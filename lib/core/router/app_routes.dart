@@ -18,6 +18,7 @@ class AppRoutes {
   static const String roomCountdownTemplate = '/room/:roomId/countdown';
   static const String roomRoleRevealTemplate = '/room/:roomId/role-reveal';
   static const String roomGameTemplate = '/room/:roomId/game';
+  static const String roomLocalGameTemplate = '/room/:roomId/local-game';
   static const String roomGameOverTemplate = '/room/:roomId/game-over';
 
   // ── Route builders (context.go / context.push navigation) ────────────────
@@ -25,5 +26,6 @@ class AppRoutes {
   static String roomCountdown(String roomId) => '/room/$roomId/countdown';
   static String roomRoleReveal(String roomId) => '/room/$roomId/role-reveal';
   static String roomGame(String roomId) => '/room/$roomId/game';
+  static String roomLocalGame(String roomId) => '/room/$roomId/local-game';
   static String roomGameOver(String roomId) => '/room/$roomId/game-over';
 }

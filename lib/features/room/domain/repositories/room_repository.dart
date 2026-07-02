@@ -20,6 +20,8 @@ abstract class RoomRepository {
 
   ResultFuture<Room> getRoomDetails({required String roomId});
 
+  Stream<Room> watchRoomDetails({required String roomId});
+
   ResultFuture<List<Player>> getRoomPlayers({required String roomId});
 
   ResultFuture<Room> getRoomByCode({required String roomCode});
@@ -30,6 +32,8 @@ abstract class RoomRepository {
     required String playerId,
     required bool isOnline,
   });
+
+  ResultFuture<void> markStalePlayersOffline({required int staleSeconds});
 
   ResultFuture<void> leaveRoom({
     required String playerId,

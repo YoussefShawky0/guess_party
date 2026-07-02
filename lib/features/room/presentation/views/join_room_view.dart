@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -34,6 +34,7 @@ class JoinRoomContent extends StatefulWidget {
 class _JoinRoomContentState extends State<JoinRoomContent> {
   final _formKey = GlobalKey<FormState>();
   final _roomCodeController = TextEditingController();
+  String? _roomCodeErrorMessage;
 
   @override
   void dispose() {
@@ -41,8 +42,15 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
     super.dispose();
   }
 
+  void _clearRoomCodeError() {
+    if (_roomCodeErrorMessage != null) {
+      setState(() => _roomCodeErrorMessage = null);
+    }
+  }
+
   void _joinRoom() {
     if (_formKey.currentState!.validate()) {
+      setState(() => _roomCodeErrorMessage = null);
       final user = Supabase.instance.client.auth.currentUser;
       final username = user?.userMetadata?['username'] ?? 'Guest';
 
@@ -68,7 +76,17 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
       body: BlocConsumer<RoomCubit, RoomState>(
         listener: (context, state) {
           if (state is RoomError) {
-            ErrorSnackBar.show(context, state.message);
+            if (state.message.toLowerCase().contains('room not found')) {
+              setState(() {
+                _roomCodeErrorMessage = state.message;
+              });
+              ErrorSnackBar.showRoomCodeError(context);
+            } else {
+              if (_roomCodeErrorMessage != null) {
+                setState(() => _roomCodeErrorMessage = null);
+              }
+              ErrorSnackBar.show(context, state.message);
+            }
           }
 
           if (state is RoomWithPlayerCreated) {
@@ -92,7 +110,15 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
                     children: [
                       const JoinRoomHeader(),
                       SizedBox(height: isTablet ? 32 : 24),
-                      RoomCodeInput(controller: _roomCodeController),
+                      RoomCodeInput(
+                        controller: _roomCodeController,
+                        onChanged: _clearRoomCodeError,
+                        hasError: _roomCodeErrorMessage != null,
+                      ),
+                      if (_roomCodeErrorMessage != null) ...[
+                        SizedBox(height: isTablet ? 16 : 12),
+                        _buildRoomCodeErrorBanner(isTablet),
+                      ],
                       SizedBox(height: isTablet ? 40 : 32),
                       JoinRoomButton(
                         onPressed: _joinRoom,
@@ -105,6 +131,59 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildRoomCodeErrorBanner(bool isTablet) {
+    return Container(
+      padding: EdgeInsets.all(isTablet ? 16 : 14),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.cancel_rounded,
+              color: AppColors.error,
+              size: isTablet ? 26 : 22,
+            ),
+          ),
+          SizedBox(width: isTablet ? 14 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Room not found',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.error,
+                    fontSize: isTablet ? 17 : 15,
+                  ),
+                ),
+                SizedBox(height: isTablet ? 4 : 3),
+                Text(
+                  'Room not found. Please check the code and try again.',
+                  style: TextStyle(
+                    color: AppColors.errorLight,
+                    fontSize: isTablet ? 14 : 13,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

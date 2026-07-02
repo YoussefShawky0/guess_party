@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:guess_party/core/error/failures.dart';
+import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 
@@ -28,7 +29,10 @@ abstract class GameRepository {
   });
 
   /// Start next phase (hints -> voting -> results)
-  Future<Either<Failure, RoundInfo>> advancePhase({required String roundId});
+  Future<Either<Failure, RoundInfo>> advancePhase({
+    required String roundId,
+    required String requestingPlayerId,
+  });
 
   /// Update phase end time (for local mode timer adjustment)
   Future<Either<Failure, RoundInfo>> updatePhaseEndTime({
@@ -59,4 +63,7 @@ abstract class GameRepository {
 
   // Subscribe to votes updates (real-time)
   Stream<Map<String, String>> watchVotesUpdates({required String roundId});
+
+  // Subscribe to room online players updates (real-time)
+  Stream<List<Player>> watchRoomPlayers({required String roomId});
 }

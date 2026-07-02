@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart'
@@ -19,6 +18,8 @@ part 'game_state.dart';
 typedef GameStateEntity = entity.GameState;
 
 class GameCubit extends Cubit<GameState> {
+  static const int _minConnectedPlayersForPhaseAdvance = 2;
+
   final GetGameState getGameState;
   final SubmitHint submitHint;
   final SubmitVote submitVote;
@@ -28,6 +29,7 @@ class GameCubit extends Cubit<GameState> {
   StreamSubscription? _roundSubscription;
   StreamSubscription? _hintsSubscription;
   StreamSubscription? _votesSubscription;
+  StreamSubscription? _playersSubscription;
 
   /// Prevents double-tap from calling createNextRound twice (duplicate-key guard)
   bool _isCreatingRound = false;
@@ -36,6 +38,8 @@ class GameCubit extends Cubit<GameState> {
   /// Prevents calculateRoundScores from being called twice for the same round
   /// (e.g. onShowResults button + timer expiry both firing)
   final Set<String> _scoredRoundIds = {};
+  int _nonFatalMessageIdCounter = 0;
+  int _errorIdCounter = 0;
 
   /// Last successfully computed scores — fallback for calculateRoundScores if
   /// state is temporarily GameError/GameLoading
@@ -65,6 +69,30 @@ class GameCubit extends Cubit<GameState> {
     );
   }
 
+  Player? _resolveCurrentRoomPlayer(GameStateEntity gameState) {
+    final currentPlayerIdentifier = gameState.currentPlayerId;
+    if (currentPlayerIdentifier.isEmpty) {
+      // Cannot resolve without an identifier — return null instead of
+      // falling back to host (which would grant host privileges to any player).
+      return null;
+    }
+
+    for (final player in gameState.players) {
+      if (player.id == currentPlayerIdentifier ||
+          player.userId == currentPlayerIdentifier) {
+        return player;
+      }
+    }
+
+    // Player not found in the current list (may have disconnected or
+    // list hasn't synced yet). Return null — callers must handle this.
+    return null;
+  }
+
+  String _resolveRequestingPlayerId(GameStateEntity gameState) {
+    return _resolveCurrentRoomPlayer(gameState)?.id ?? '';
+  }
+
   // Load initial game state for a room
   Future<void> loadGameState({
     required String roomId,
@@ -91,7 +119,8 @@ class GameCubit extends Cubit<GameState> {
           'loadGameState:failure',
           data: {'roomId': roomId, 'error': failure.message},
         );
-        emit(GameError(failure.message));
+        _errorIdCounter++;
+        emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (gameState) {
         // If preserved scores were passed (e.g. after local round transition),
@@ -105,7 +134,10 @@ class GameCubit extends Cubit<GameState> {
           data: {'roomId': roomId, 'roundId': stateToEmit.currentRound.id},
         );
         emit(GameLoaded(stateToEmit));
-        _subscribeToGameUpdates(stateToEmit.currentRound.id);
+        _subscribeToGameUpdates(
+          stateToEmit.currentRound.id,
+          roomId: stateToEmit.roomId,
+        );
       },
     );
   }
@@ -155,7 +187,10 @@ class GameCubit extends Cubit<GameState> {
           );
 
           emit(GameLoaded(mergedState, isReconnecting: false));
-          _subscribeToGameUpdates(mergedState.currentRound.id);
+          _subscribeToGameUpdates(
+            mergedState.currentRound.id,
+            roomId: mergedState.roomId,
+          );
         }
         return;
       }
@@ -174,7 +209,8 @@ class GameCubit extends Cubit<GameState> {
         await Future.delayed(Duration(seconds: attempt));
       } else if (previousState is! GameLoaded) {
         // If there is no previously visible game state, show the error.
-        emit(GameError(failure?.message ?? 'Connection error. Try again.'));
+        _errorIdCounter++;
+        emit(GameError(failure?.message ?? 'Connection error. Try again.', errorId: _errorIdCounter));
       } else {
         emit(GameLoaded(previousState.gameState, isReconnecting: false));
       }
@@ -182,7 +218,7 @@ class GameCubit extends Cubit<GameState> {
   }
 
   // Subscribe to real-time game updates
-  void _subscribeToGameUpdates(String roundId) {
+  void _subscribeToGameUpdates(String roundId, {required String roomId}) {
     _addBreadcrumb('subscribeToGameUpdates', data: {'roundId': roundId});
     // Subscribe to round updates
     _roundSubscription?.cancel();
@@ -190,11 +226,17 @@ class GameCubit extends Cubit<GameState> {
         .watchRoundUpdates(roundId: roundId)
         .listen((updatedRound) {
           if (!isClosed && state is GameLoaded) {
-            final currentState = (state as GameLoaded).gameState;
+            final loadedState = state as GameLoaded;
+            final currentState = loadedState.gameState;
             final updatedGameState = currentState.copyWith(
               currentRound: updatedRound,
             );
-            emit(GameLoaded(updatedGameState));
+            emit(
+              GameLoaded(
+                updatedGameState,
+                isReconnecting: loadedState.isReconnecting,
+              ),
+            );
           }
         });
 
@@ -204,7 +246,8 @@ class GameCubit extends Cubit<GameState> {
         .watchHintsUpdates(roundId: roundId)
         .listen((hints) {
           if (!isClosed && state is GameLoaded) {
-            final currentState = (state as GameLoaded).gameState;
+            final loadedState = state as GameLoaded;
+            final currentState = loadedState.gameState;
             // Convert Map<String, String> to Map<String, String?>
             final hintsNullable = hints.map(
               (k, v) => MapEntry(k, v as String?),
@@ -215,7 +258,12 @@ class GameCubit extends Cubit<GameState> {
             final updatedGameState = currentState.copyWith(
               currentRound: updatedRound,
             );
-            emit(GameLoaded(updatedGameState));
+            emit(
+              GameLoaded(
+                updatedGameState,
+                isReconnecting: loadedState.isReconnecting,
+              ),
+            );
           }
         });
 
@@ -225,7 +273,8 @@ class GameCubit extends Cubit<GameState> {
         .watchVotesUpdates(roundId: roundId)
         .listen((votes) {
           if (!isClosed && state is GameLoaded) {
-            final currentState = (state as GameLoaded).gameState;
+            final loadedState = state as GameLoaded;
+            final currentState = loadedState.gameState;
             // Convert Map<String, String> to Map<String, String?>
             final votesNullable = votes.map(
               (k, v) => MapEntry(k, v as String?),
@@ -236,7 +285,31 @@ class GameCubit extends Cubit<GameState> {
             final updatedGameState = currentState.copyWith(
               currentRound: updatedRound,
             );
-            emit(GameLoaded(updatedGameState));
+            emit(
+              GameLoaded(
+                updatedGameState,
+                isReconnecting: loadedState.isReconnecting,
+              ),
+            );
+          }
+        });
+
+    // Subscribe to room players updates (presence + host changes)
+    _playersSubscription?.cancel();
+    _playersSubscription = gameRepository
+        .watchRoomPlayers(roomId: roomId)
+        .listen((players) {
+          if (!isClosed && state is GameLoaded) {
+            final loadedState = state as GameLoaded;
+            final updatedGameState = loadedState.gameState.copyWith(
+              players: players,
+            );
+            emit(
+              GameLoaded(
+                updatedGameState,
+                isReconnecting: loadedState.isReconnecting,
+              ),
+            );
           }
         });
   }
@@ -270,7 +343,8 @@ class GameCubit extends Cubit<GameState> {
             'error': failure.message,
           },
         );
-        emit(GameError(failure.message));
+        _errorIdCounter++;
+        emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (_) {
         // Hint submitted successfully - realtime will update the state
@@ -286,6 +360,18 @@ class GameCubit extends Cubit<GameState> {
     required String votedPlayerId,
   }) async {
     if (isClosed) return;
+    if (voterId == votedPlayerId) {
+      _addBreadcrumb(
+        'sendVote:blockedSelfVote',
+        data: {'roundId': roundId, 'voterId': voterId},
+      );
+      final currentState = state;
+      if (currentState is GameLoaded) {
+        _emitInlineValidationMessage(currentState, 'You cannot vote for yourself');
+      }
+      return;
+    }
+
     _addBreadcrumb(
       'sendVote:start',
       data: {'roundId': roundId, 'voterId': voterId},
@@ -300,6 +386,21 @@ class GameCubit extends Cubit<GameState> {
     if (isClosed) return;
     result.fold(
       (failure) {
+        final message = failure.message;
+        final lower = message.toLowerCase();
+        if (message.contains('لا يمكنك التصويت لنفسك') ||
+            lower.contains('cannot vote for yourself')) {
+          _addBreadcrumb(
+            'sendVote:selfVoteValidation',
+            data: {'roundId': roundId, 'voterId': voterId},
+          );
+          final latestState = state;
+          if (latestState is GameLoaded) {
+            _emitInlineValidationMessage(latestState, 'You cannot vote for yourself');
+          }
+          return;
+        }
+
         _addBreadcrumb(
           'sendVote:failure',
           data: {
@@ -308,13 +409,15 @@ class GameCubit extends Cubit<GameState> {
             'error': failure.message,
           },
         );
-        emit(GameError(failure.message));
+        _errorIdCounter++;
+        emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (_) {
         // Optimistic update: Update state immediately for better UX
         // Especially important in Local Mode where multiple players vote sequentially
         if (state is GameLoaded) {
-          final currentState = (state as GameLoaded).gameState;
+          final loadedState = state as GameLoaded;
+          final currentState = loadedState.gameState;
           final updatedVotes = Map<String, String?>.from(
             currentState.currentRound.playerVotes,
           );
@@ -326,7 +429,12 @@ class GameCubit extends Cubit<GameState> {
           final updatedGameState = currentState.copyWith(
             currentRound: updatedRound,
           );
-          emit(GameLoaded(updatedGameState));
+          emit(
+            GameLoaded(
+              updatedGameState,
+              isReconnecting: loadedState.isReconnecting,
+            ),
+          );
         }
         // Realtime subscription will sync any changes from other devices
       },
@@ -338,16 +446,40 @@ class GameCubit extends Cubit<GameState> {
     if (isClosed) return;
     _addBreadcrumb('progressPhase:start', data: {'roundId': roundId});
 
-    // Validate player count before advancing
-    if (state is GameLoaded) {
-      final players = (state as GameLoaded).gameState.players;
-      if (!_validatePlayerCount(players)) {
-        emit(GameError('Not enough players. Minimum ${GameConstants.minPlayers} required.'));
+    // Non-fatal guard: skip/advance is allowed only with >= 2 connected players
+    final currentState = state;
+    if (currentState is GameLoaded) {
+      final connectedPlayers = _connectedPlayersForCurrentRound(
+        gameLoaded: currentState,
+        roundId: roundId,
+      );
+      if (connectedPlayers < _minConnectedPlayersForPhaseAdvance) {
+        _emitInlineValidationMessage(
+          currentState,
+          'Not enough connected players. Minimum '
+          '$_minConnectedPlayersForPhaseAdvance required to skip/advance.',
+        );
         return;
       }
     }
 
-    final result = await advancePhase(roundId: roundId);
+    final requestingPlayerId = currentState is GameLoaded
+        ? _resolveRequestingPlayerId(currentState.gameState)
+        : '';
+    if (requestingPlayerId.isEmpty) {
+      if (currentState is GameLoaded) {
+        _emitInlineValidationMessage(
+          currentState,
+          'Unable to determine the current host.',
+        );
+      }
+      return;
+    }
+
+    final result = await advancePhase(
+      roundId: roundId,
+      requestingPlayerId: requestingPlayerId,
+    );
 
     if (isClosed) return;
     result.fold(
@@ -356,16 +488,29 @@ class GameCubit extends Cubit<GameState> {
           'progressPhase:failure',
           data: {'roundId': roundId, 'error': failure.message},
         );
-        emit(GameError(failure.message));
+        final latestState = state;
+        if (latestState is GameLoaded &&
+            _isNonFatalPhaseAdvanceValidationFailure(failure.message)) {
+          _emitInlineValidationMessage(latestState, failure.message);
+          return;
+        }
+        _errorIdCounter++;
+        emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (updatedRound) {
         // Update the current state with new round info
         if (state is GameLoaded) {
-          final currentState = (state as GameLoaded).gameState;
+          final loadedState = state as GameLoaded;
+          final currentState = loadedState.gameState;
           final updatedGameState = currentState.copyWith(
             currentRound: updatedRound,
           );
-          emit(GameLoaded(updatedGameState));
+          emit(
+            GameLoaded(
+              updatedGameState,
+              isReconnecting: loadedState.isReconnecting,
+            ),
+          );
         }
       },
     );
@@ -407,15 +552,22 @@ class GameCubit extends Cubit<GameState> {
           'calculateRoundScores:failure',
           data: {'roundId': roundId, 'error': failure.message},
         );
-        emit(GameError(failure.message));
+        _errorIdCounter++;
+        emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (scores) {
         _lastKnownScores = Map<String, int>.from(scores); // keep fallback fresh
         // Update the game state with new scores
         if (state is GameLoaded) {
-          final currentState = (state as GameLoaded).gameState;
+          final loadedState = state as GameLoaded;
+          final currentState = loadedState.gameState;
           final updatedGameState = currentState.copyWith(playerScores: scores);
-          emit(GameLoaded(updatedGameState));
+          emit(
+            GameLoaded(
+              updatedGameState,
+              isReconnecting: loadedState.isReconnecting,
+            ),
+          );
         }
       },
     );
@@ -450,13 +602,15 @@ class GameCubit extends Cubit<GameState> {
               'error': failure.message,
             },
           );
-          emit(GameError(failure.message));
+          _errorIdCounter++;
+          emit(GameError(failure.message, errorId: _errorIdCounter));
         },
         (newRound) {
           // Cancel old subscriptions
           _roundSubscription?.cancel();
           _hintsSubscription?.cancel();
           _votesSubscription?.cancel();
+          _playersSubscription?.cancel();
 
           // Clear scored-round guard for the new round
           _scoredRoundIds.clear();
@@ -494,7 +648,8 @@ class GameCubit extends Cubit<GameState> {
     final currentState = state;
     if (currentState is! GameLoaded) return;
 
-    final currentPhaseEndTime = currentState.gameState.currentRound.phaseEndTime;
+    final currentPhaseEndTime =
+        currentState.gameState.currentRound.phaseEndTime;
     final newPhaseEndTime = currentPhaseEndTime.add(
       Duration(seconds: additionalSeconds),
     );
@@ -520,7 +675,12 @@ class GameCubit extends Cubit<GameState> {
         final updatedGameState = currentState.gameState.copyWith(
           currentRound: updatedRound,
         );
-        emit(GameLoaded(updatedGameState));
+        emit(
+          GameLoaded(
+            updatedGameState,
+            isReconnecting: currentState.isReconnecting,
+          ),
+        );
       },
     );
   }
@@ -540,7 +700,8 @@ class GameCubit extends Cubit<GameState> {
           'finishGame:failure',
           data: {'roomId': roomId, 'error': failure.message},
         );
-        emit(GameError(failure.message));
+        _errorIdCounter++;
+        emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (_) {
         final players = snapshot is GameLoaded
@@ -549,14 +710,52 @@ class GameCubit extends Cubit<GameState> {
         final scores = snapshot is GameLoaded
             ? snapshot.gameState.playerScores
             : <String, int>{};
-        emit(GameEnded('انتهت اللعبة', players: players, playerScores: scores));
+        // Step 15: English text consistency
+        emit(GameEnded('Game Over', players: players, playerScores: scores));
       },
     );
   }
 
-  /// Validates that there are enough players to continue the game
-  bool _validatePlayerCount(List<Player> players) {
-    return players.length >= GameConstants.minPlayers;
+  int _connectedPlayersForCurrentRound({
+    required GameLoaded gameLoaded,
+    required String roundId,
+  }) {
+    final currentRound = gameLoaded.gameState.currentRound;
+    final roundPlayerIds = currentRound.id == roundId
+        ? currentRound.playerIds.toSet()
+        : <String>{};
+
+    return gameLoaded.gameState.players
+        .where(
+          (player) =>
+              player.isOnline &&
+              (roundPlayerIds.isEmpty || roundPlayerIds.contains(player.id)),
+        )
+        .length;
+  }
+
+  bool _isNonFatalPhaseAdvanceValidationFailure(String message) {
+    final normalized = message.toLowerCase();
+    return normalized.contains('not enough players') ||
+        normalized.contains('minimum 2') ||
+        normalized.contains('only the current host') ||
+        normalized.contains('not authorized') ||
+        normalized.contains('permission');
+  }
+
+  void _emitInlineValidationMessage(
+    GameLoaded currentState,
+    String message,
+  ) {
+    _nonFatalMessageIdCounter++;
+    emit(
+      GameLoaded(
+        currentState.gameState,
+        isReconnecting: currentState.isReconnecting,
+        nonFatalMessage: message,
+        nonFatalMessageId: _nonFatalMessageIdCounter,
+      ),
+    );
   }
 
   @override
@@ -564,6 +763,7 @@ class GameCubit extends Cubit<GameState> {
     _roundSubscription?.cancel();
     _hintsSubscription?.cancel();
     _votesSubscription?.cancel();
+    _playersSubscription?.cancel();
     return super.close();
   }
 }

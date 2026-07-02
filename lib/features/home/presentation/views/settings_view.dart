@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -525,7 +525,7 @@ class _SettingsViewState extends State<SettingsView> {
 }
 
 class _SettingsSection extends StatelessWidget {
-  final IconData icon;
+  final FaIconData icon;
   final String title;
   final List<Widget> children;
   final bool isTablet;
@@ -576,7 +576,7 @@ class _SettingsSection extends StatelessWidget {
 }
 
 class _SettingsTile extends StatelessWidget {
-  final IconData icon;
+  final FaIconData icon;
   final String title;
   final String subtitle;
   final bool isTablet;
