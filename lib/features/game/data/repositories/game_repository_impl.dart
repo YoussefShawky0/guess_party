@@ -523,12 +523,11 @@ class GameRepositoryImpl implements GameRepository {
           roundId: roundId,
         )) {
           try {
-            // Fetch full round details
-            final roundResponse = await client
-                .from('rounds')
-                .select()
-                .eq('id', roundId)
-                .single();
+            // Fetch round details via SECURITY DEFINER RPC
+            // to get properly masked imposter_player_id
+            final roundResponse = await remoteDataSource.getRoundViaRpc(
+              roundId: roundId,
+            );
 
             final character = await remoteDataSource.getCharacter(
               characterId: roundResponse['character_id'] as String,

@@ -42,7 +42,7 @@ class RoundInfoModel extends RoundInfo {
     return RoundInfoModel(
       id: json['id'] as String,
       roomId: json['room_id'] as String,
-      imposterPlayerId: json['imposter_player_id'] as String,
+      imposterPlayerId: (json['imposter_player_id'] as String?) ?? '',
       character: character,
       roundNumber: json['round_number'] as int,
       phase: _parsePhase(json['phase'] as String),

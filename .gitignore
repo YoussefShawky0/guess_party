@@ -22,15 +22,6 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
-.opencode/
-node_modules/
-.specify/
-.copilot/
-.github/
-.agents/
-specs/
-AGENTS.md
-GEMINI.md
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -77,3 +68,19 @@ firebase_options.dart
 # macOS
 **/macos/Flutter/ephemeral/
 **/macos/Flutter/.last_build_id
+
+# Agent / Spec Tooling ignores
+.agents/
+.agents.md
+AGENTS.md
+.gemini.md
+GEMINI.md
+.opencode/
+.specify/
+.specs/
+.spec/
+.github/
+.sentryclirc
+specs/
+node_modules/
+.copilot/

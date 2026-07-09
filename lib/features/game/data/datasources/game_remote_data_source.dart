@@ -54,6 +54,11 @@ abstract class GameRemoteDataSource {
     required String status,
   });
 
+  /// Fetches round data via the SECURITY DEFINER RPC function.
+  /// Returns round data with `imposter_player_id` masked (NULL) for
+  /// non-imposter players during non-results phases.
+  Future<Map<String, dynamic>> getRoundViaRpc({required String roundId});
+
   Stream<Map<String, dynamic>> watchRoundChanges({required String roundId});
 
   Stream<Map<String, dynamic>> watchHintsChanges({required String roundId});
@@ -69,12 +74,27 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
   GameRemoteDataSourceImpl({required this.client});
 
   @override
+  Future<Map<String, dynamic>> getRoundViaRpc({
+    required String roundId,
+  }) async {
+    try {
+      final response = await client
+          .rpc('get_round_for_player', params: {'p_round_id': roundId})
+          .select()
+          .single();
+      return response;
+    } catch (e) {
+      throw Exception('Failed to get round via RPC: $e');
+    }
+  }
+
+  @override
   Future<RoundInfoModel> getCurrentRound({required String roomId}) async {
     try {
-      // Get all rounds for this room, ordered by round_number descending
+      // Get round IDs + metadata for this room (no imposter_player_id needed)
       final validRounds = await client
           .from('rounds')
-          .select('*')
+          .select('id, room_id, character_id, round_number, phase, phase_end_time, imposter_revealed, created_at')
           .eq('room_id', roomId)
           .order('round_number', ascending: false);
 
@@ -113,18 +133,24 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
       // If no valid round found, use the latest round as fallback
       response ??= latestRound;
 
+      // Fetch the full round data via the SECURITY DEFINER RPC
+      // to get properly masked imposter_player_id
+      final maskedRound = await getRoundViaRpc(
+        roundId: response['id'] as String,
+      );
+
       final character = await getCharacter(
-        characterId: response['character_id'] as String,
+        characterId: maskedRound['character_id'] as String,
       );
 
       final players = await getRoomPlayers(roomId: roomId);
       final playerIds = players.map((p) => p.id).toList();
 
-      final hints = await getHintsForRound(roundId: response['id'] as String);
-      final votes = await getVotesForRound(roundId: response['id'] as String);
+      final hints = await getHintsForRound(roundId: maskedRound['id'] as String);
+      final votes = await getVotesForRound(roundId: maskedRound['id'] as String);
 
       return RoundInfoModel.fromJson(
-        response,
+        maskedRound,
         character.toEntity(),
         playerIds,
         hints,

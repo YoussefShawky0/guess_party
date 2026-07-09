@@ -105,7 +105,13 @@ class GameCubit extends Cubit<GameState> {
     emit(GameLoading());
 
     // Sync time with server for accurate timer calculations
-    await TimeSyncService.instance.syncWithServer();
+    final synced = await TimeSyncService.instance.syncWithServer();
+    if (!synced) {
+      _addBreadcrumb(
+        'loadGameState:timeSyncFailed',
+        data: {'roomId': roomId, 'fallback': 'local_time'},
+      );
+    }
 
     final result = await getGameState(
       roomId: roomId,
