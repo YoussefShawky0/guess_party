@@ -4,7 +4,7 @@ import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
 
 class CharacterCard extends StatelessWidget {
-  final Character character;
+  final Character? character;
   final bool isImposter;
   final String gameMode;
 
@@ -32,14 +32,21 @@ class CharacterCard extends StatelessWidget {
 
     // Imposters should always see "You are the Imposter" card during gameplay,
     // in both local and online modes. They only learn from this card, not the character.
-    if (isImposter) {
+    if (gameMode == GameConstants.gameModeLocal && character == null) {
+      return _buildLocalSharedCard(context, isTablet);
+    } else if (isImposter) {
       return _buildImposterCard(context, isTablet);
-    } else {
-      return _buildCharacterCard(context, isTablet);
+    } else if (character != null) {
+      return _buildCharacterCard(context, isTablet, character!);
     }
+    return _buildSyncingCard(context, isTablet);
   }
 
-  Widget _buildCharacterCard(BuildContext context, bool isTablet) {
+  Widget _buildCharacterCard(
+    BuildContext context,
+    bool isTablet,
+    Character visibleCharacter,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.of(context).characterCardBg,
@@ -78,7 +85,7 @@ class CharacterCard extends StatelessWidget {
             ),
             SizedBox(height: isTablet ? 12 : 8),
             Text(
-              gameMode == GameConstants.gameModeLocal ? '???' : character.name,
+              visibleCharacter.name,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -108,7 +115,7 @@ class CharacterCard extends StatelessWidget {
                   ),
                   SizedBox(width: isTablet ? 10 : 8),
                   Text(
-                    _formatCategoryLabel(character.category),
+                    _formatCategoryLabel(visibleCharacter.category),
                     style: TextStyle(
                       color: AppColors.of(context).characterCardSubtext,
                       fontSize: isTablet ? 16 : 14,
@@ -119,6 +126,63 @@ class CharacterCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSyncingCard(BuildContext context, bool isTablet) {
+    return _buildStatusCard(
+      context,
+      isTablet,
+      icon: Icons.sync_rounded,
+      title: 'Syncing your role...',
+      subtitle: 'Your private round information is still loading.',
+    );
+  }
+
+  Widget _buildLocalSharedCard(BuildContext context, bool isTablet) {
+    return _buildStatusCard(
+      context,
+      isTablet,
+      icon: Icons.lock_outline_rounded,
+      title: 'Roles are private',
+      subtitle: 'Use what you saw during the pass-device reveal.',
+    );
+  }
+
+  Widget _buildStatusCard(
+    BuildContext context,
+    bool isTablet, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(isTablet ? 24 : 20),
+      decoration: BoxDecoration(
+        color: AppColors.of(context).cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.of(context).cardBorder),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.primary, size: isTablet ? 42 : 34),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(
+              color: AppColors.of(context).textPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: isTablet ? 20 : 17,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.of(context).textSecondary),
+          ),
+        ],
       ),
     );
   }

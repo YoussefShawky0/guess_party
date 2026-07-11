@@ -51,7 +51,12 @@ class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
       _setOnlineStatus(true);
-      unawaited(_roomCubit!.cleanUpStalePlayers(staleSeconds: 90));
+      unawaited(
+        _roomCubit!.cleanUpStalePlayers(
+          roomId: widget.roomId,
+          staleSeconds: 90,
+        ),
+      );
     });
   }
 
@@ -96,7 +101,12 @@ class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
       case AppLifecycleState.resumed:
         _setOnlineStatus(true);
         _startHeartbeat();
-        unawaited(_roomCubit!.cleanUpStalePlayers(staleSeconds: 90));
+        unawaited(
+          _roomCubit!.cleanUpStalePlayers(
+            roomId: widget.roomId,
+            staleSeconds: 90,
+          ),
+        );
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -117,7 +127,12 @@ class _RoomLifecycleManagerState extends State<RoomLifecycleManager>
       widget.onPlayerIdentified(playerId, isHost);
       _setOnlineStatus(true);
       _startHeartbeat();
-      unawaited(_roomCubit!.cleanUpStalePlayers(staleSeconds: 90));
+      unawaited(
+        _roomCubit!.cleanUpStalePlayers(
+          roomId: widget.roomId,
+          staleSeconds: 90,
+        ),
+      );
     }
   }
 

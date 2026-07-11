@@ -4,6 +4,7 @@ import 'package:guess_party/core/utils/error_handler.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 
 class RoomRepositoryImpl implements RoomRepository {
@@ -12,20 +13,26 @@ class RoomRepositoryImpl implements RoomRepository {
   RoomRepositoryImpl({required this.remoteDataSource});
 
   @override
-  Future<Either<Failure, Room>> createRoom({
+  Future<Either<Failure, RoomSession>> createRoom({
+    required String requestId,
     required String category,
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
     required String gameMode,
+    required String hostUsername,
+    required List<String> localNames,
   }) async {
     try {
       final room = await remoteDataSource.createRoom(
+        requestId: requestId,
         category: category,
         maxRounds: maxRounds,
         maxPlayers: maxPlayers,
         roundDuration: roundDuration,
         gameMode: gameMode,
+        hostUsername: hostUsername,
+        localNames: localNames,
       );
       return Right(room);
     } catch (e) {
@@ -36,24 +43,17 @@ class RoomRepositoryImpl implements RoomRepository {
   }
 
   @override
-  Future<Either<Failure, Player>> addPlayerToRoom({
-    required String roomId,
+  Future<Either<Failure, RoomSession>> joinRoom({
+    required String roomCode,
     required String username,
-    required bool isHost,
-    bool isLocalPlayer = false,
   }) async {
     try {
-      final player = await remoteDataSource.addPlayerToRoom(
-        roomId: roomId,
-        username: username,
-        isHost: isHost,
-        isLocalPlayer: isLocalPlayer,
+      return Right(
+        await remoteDataSource.joinRoom(roomCode: roomCode, username: username),
       );
-      return Right(player);
     } catch (e) {
       final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure(ErrorHandler.getUserFriendlyMessage(errorMsg)));
     }
   }
 
@@ -103,10 +103,9 @@ class RoomRepositoryImpl implements RoomRepository {
   }
 
   @override
-  Future<Either<Failure, void>> startGame(String roomId) async {
+  Future<Either<Failure, String>> startGame(String roomId) async {
     try {
-      await remoteDataSource.startGame(roomId);
-      return const Right(null);
+      return Right(await remoteDataSource.startGame(roomId));
     } catch (e) {
       final errorMsg = ErrorHandler.extractErrorMessage(e);
       final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
@@ -134,10 +133,14 @@ class RoomRepositoryImpl implements RoomRepository {
 
   @override
   Future<Either<Failure, void>> markStalePlayersOffline({
+    required String roomId,
     required int staleSeconds,
   }) async {
     try {
-      await remoteDataSource.markStalePlayersOffline(staleSeconds: staleSeconds);
+      await remoteDataSource.markStalePlayersOffline(
+        roomId: roomId,
+        staleSeconds: staleSeconds,
+      );
       return const Right(null);
     } catch (e) {
       final errorMsg = ErrorHandler.extractErrorMessage(e);

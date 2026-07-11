@@ -65,24 +65,32 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
             ),
             title: Row(
               children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: AppColors.warning, size: 28),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: AppColors.warning,
+                  size: 28,
+                ),
                 const SizedBox(width: 12),
-                Text('Leave Game?',
-                    style:
-                        TextStyle(color: AppColors.of(context).textPrimary)),
+                Text(
+                  'Leave Game?',
+                  style: TextStyle(color: AppColors.of(context).textPrimary),
+                ),
               ],
             ),
             content: Text(
               'Are you sure you want to leave? The game will end.',
-              style:
-                  TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
+              style: TextStyle(
+                color: AppColors.of(context).textSecondary,
+                fontSize: 16,
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text('Stay',
-                    style: TextStyle(color: AppColors.of(context).textMuted)),
+                child: Text(
+                  'Stay',
+                  style: TextStyle(color: AppColors.of(context).textMuted),
+                ),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
@@ -106,71 +114,36 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
     } else if (phase == GamePhase.voting) {
       if (_isFinalizingVotingRoundId == round.id) return;
       _isFinalizingVotingRoundId = round.id;
-      context.read<GameCubit>().calculateRoundScores(round.id).then((_) {
-        if (!mounted) return;
-        context
-            .read<GameCubit>()
-            .progressPhase(round.id)
-            .then((_) {
-              if (mounted) _isFinalizingVotingRoundId = null;
-            })
-            .catchError((_) {
-              if (mounted) _isFinalizingVotingRoundId = null;
-            });
-      });
+      context.read<GameCubit>().finalizeVoting(round.id, 'timer').whenComplete(
+        () {
+          if (mounted) _isFinalizingVotingRoundId = null;
+        },
+      );
     }
   }
 
   void _finalizeVotingAndProgress(String roundId) {
     if (_isFinalizingVotingRoundId == roundId) return;
     _isFinalizingVotingRoundId = roundId;
-    context.read<GameCubit>().calculateRoundScores(roundId).then((_) {
-      if (!mounted) return;
-      context
-          .read<GameCubit>()
-          .progressPhase(roundId)
-          .then((_) {
-            if (mounted) _isFinalizingVotingRoundId = null;
-          })
-          .catchError((_) {
-            if (mounted) _isFinalizingVotingRoundId = null;
-          });
-    });
+    context.read<GameCubit>().finalizeVoting(roundId, 'all_votes').whenComplete(
+      () {
+        if (mounted) _isFinalizingVotingRoundId = null;
+      },
+    );
   }
 
   Future<void> _startNextRound(GameLoaded state) async {
     final round = state.gameState.currentRound;
     final nextRoundNumber = round.roundNumber + 1;
-    final currentScores = Map<String, int>.from(state.gameState.playerScores);
     final router = GoRouter.of(context);
     final gameCubit = context.read<GameCubit>();
 
-    gameCubit.createNewRound(
+    final created = await gameCubit.createNewRound(
       roomId: widget.roomId,
       roundNumber: nextRoundNumber,
     );
-
-    // Wait for the new round to be created by listening to state changes
-    await for (final gameState in gameCubit.stream) {
-      if (!mounted) return;
-      if (gameState is GameLoaded &&
-          gameState.gameState.currentRound.roundNumber == nextRoundNumber) {
-        // New round created successfully; navigate to role reveal
-        router.go(
-          AppRoutes.roomRoleReveal(widget.roomId),
-          extra: {'playerScores': currentScores},
-        );
-        return;
-      } else if (gameState is GameError) {
-        // Round creation failed; show error and don't navigate
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(gameState.message)),
-          );
-        }
-        return;
-      }
-    }
+    if (!mounted || !created) return;
+    router.go(AppRoutes.roomRoleReveal(widget.roomId));
   }
 
   @override
@@ -203,7 +176,8 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
           ),
         ),
         body: BlocConsumer<GameCubit, GameState>(
-          listenWhen: (previous, current) => current is GameError || current is GameEnded,
+          listenWhen: (previous, current) =>
+              current is GameError || current is GameEnded,
           listener: (context, state) {
             if (state is GameError) {
               if (!context.mounted) return;
@@ -211,14 +185,19 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 SnackBar(
                   content: Row(
                     children: [
-                      Icon(Icons.error_outline,
-                          color: AppColors.of(context).textPrimary),
+                      Icon(
+                        Icons.error_outline,
+                        color: AppColors.of(context).textPrimary,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(state.message,
-                            style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.of(context).textPrimary)),
+                        child: Text(
+                          state.message,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.of(context).textPrimary,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -226,7 +205,8 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                   duration: const Duration(seconds: 4),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               );
             }
@@ -249,9 +229,12 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                   children: [
                     CircularProgressIndicator(color: AppColors.primary),
                     const SizedBox(height: 16),
-                    Text('Loading game...',
-                        style: TextStyle(
-                            color: AppColors.of(context).textSecondary)),
+                    Text(
+                      'Loading game...',
+                      style: TextStyle(
+                        color: AppColors.of(context).textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -262,10 +245,10 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 message: state.message,
                 onRetry: () {
                   context.read<GameCubit>().loadGameState(
-                        roomId: widget.roomId,
-                        currentPlayerId:
-                            Supabase.instance.client.auth.currentUser?.id ?? '',
-                      );
+                    roomId: widget.roomId,
+                    currentPlayerId:
+                        Supabase.instance.client.auth.currentUser?.id ?? '',
+                  );
                 },
                 onGoBack: () => context.go(AppRoutes.home),
               );
@@ -290,8 +273,10 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
 
     if (players.isEmpty) {
       return Center(
-        child: Text('Waiting for players...',
-            style: TextStyle(color: AppColors.of(context).textSecondary)),
+        child: Text(
+          'Waiting for players...',
+          style: TextStyle(color: AppColors.of(context).textSecondary),
+        ),
       );
     }
 
@@ -313,8 +298,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
             _buildSkipButton(round.phase),
           if (round.phase == GamePhase.hints || round.phase == GamePhase.voting)
             const SizedBox(height: 16),
-          if (round.phase == GamePhase.hints)
-            _buildHintsContent(isTablet),
+          if (round.phase == GamePhase.hints) _buildHintsContent(isTablet),
           if (round.phase == GamePhase.voting)
             _buildVotingContent(state, isTablet),
           if (round.phase == GamePhase.results)
@@ -329,8 +313,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
       decoration: BoxDecoration(
         color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.of(context).cardBorder, width: 1.5),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1.5),
       ),
       padding: EdgeInsets.all(isTablet ? 24 : 20),
       child: Column(
@@ -370,15 +353,19 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
       decoration: BoxDecoration(
         color: AppColors.of(context).hintCardBg,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.of(context).hintCardBorder, width: 2),
+        border: Border.all(
+          color: AppColors.of(context).hintCardBorder,
+          width: 2,
+        ),
       ),
       padding: EdgeInsets.all(isTablet ? 24 : 16),
       child: Column(
         children: [
-          Icon(Icons.people,
-              size: isTablet ? 64 : 48,
-              color: AppColors.of(context).characterCardIcon),
+          Icon(
+            Icons.people,
+            size: isTablet ? 64 : 48,
+            color: AppColors.of(context).characterCardIcon,
+          ),
           SizedBox(height: isTablet ? 16 : 12),
           Text(
             'Discuss and give hints verbally!',
@@ -404,8 +391,9 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
 
   Widget _buildSkipButton(GamePhase phase) {
     final skipTarget = phase == GamePhase.hints ? 'voting' : 'results';
-    final skipLabel =
-        phase == GamePhase.hints ? 'Skip to Voting' : 'Skip to Results';
+    final skipLabel = phase == GamePhase.hints
+        ? 'Skip to Voting'
+        : 'Skip to Results';
 
     return ElevatedButton.icon(
       onPressed: () async {
@@ -431,12 +419,13 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
 
         if (phase == GamePhase.hints) {
           context.read<GameCubit>().progressPhase(
-              context.read<GameCubit>().state is GameLoaded
-                  ? (context.read<GameCubit>().state as GameLoaded)
+            context.read<GameCubit>().state is GameLoaded
+                ? (context.read<GameCubit>().state as GameLoaded)
                       .gameState
                       .currentRound
                       .id
-                  : '');
+                : '',
+          );
         } else {
           final state = context.read<GameCubit>().state;
           if (state is GameLoaded) {
@@ -453,23 +442,26 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
     final round = state.gameState.currentRound;
     final players = state.gameState.players;
 
-    final allVoted =
-        players.every((p) => round.playerVotes.containsKey(p.id));
+    final allVoted = round.allRequiredVotesSubmitted;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Voting Phase',
-            style: TextStyle(
-                fontSize: isTablet ? 24 : 20,
-                fontWeight: FontWeight.w600,
-                color: AppColors.of(context).textPrimary)),
+        Text(
+          'Voting Phase',
+          style: TextStyle(
+            fontSize: isTablet ? 24 : 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.of(context).textPrimary,
+          ),
+        ),
         SizedBox(height: isTablet ? 12 : 8),
         Text(
           'Find the Impostor! Each player taps their own name, then picks who they suspect.',
           style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: isTablet ? 16 : 14),
+            color: AppColors.of(context).textSecondary,
+            fontSize: isTablet ? 16 : 14,
+          ),
         ),
         SizedBox(height: isTablet ? 20 : 16),
         _buildLocalVotingList(isTablet, players, round),
@@ -484,15 +476,17 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
   }
 
   Widget _buildLocalVotingList(
-      bool isTablet, List<Player> players, RoundInfo round) {
+    bool isTablet,
+    List<Player> players,
+    RoundInfo round,
+  ) {
     final voteCountMap = round.voteCounts;
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.of(context).cardBorder, width: 1),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
       ),
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       child: Column(
@@ -501,23 +495,22 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
           Text(
             'Tap your name to vote ↓',
             style: TextStyle(
-                color: AppColors.of(context).textPrimary,
-                fontWeight: FontWeight.w500,
-                fontSize: isTablet ? 18 : 16),
+              color: AppColors.of(context).textPrimary,
+              fontWeight: FontWeight.w500,
+              fontSize: isTablet ? 18 : 16,
+            ),
           ),
           SizedBox(height: isTablet ? 16 : 12),
           ...players.map((player) {
             final voteCount = voteCountMap[player.id] ?? 0;
-            final hasThisPlayerVoted =
-                round.playerVotes.containsKey(player.id);
+            final hasThisPlayerVoted = round.playerVotes.containsKey(player.id);
 
             return _LocalVotePlayerTile(
               player: player,
               voteCount: voteCount,
               hasAlreadyVotedAsVoter: hasThisPlayerVoted,
               isTablet: isTablet,
-              onVote: () =>
-                  _showLocalTargetSelectionDialog(context, player.id),
+              onVote: () => _showLocalTargetSelectionDialog(context, player.id),
             );
           }),
         ],
@@ -529,8 +522,15 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
     final gameCubit = context.read<GameCubit>();
     final currentState = gameCubit.state;
     if (currentState is! GameLoaded) return;
-    final voter = currentState.gameState.players
-        .firstWhere((p) => p.id == voterId, orElse: () => currentState.gameState.players.first);
+    Player? voter;
+    for (final player in currentState.gameState.players) {
+      if (player.id == voterId) {
+        voter = player;
+        break;
+      }
+    }
+    if (voter == null) return;
+    final resolvedVoter = voter;
     final theme = AppColors.of(context);
 
     showDialog(
@@ -552,14 +552,19 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('${voter.username}, who do you suspect?',
-                      style: TextStyle(color: theme.textPrimary)),
+                  Text(
+                    '${resolvedVoter.username}, who do you suspect?',
+                    style: TextStyle(color: theme.textPrimary),
+                  ),
                   const SizedBox(height: 4),
-                  Text('Tap the player you think is the Impostor',
-                      style: TextStyle(
-                          color: theme.textSecondary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.normal)),
+                  Text(
+                    'Tap the player you think is the Impostor',
+                    style: TextStyle(
+                      color: theme.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
                 ],
               ),
               content: SingleChildScrollView(
@@ -582,21 +587,30 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                           ),
                         ),
                       ),
-                      title: Text(player.username,
-                          style: TextStyle(
-                              color: isVotingForSelf
-                                  ? theme.textMuted
-                                  : theme.textPrimary)),
+                      title: Text(
+                        player.username,
+                        style: TextStyle(
+                          color: isVotingForSelf
+                              ? theme.textMuted
+                              : theme.textPrimary,
+                        ),
+                      ),
                       subtitle: isVotingForSelf
-                          ? Text('Cannot vote for self',
+                          ? Text(
+                              'Cannot vote for self',
                               style: TextStyle(
-                                  color: AppColors.error, fontSize: 12))
+                                color: AppColors.error,
+                                fontSize: 12,
+                              ),
+                            )
                           : null,
                       onTap: () async {
                         if (isVotingForSelf) {
                           if (!context.mounted) return;
                           ErrorSnackBar.show(
-                              context, 'You cannot vote for yourself');
+                            context,
+                            'You cannot vote for yourself',
+                          );
                           return;
                         }
 
@@ -614,8 +628,10 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text('Cancel',
-                      style: TextStyle(color: theme.textMuted)),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: theme.textMuted),
+                  ),
                 ),
               ],
             );
@@ -626,28 +642,33 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
   }
 
   Widget _buildVotingProgress(
-      bool isTablet, List<Player> players, RoundInfo round) {
-    final progress = players.isEmpty
+    bool isTablet,
+    List<Player> players,
+    RoundInfo round,
+  ) {
+    final progress = round.requiredVoteCount <= 0
         ? 0.0
-        : round.playerVotes.length / players.length;
+        : (round.submittedVoteCount / round.requiredVoteCount)
+              .clamp(0.0, 1.0)
+              .toDouble();
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.of(context).cardBg,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.of(context).cardBorder, width: 1),
+        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
       ),
       padding: EdgeInsets.all(isTablet ? 20 : 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Votes (${round.playerVotes.length}/${players.length})',
+            'Votes (${round.submittedVoteCount}/${round.requiredVoteCount})',
             style: TextStyle(
-                color: AppColors.of(context).textPrimary,
-                fontWeight: FontWeight.w500,
-                fontSize: isTablet ? 18 : 16),
+              color: AppColors.of(context).textPrimary,
+              fontWeight: FontWeight.w500,
+              fontSize: isTablet ? 18 : 16,
+            ),
           ),
           SizedBox(height: isTablet ? 12 : 8),
           ClipRRect(
@@ -657,7 +678,8 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
               minHeight: isTablet ? 12 : 8,
               backgroundColor: AppColors.of(context).surfaceLight,
               valueColor: AlwaysStoppedAnimation<Color>(
-                  progress >= 1.0 ? AppColors.success : AppColors.primary),
+                progress >= 1.0 ? AppColors.success : AppColors.primary,
+              ),
             ),
           ),
         ],
@@ -671,15 +693,16 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
           ? null
           : () => _finalizeVotingAndProgress(roundId),
       icon: const Icon(Icons.check_circle_outline),
-      label: Text(_isFinalizingVotingRoundId == roundId
-          ? 'Finalizing Results...'
-          : 'Show Results Now →'),
+      label: Text(
+        _isFinalizingVotingRoundId == roundId
+            ? 'Finalizing Results...'
+            : 'Show Results Now →',
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.success,
         foregroundColor: AppColors.of(context).textPrimary,
         minimumSize: const Size.fromHeight(50),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -688,46 +711,58 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
     final round = state.gameState.currentRound;
     final players = state.gameState.players;
     if (players.isEmpty) return const SizedBox.shrink();
+    final imposterPlayerId = round.imposterPlayerId;
+    if (imposterPlayerId == null || round.character == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     final voteCounts = round.voteCounts;
     final isLastRound = state.gameState.isLastRound;
 
-    final imposter = players.firstWhere(
-      (p) => p.id == round.imposterPlayerId,
-      orElse: () => players.first,
-    );
+    Player? imposter;
+    for (final player in players) {
+      if (player.id == imposterPlayerId) {
+        imposter = player;
+        break;
+      }
+    }
+    if (imposter == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     final maxVotes = voteCounts.values.fold<int>(
       0,
       (max, count) => count > max ? count : max,
     );
-    final mostVotedPlayerId = voteCounts.entries
-        .firstWhere(
-          (entry) => entry.value == maxVotes,
-          orElse: () => const MapEntry('', 0),
-        )
-        .key;
-    final imposterCaught = mostVotedPlayerId == round.imposterPlayerId;
-
-    final mostVotedPlayer = mostVotedPlayerId.isNotEmpty
-        ? players.firstWhere(
-            (p) => p.id == mostVotedPlayerId,
-            orElse: () => players.first,
-          )
+    final topEntries = maxVotes == 0
+        ? const <MapEntry<String, int>>[]
+        : voteCounts.entries
+              .where((entry) => entry.value == maxVotes)
+              .toList(growable: false);
+    final mostVotedPlayerId = topEntries.length == 1
+        ? topEntries.single.key
         : null;
+    final imposterCaught = mostVotedPlayerId == imposterPlayerId;
+
+    Player? mostVotedPlayer;
+    if (mostVotedPlayerId != null) {
+      for (final player in players) {
+        if (player.id == mostVotedPlayerId) {
+          mostVotedPlayer = player;
+          break;
+        }
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ImposterRevealCard(
-          imposter: imposter,
-          imposterCaught: imposterCaught,
-        ),
+        ImposterRevealCard(imposter: imposter, imposterCaught: imposterCaught),
         SizedBox(height: isTablet ? 24 : 16),
         VotingResultsCard(
           voteCounts: voteCounts,
           players: players,
-          imposterPlayerId: round.imposterPlayerId,
+          imposterPlayerId: imposterPlayerId,
           mostVotedPlayer: mostVotedPlayer,
           maxVotes: maxVotes,
         ),
@@ -735,7 +770,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
         CurrentScoresCard(
           players: players,
           playerScores: state.gameState.playerScores,
-          imposterPlayerId: round.imposterPlayerId,
+          imposterPlayerId: imposterPlayerId,
         ),
         SizedBox(height: isTablet ? 32 : 24),
         if (isLastRound)
@@ -747,14 +782,17 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
               foregroundColor: AppColors.scoreBadgeText,
               padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            icon:
-                Icon(Icons.leaderboard_rounded, size: isTablet ? 24 : 20),
-            label: Text('View Final Leaderboard',
-                style: TextStyle(
-                    fontSize: isTablet ? 20 : 18,
-                    fontWeight: FontWeight.bold)),
+            icon: Icon(Icons.leaderboard_rounded, size: isTablet ? 24 : 20),
+            label: Text(
+              'View Final Leaderboard',
+              style: TextStyle(
+                fontSize: isTablet ? 20 : 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           )
         else
           ElevatedButton(
@@ -772,13 +810,16 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
               foregroundColor: AppColors.of(context).textPrimary,
               padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Text(
-                _isStartingNextRound ? 'Creating Round...' : 'Start Next Round',
-                style: TextStyle(
-                    fontSize: isTablet ? 20 : 18,
-                    fontWeight: FontWeight.bold)),
+              _isStartingNextRound ? 'Creating Round...' : 'Start Next Round',
+              style: TextStyle(
+                fontSize: isTablet ? 20 : 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
       ],
     );
@@ -819,8 +860,9 @@ class _LocalVotePlayerTile extends StatelessWidget {
         ),
         child: ListTile(
           contentPadding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 20 : 16,
-              vertical: isTablet ? 8 : 4),
+            horizontal: isTablet ? 20 : 16,
+            vertical: isTablet ? 8 : 4,
+          ),
           leading: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -830,8 +872,9 @@ class _LocalVotePlayerTile extends StatelessWidget {
                 child: Text(
                   player.username[0].toUpperCase(),
                   style: TextStyle(
-                      color: AppColors.of(context).textPrimary,
-                      fontSize: isTablet ? 20 : 16),
+                    color: AppColors.of(context).textPrimary,
+                    fontSize: isTablet ? 20 : 16,
+                  ),
                 ),
               ),
               if (voteCount > 0)
@@ -845,32 +888,38 @@ class _LocalVotePlayerTile extends StatelessWidget {
                       color: AppColors.error,
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: AppColors.of(context).surface,
-                          width: 1.5),
+                        color: AppColors.of(context).surface,
+                        width: 1.5,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       '$voteCount',
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isTablet ? 12 : 10,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: isTablet ? 12 : 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
             ],
           ),
-          title: Text(player.username,
-              style: TextStyle(
-                  color: AppColors.of(context).textPrimary,
-                  fontSize: isTablet ? 18 : 16)),
+          title: Text(
+            player.username,
+            style: TextStyle(
+              color: AppColors.of(context).textPrimary,
+              fontSize: isTablet ? 18 : 16,
+            ),
+          ),
           subtitle: voteCount > 0
               ? Text(
                   voteCount == 1 ? '1 vote' : '$voteCount votes',
                   style: TextStyle(
-                      color: AppColors.error,
-                      fontSize: isTablet ? 13 : 11,
-                      fontWeight: FontWeight.w500),
+                    color: AppColors.error,
+                    fontSize: isTablet ? 13 : 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 )
               : null,
           trailing: hasAlreadyVotedAsVoter
@@ -885,15 +934,20 @@ class _LocalVotePlayerTile extends StatelessWidget {
                     backgroundColor: AppColors.buttonPrimary,
                     foregroundColor: AppColors.of(context).textPrimary,
                     padding: EdgeInsets.symmetric(
-                        horizontal: isTablet ? 24 : 16,
-                        vertical: isTablet ? 12 : 8),
+                      horizontal: isTablet ? 24 : 16,
+                      vertical: isTablet ? 12 : 8,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  child: Text('Vote',
-                      style: TextStyle(
-                          fontSize: isTablet ? 16 : 14,
-                          fontWeight: FontWeight.bold)),
+                  child: Text(
+                    'Vote',
+                    style: TextStyle(
+                      fontSize: isTablet ? 16 : 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
         ),
       ),

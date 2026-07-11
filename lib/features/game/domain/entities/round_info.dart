@@ -4,10 +4,12 @@ import 'package:guess_party/features/game/domain/entities/character.dart';
 enum GamePhase { hints, voting, results }
 
 class RoundInfo extends Equatable {
+  static const Object _unset = Object();
+
   final String id;
   final String roomId;
-  final String imposterPlayerId;
-  final Character character;
+  final String? imposterPlayerId;
+  final Character? character;
   final int roundNumber;
   final GamePhase phase;
   final DateTime phaseEndTime;
@@ -15,6 +17,8 @@ class RoundInfo extends Equatable {
   final List<String> playerIds;
   final Map<String, String?> playerHints; // playerId -> hint
   final Map<String, String?> playerVotes; // voterId -> votedPlayerId
+  final int submittedVoteCount;
+  final int requiredVoteCount;
 
   const RoundInfo({
     required this.id,
@@ -28,9 +32,18 @@ class RoundInfo extends Equatable {
     required this.playerIds,
     required this.playerHints,
     required this.playerVotes,
+    this.submittedVoteCount = 0,
+    this.requiredVoteCount = 0,
   });
 
   bool isImposter(String playerId) => playerId == imposterPlayerId;
+
+  bool get hasVisibleImposter => imposterPlayerId != null;
+
+  bool get hasVisibleCharacter => character != null;
+
+  bool get allRequiredVotesSubmitted =>
+      requiredVoteCount > 0 && submittedVoteCount >= requiredVoteCount;
 
   int get remainingSeconds {
     final now = DateTime.now().toUtc();
@@ -40,7 +53,7 @@ class RoundInfo extends Equatable {
 
   bool get hasAllHints => playerHints.length == playerIds.length;
 
-  bool get hasAllVotes => playerVotes.length == playerIds.length;
+  bool get hasAllVotes => allRequiredVotesSubmitted;
 
   String? getPlayerHint(String playerId) => playerHints[playerId];
 
@@ -60,8 +73,8 @@ class RoundInfo extends Equatable {
   RoundInfo copyWith({
     String? id,
     String? roomId,
-    String? imposterPlayerId,
-    Character? character,
+    Object? imposterPlayerId = _unset,
+    Object? character = _unset,
     int? roundNumber,
     GamePhase? phase,
     DateTime? phaseEndTime,
@@ -69,12 +82,18 @@ class RoundInfo extends Equatable {
     List<String>? playerIds,
     Map<String, String?>? playerHints,
     Map<String, String?>? playerVotes,
+    int? submittedVoteCount,
+    int? requiredVoteCount,
   }) {
     return RoundInfo(
       id: id ?? this.id,
       roomId: roomId ?? this.roomId,
-      imposterPlayerId: imposterPlayerId ?? this.imposterPlayerId,
-      character: character ?? this.character,
+      imposterPlayerId: identical(imposterPlayerId, _unset)
+          ? this.imposterPlayerId
+          : imposterPlayerId as String?,
+      character: identical(character, _unset)
+          ? this.character
+          : character as Character?,
       roundNumber: roundNumber ?? this.roundNumber,
       phase: phase ?? this.phase,
       phaseEndTime: phaseEndTime ?? this.phaseEndTime,
@@ -82,6 +101,8 @@ class RoundInfo extends Equatable {
       playerIds: playerIds ?? this.playerIds,
       playerHints: playerHints ?? this.playerHints,
       playerVotes: playerVotes ?? this.playerVotes,
+      submittedVoteCount: submittedVoteCount ?? this.submittedVoteCount,
+      requiredVoteCount: requiredVoteCount ?? this.requiredVoteCount,
     );
   }
 
@@ -98,5 +119,7 @@ class RoundInfo extends Equatable {
     playerIds,
     playerHints,
     playerVotes,
+    submittedVoteCount,
+    requiredVoteCount,
   ];
 }

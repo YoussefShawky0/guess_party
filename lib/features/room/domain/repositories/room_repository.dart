@@ -1,21 +1,23 @@
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_session.dart';
 
 abstract class RoomRepository {
-  ResultFuture<Room> createRoom({
+  ResultFuture<RoomSession> createRoom({
+    required String requestId,
     required String category,
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
     required String gameMode,
+    required String hostUsername,
+    required List<String> localNames,
   });
 
-  ResultFuture<Player> addPlayerToRoom({
-    required String roomId,
+  ResultFuture<RoomSession> joinRoom({
+    required String roomCode,
     required String username,
-    required bool isHost,
-    bool isLocalPlayer = false,
   });
 
   ResultFuture<Room> getRoomDetails({required String roomId});
@@ -26,14 +28,17 @@ abstract class RoomRepository {
 
   ResultFuture<Room> getRoomByCode({required String roomCode});
 
-  ResultFuture<void> startGame(String roomId);
+  ResultFuture<String> startGame(String roomId);
 
   ResultFuture<void> updatePlayerStatus({
     required String playerId,
     required bool isOnline,
   });
 
-  ResultFuture<void> markStalePlayersOffline({required int staleSeconds});
+  ResultFuture<void> markStalePlayersOffline({
+    required String roomId,
+    required int staleSeconds,
+  });
 
   ResultFuture<void> leaveRoom({
     required String playerId,

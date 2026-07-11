@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
@@ -33,32 +33,46 @@ class ResultsPhaseContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
+    final imposterPlayerId = roundInfo.imposterPlayerId;
+    if (imposterPlayerId == null || roundInfo.character == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    // Find imposter
-    final imposter = players.firstWhere(
-      (p) => p.id == roundInfo.imposterPlayerId,
-      orElse: () => players.first,
-    );
+    Player? imposter;
+    for (final player in players) {
+      if (player.id == imposterPlayerId) {
+        imposter = player;
+        break;
+      }
+    }
+    if (imposter == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     // Calculate if imposter was caught
     final maxVotes = voteCounts.values.fold<int>(
       0,
       (max, count) => count > max ? count : max,
     );
-    final mostVotedPlayerId = voteCounts.entries
-        .firstWhere(
-          (entry) => entry.value == maxVotes,
-          orElse: () => const MapEntry('', 0),
-        )
-        .key;
-    final imposterCaught = mostVotedPlayerId == roundInfo.imposterPlayerId;
-
-    final mostVotedPlayer = mostVotedPlayerId.isNotEmpty
-        ? players.firstWhere(
-            (p) => p.id == mostVotedPlayerId,
-            orElse: () => players.first,
-          )
+    final topEntries = maxVotes == 0
+        ? const <MapEntry<String, int>>[]
+        : voteCounts.entries
+              .where((entry) => entry.value == maxVotes)
+              .toList(growable: false);
+    final mostVotedPlayerId = topEntries.length == 1
+        ? topEntries.single.key
         : null;
+    final imposterCaught = mostVotedPlayerId == imposterPlayerId;
+
+    Player? mostVotedPlayer;
+    if (mostVotedPlayerId != null) {
+      for (final player in players) {
+        if (player.id == mostVotedPlayerId) {
+          mostVotedPlayer = player;
+          break;
+        }
+      }
+    }
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(isTablet ? 24 : 16),
@@ -76,7 +90,7 @@ class ResultsPhaseContent extends StatelessWidget {
           VotingResultsCard(
             voteCounts: voteCounts,
             players: players,
-            imposterPlayerId: roundInfo.imposterPlayerId,
+            imposterPlayerId: imposterPlayerId,
             mostVotedPlayer: mostVotedPlayer,
             maxVotes: maxVotes,
           ),
@@ -86,7 +100,7 @@ class ResultsPhaseContent extends StatelessWidget {
           CurrentScoresCard(
             players: players,
             playerScores: playerScores,
-            imposterPlayerId: roundInfo.imposterPlayerId,
+            imposterPlayerId: imposterPlayerId,
           ),
           SizedBox(height: isTablet ? 32 : 24),
 

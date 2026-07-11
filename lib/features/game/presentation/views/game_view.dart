@@ -14,6 +14,7 @@ import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
 import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/shared/widgets/chat_widget.dart';
+import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'widgets/character_card.dart';
@@ -29,19 +30,31 @@ class GameView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final auth = Supabase.instance.client.auth;
+    return StreamBuilder<AuthState>(
+      stream: auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        final currentUserId = auth.currentUser?.id;
+        if (currentUserId == null) {
+          return Scaffold(
+            backgroundColor: AppColors.of(context).background,
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    return BlocProvider(
-      create: (context) => sl<GameCubit>()
-        ..loadGameState(
-          roomId: roomId,
-          currentPlayerId: currentUserId,
-          preservedScores: preservedScores,
-        ),
-      child: GameLifecycleManager(
-        roomId: roomId,
-        child: GameViewContent(roomId: roomId),
-      ),
+        return BlocProvider(
+          create: (context) => sl<GameCubit>()
+            ..loadGameState(
+              roomId: roomId,
+              currentPlayerId: currentUserId,
+              preservedScores: preservedScores,
+            ),
+          child: GameLifecycleManager(
+            roomId: roomId,
+            child: GameViewContent(roomId: roomId),
+          ),
+        );
+      },
     );
   }
 }
@@ -100,7 +113,10 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
   }
 
   Future<void> _cleanupStalePlayers() async {
-    await sl<MarkStalePlayersOffline>()(staleSeconds: 90);
+    await sl<MarkStalePlayersOffline>()(
+      roomId: widget.roomId,
+      staleSeconds: 90,
+    );
   }
 
   /// Returns true if the authenticated user is currently the room host.
@@ -509,11 +525,10 @@ class _GameViewContentState extends State<GameViewContent> {
   bool _backOnlineShownForCycle = false;
   DateTime? _reconnectCycleStartedAt;
   DateTime? _lastBackOnlineAt;
-  String? _lastAutoFinalizedRoundId;
-  String? _isAdvancingHintsRoundId; // Step 8: guard hints→voting duplicate transitions
+  String?
+  _isAdvancingHintsRoundId; // Step 8: guard hints→voting duplicate transitions
   String?
   _isFinalizingVotingRoundId; // Track which round is currently finalizing
-  GameLoaded? _previousGameLoadedState;
 
   Player? _resolveCurrentRoomPlayer(GameStateEntity gameState) {
     final currentPlayerIdentifier = gameState.currentPlayerId;
@@ -554,20 +569,13 @@ class _GameViewContentState extends State<GameViewContent> {
       return false;
     }
 
-    // Only if we haven't already auto-finalized this round
-    if (_lastAutoFinalizedRoundId == currRound.id) {
-      return false;
-    }
-
     // Only if not currently finalizing (manual button or timer race guard)
     if (_isFinalizingVotingRoundId == currRound.id) {
       return false;
     }
 
-    // Step 9: Use online player count instead of round-creation playerIds.length.
-    // A disconnected player's missing vote should not block auto-finalization.
-    final prevVotesCount = prevRound.playerVotes.length;
-    final currVotesCount = currRound.playerVotes.length;
+    final previousComplete = prevRound.allRequiredVotesSubmitted;
+    final currentComplete = currRound.allRequiredVotesSubmitted;
     final onlinePlayerCount = current.gameState.players
         .where((p) => p.isOnline)
         .length;
@@ -575,9 +583,7 @@ class _GameViewContentState extends State<GameViewContent> {
     // Safety: need at least 2 online players for meaningful voting
     if (onlinePlayerCount < 2) return false;
 
-    final votesJustCompleted =
-        prevVotesCount < onlinePlayerCount &&
-        currVotesCount >= onlinePlayerCount;
+    final votesJustCompleted = !previousComplete && currentComplete;
 
     if (!votesJustCompleted) {
       return false;
@@ -587,28 +593,18 @@ class _GameViewContentState extends State<GameViewContent> {
     return true;
   }
 
-  void _finalizeVotingAndProgress(BuildContext context, String roundId) {
+  void _finalizeVotingAndProgress(
+    BuildContext context,
+    String roundId, {
+    String reason = 'all_votes',
+  }) {
     if (_isFinalizingVotingRoundId == roundId) {
       return;
     }
 
     _isFinalizingVotingRoundId = roundId;
-    context.read<GameCubit>().calculateRoundScores(roundId).then((_) {
-      if (context.mounted) {
-        context
-            .read<GameCubit>()
-            .progressPhase(roundId)
-            .then((_) {
-              if (mounted) {
-                _isFinalizingVotingRoundId = null;
-              }
-            })
-            .catchError((_) {
-              if (mounted) {
-                _isFinalizingVotingRoundId = null;
-              }
-            });
-      }
+    context.read<GameCubit>().finalizeVoting(roundId, reason).whenComplete(() {
+      if (mounted) _isFinalizingVotingRoundId = null;
     });
   }
 
@@ -676,23 +672,22 @@ class _GameViewContentState extends State<GameViewContent> {
       if (!shouldLeave || !context.mounted) return;
     }
 
-    final currentUserId = gameCubit.currentPlayerId;
-
     // Get player info from game state
     final gameState = currentGameState;
     if (gameState is GameLoaded) {
       final currentPlayer = _resolveCurrentRoomPlayer(gameState.gameState);
-      final playerId = currentPlayer?.id ?? currentUserId;
-      if (playerId.isNotEmpty) {
-        final isHost = currentPlayer?.isHost ?? false;
-
-        // Call leave-room use case directly (avoids creating a stale RoomCubit instance)
-        await sl<LeaveRoom>()(
-          playerId: playerId,
-          roomId: widget.roomId,
-          isHost: isHost,
-        );
+      if (currentPlayer == null) {
+        if (context.mounted) {
+          ErrorSnackBar.show(context, 'Syncing your player. Try again.');
+        }
+        return;
       }
+
+      await sl<LeaveRoom>()(
+        playerId: currentPlayer.id,
+        roomId: widget.roomId,
+        isHost: currentPlayer.isHost,
+      );
     }
 
     if (context.mounted) {
@@ -755,35 +750,19 @@ class _GameViewContentState extends State<GameViewContent> {
           },
           listener: (context, state) {
             // Auto-finalize voting: trigger score calculation and phase advance
-            if (state is GameLoaded && _previousGameLoadedState != null) {
-              if (_shouldAutoFinalizeVoting(_previousGameLoadedState!, state)) {
-                _lastAutoFinalizedRoundId = state.gameState.currentRound.id;
-                final round = state.gameState.currentRound;
-                _isFinalizingVotingRoundId = round.id;
-                context.read<GameCubit>().calculateRoundScores(round.id).then((
-                  _,
-                ) {
-                  if (context.mounted) {
-                    context
-                        .read<GameCubit>()
-                        .progressPhase(round.id)
-                        .then((_) {
-                          if (mounted) {
-                            _isFinalizingVotingRoundId = null;
-                          }
-                        })
-                        .catchError((_) {
-                          if (mounted) {
-                            _isFinalizingVotingRoundId = null;
-                          }
-                        });
-                  }
-                });
-              }
-            }
-            // Track current state for next comparison
-            if (state is GameLoaded) {
-              _previousGameLoadedState = state;
+            if (state is GameLoaded &&
+                state.gameState.currentRound.phase == GamePhase.voting &&
+                state.gameState.currentRound.allRequiredVotesSubmitted &&
+                _isCurrentRoomHost(state.gameState) &&
+                _isFinalizingVotingRoundId == null) {
+              final round = state.gameState.currentRound;
+              _isFinalizingVotingRoundId = round.id;
+              context
+                  .read<GameCubit>()
+                  .finalizeVoting(round.id, 'all_votes')
+                  .whenComplete(() {
+                    if (mounted) _isFinalizingVotingRoundId = null;
+                  });
             }
 
             // Show error messages with better styling
@@ -1017,7 +996,8 @@ class _GameViewContentState extends State<GameViewContent> {
     // imposter and show a syncing indicator. The old code defaulted to
     // showing the imposter card, leaking information (only innocents
     // experience a desync, not the real imposter).
-    final isImposter = !isCurrentPlayerUnresolved &&
+    final isImposter =
+        !isCurrentPlayerUnresolved &&
         currentRoomPlayerId != null &&
         round.isImposter(currentRoomPlayerId);
     final isHost = currentPlayer?.isHost == true;
@@ -1111,13 +1091,21 @@ class _GameViewContentState extends State<GameViewContent> {
                     // Step 8: guard hints→voting duplicate transition
                     if (_isAdvancingHintsRoundId == round.id) return;
                     _isAdvancingHintsRoundId = round.id;
-                    context.read<GameCubit>().progressPhase(round.id).then((_) {
-                      if (mounted) _isAdvancingHintsRoundId = null;
-                    }).catchError((_) {
-                      if (mounted) _isAdvancingHintsRoundId = null;
-                    });
+                    context
+                        .read<GameCubit>()
+                        .progressPhase(round.id)
+                        .then((_) {
+                          if (mounted) _isAdvancingHintsRoundId = null;
+                        })
+                        .catchError((_) {
+                          if (mounted) _isAdvancingHintsRoundId = null;
+                        });
                   } else {
-                    _finalizeVotingAndProgress(context, round.id);
+                    _finalizeVotingAndProgress(
+                      context,
+                      round.id,
+                      reason: 'host_skip',
+                    );
                   }
                 }
               },
@@ -1212,11 +1200,15 @@ class _GameViewContentState extends State<GameViewContent> {
         return;
       }
       _isAdvancingHintsRoundId = round.id;
-      context.read<GameCubit>().progressPhase(round.id).then((_) {
-        if (mounted) _isAdvancingHintsRoundId = null;
-      }).catchError((_) {
-        if (mounted) _isAdvancingHintsRoundId = null;
-      });
+      context
+          .read<GameCubit>()
+          .progressPhase(round.id)
+          .then((_) {
+            if (mounted) _isAdvancingHintsRoundId = null;
+          })
+          .catchError((_) {
+            if (mounted) _isAdvancingHintsRoundId = null;
+          });
     } else if (phase == GamePhase.voting) {
       // Guard: do not fire timer if voting is already being finalized
       // (by auto-transition or manual button)
@@ -1225,24 +1217,11 @@ class _GameViewContentState extends State<GameViewContent> {
       }
 
       _isFinalizingVotingRoundId = round.id;
-      // Calculate scores first, then advance phase
-      context.read<GameCubit>().calculateRoundScores(round.id).then((_) {
-        if (context.mounted) {
-          context
-              .read<GameCubit>()
-              .progressPhase(round.id)
-              .then((_) {
-                if (mounted) {
-                  _isFinalizingVotingRoundId = null;
-                }
-              })
-              .catchError((_) {
-                if (mounted) {
-                  _isFinalizingVotingRoundId = null;
-                }
-              });
-        }
-      });
+      context.read<GameCubit>().finalizeVoting(round.id, 'timer').whenComplete(
+        () {
+          if (mounted) _isFinalizingVotingRoundId = null;
+        },
+      );
     }
     // Results phase is button-driven only — no auto-advance
   }

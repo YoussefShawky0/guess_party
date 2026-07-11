@@ -5,13 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
-import 'package:guess_party/features/room/domain/usecases/add_player_to_room.dart';
 import 'package:guess_party/features/room/domain/usecases/create_room.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_by_code.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_players.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/usecases/join_room.dart';
 import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
@@ -26,7 +27,6 @@ void main() {
     repository = FakeRoomRepository();
     cubit = RoomCubit(
       createRoom: CreateRoom(repository),
-      addPlayerToRoom: AddPlayerToRoom(repository),
       getRoomDetails: GetRoomDetails(repository),
       getRoomPlayers: GetRoomPlayers(repository),
       getRoomByCode: GetRoomByCode(repository),
@@ -34,6 +34,7 @@ void main() {
       updatePlayerStatus: UpdatePlayerStatus(repository),
       markStalePlayersOffline: MarkStalePlayersOffline(repository),
       leaveRoom: LeaveRoom(repository),
+      joinRoomCommand: JoinRoom(repository),
       watchRoomDetails: WatchRoomDetails(repository),
     );
   });
@@ -48,12 +49,7 @@ void main() {
     final activeRoom = roomWithStatus('active');
     final players = [player()];
 
-    cubit.emit(
-      RoomDetailsLoaded(
-        waitingRoom,
-        players: players,
-      ),
-    );
+    cubit.emit(RoomDetailsLoaded(waitingRoom, players: players));
 
     final states = <RoomState>[];
     final subscription = cubit.stream.listen(states.add);
@@ -70,39 +66,45 @@ void main() {
     await subscription.cancel();
   });
 
-  test('watchRoomStatus emits initial active room from current room fetch', () async {
-    final activeRoom = roomWithStatus('active');
-    repository.currentRoom = activeRoom;
+  test(
+    'watchRoomStatus emits initial active room from current room fetch',
+    () async {
+      final activeRoom = roomWithStatus('active');
+      repository.currentRoom = activeRoom;
 
-    final states = <RoomState>[];
-    final subscription = cubit.stream.listen(states.add);
+      final states = <RoomState>[];
+      final subscription = cubit.stream.listen(states.add);
 
-    await cubit.watchRoomStatus(roomId: activeRoom.id);
-    await Future<void>.delayed(const Duration(milliseconds: 10));
+      await cubit.watchRoomStatus(roomId: activeRoom.id);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
-    expect(states.whereType<RoomDetailsLoaded>().last.room.status, 'active');
+      expect(states.whereType<RoomDetailsLoaded>().last.room.status, 'active');
 
-    await subscription.cancel();
-  });
+      await subscription.cancel();
+    },
+  );
 
-  test('close cancels watcher resources and ignores later stream events', () async {
-    final waitingRoom = roomWithStatus('waiting');
-    repository.currentRoom = waitingRoom;
+  test(
+    'close cancels watcher resources and ignores later stream events',
+    () async {
+      final waitingRoom = roomWithStatus('waiting');
+      repository.currentRoom = waitingRoom;
 
-    final states = <RoomState>[];
-    final subscription = cubit.stream.listen(states.add);
+      final states = <RoomState>[];
+      final subscription = cubit.stream.listen(states.add);
 
-    await cubit.watchRoomStatus(roomId: waitingRoom.id);
-    await cubit.close();
-    final emittedBeforeLateUpdate = states.length;
+      await cubit.watchRoomStatus(roomId: waitingRoom.id);
+      await cubit.close();
+      final emittedBeforeLateUpdate = states.length;
 
-    repository.emitRoom(roomWithStatus('active'));
-    await Future<void>.delayed(const Duration(milliseconds: 10));
+      repository.emitRoom(roomWithStatus('active'));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
-    expect(states.length, emittedBeforeLateUpdate);
+      expect(states.length, emittedBeforeLateUpdate);
 
-    await subscription.cancel();
-  });
+      await subscription.cancel();
+    },
+  );
 }
 
 class FakeRoomRepository implements RoomRepository {
@@ -119,33 +121,39 @@ class FakeRoomRepository implements RoomRepository {
   }
 
   @override
-  ResultFuture<Player> addPlayerToRoom({
-    required String roomId,
-    required String username,
-    required bool isHost,
-    bool isLocalPlayer = false,
-  }) async {
-    return Right(
-      Player(
-        id: 'player-1',
-        roomId: roomId,
-        userId: 'user-1',
-        username: username,
-        score: 0,
-        isHost: isHost,
-      ),
-    );
-  }
-
-  @override
-  ResultFuture<Room> createRoom({
+  ResultFuture<RoomSession> createRoom({
+    required String requestId,
     required String category,
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
     required String gameMode,
+    required String hostUsername,
+    required List<String> localNames,
   }) async {
-    return Right(currentRoom);
+    final currentPlayer = player();
+    return Right(
+      RoomSession(
+        room: currentRoom,
+        currentPlayer: currentPlayer,
+        players: [currentPlayer],
+      ),
+    );
+  }
+
+  @override
+  ResultFuture<RoomSession> joinRoom({
+    required String roomCode,
+    required String username,
+  }) async {
+    final currentPlayer = player();
+    return Right(
+      RoomSession(
+        room: currentRoom,
+        currentPlayer: currentPlayer,
+        players: [currentPlayer],
+      ),
+    );
   }
 
   @override
@@ -173,13 +181,16 @@ class FakeRoomRepository implements RoomRepository {
   }
 
   @override
-  ResultFuture<void> markStalePlayersOffline({required int staleSeconds}) async {
+  ResultFuture<void> markStalePlayersOffline({
+    required String roomId,
+    required int staleSeconds,
+  }) async {
     return const Right(null);
   }
 
   @override
-  ResultFuture<void> startGame(String roomId) async {
-    return const Right(null);
+  ResultFuture<String> startGame(String roomId) async {
+    return const Right('round-1');
   }
 
   @override

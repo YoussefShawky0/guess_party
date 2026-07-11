@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
@@ -73,7 +73,10 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
       decoration: BoxDecoration(
         color: AppColors.of(context).hintCardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.of(context).hintCardBorder, width: 2),
+        border: Border.all(
+          color: AppColors.of(context).hintCardBorder,
+          width: 2,
+        ),
       ),
       padding: EdgeInsets.all(isTablet ? 24 : 16),
       child: Column(
@@ -227,10 +230,17 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
     final cubit = context.read<GameCubit>();
     final state = cubit.state;
     if (state is GameLoaded) {
-      final currentPlayer = state.gameState.players.firstWhere(
-        (p) => p.userId == currentUserId,
-        orElse: () => state.gameState.players.first,
-      );
+      Player? currentPlayer;
+      for (final player in state.gameState.players) {
+        if (player.userId == currentUserId) {
+          currentPlayer = player;
+          break;
+        }
+      }
+      if (currentPlayer == null) {
+        setState(() => _errorMessage = 'Syncing your player. Try again.');
+        return;
+      }
 
       cubit.sendHint(
         roundId: state.gameState.currentRound.id,
@@ -283,13 +293,16 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
             final playerId = entry.key;
             final hint = entry.value;
 
-            final player = widget.players.firstWhere(
-              (p) => p.id == playerId,
-              orElse: () => widget.players.first,
-            );
+            Player? player;
+            for (final candidate in widget.players) {
+              if (candidate.id == playerId) {
+                player = candidate;
+                break;
+              }
+            }
 
             return _HintItem(
-              playerName: player.username,
+              playerName: player?.username ?? 'Syncing player',
               hint: hint ?? 'Hidden hint',
               isTablet: isTablet,
             );

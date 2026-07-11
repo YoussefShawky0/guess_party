@@ -6,13 +6,14 @@ import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/core/theme/app_theme.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
-import 'package:guess_party/features/room/domain/usecases/add_player_to_room.dart';
 import 'package:guess_party/features/room/domain/usecases/create_room.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_by_code.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_players.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/usecases/join_room.dart';
 import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
@@ -23,7 +24,9 @@ import 'package:guess_party/features/room/presentation/views/waiting_room_view.d
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('navigates once to countdown when room becomes active', (tester) async {
+  testWidgets('navigates once to countdown when room becomes active', (
+    tester,
+  ) async {
     final cubit = TestRoomCubit();
     var countdownBuilds = 0;
     final router = GoRouter(
@@ -53,16 +56,17 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp.router(
-        routerConfig: router,
-        theme: AppTheme.darkTheme,
-      ),
+      MaterialApp.router(routerConfig: router, theme: AppTheme.darkTheme),
     );
 
-    cubit.emitState(RoomDetailsLoaded(roomWithStatus('active'), players: const []));
+    cubit.emitState(
+      RoomDetailsLoaded(roomWithStatus('active'), players: const []),
+    );
     await tester.pumpAndSettle();
 
-    cubit.emitState(RoomDetailsLoaded(roomWithStatus('active'), players: const []));
+    cubit.emitState(
+      RoomDetailsLoaded(roomWithStatus('active'), players: const []),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Countdown'), findsOneWidget);
@@ -73,22 +77,21 @@ void main() {
 }
 
 class TestRoomCubit extends RoomCubit {
-  TestRoomCubit()
-      : this._(FakeRoomRepository());
+  TestRoomCubit() : this._(FakeRoomRepository());
 
   TestRoomCubit._(FakeRoomRepository repository)
-      : super(
-          createRoom: CreateRoom(repository),
-          addPlayerToRoom: AddPlayerToRoom(repository),
-          getRoomDetails: GetRoomDetails(repository),
-          getRoomPlayers: GetRoomPlayers(repository),
-          getRoomByCode: GetRoomByCode(repository),
-          startGame: StartGame(repository),
-          updatePlayerStatus: UpdatePlayerStatus(repository),
-          markStalePlayersOffline: MarkStalePlayersOffline(repository),
-          leaveRoom: LeaveRoom(repository),
-          watchRoomDetails: WatchRoomDetails(repository),
-        );
+    : super(
+        createRoom: CreateRoom(repository),
+        getRoomDetails: GetRoomDetails(repository),
+        getRoomPlayers: GetRoomPlayers(repository),
+        getRoomByCode: GetRoomByCode(repository),
+        startGame: StartGame(repository),
+        updatePlayerStatus: UpdatePlayerStatus(repository),
+        markStalePlayersOffline: MarkStalePlayersOffline(repository),
+        leaveRoom: LeaveRoom(repository),
+        joinRoomCommand: JoinRoom(repository),
+        watchRoomDetails: WatchRoomDetails(repository),
+      );
 
   void emitState(RoomState state) {
     emit(state);
@@ -97,31 +100,39 @@ class TestRoomCubit extends RoomCubit {
 
 class FakeRoomRepository implements RoomRepository {
   @override
-  ResultFuture<Room> createRoom({
+  ResultFuture<RoomSession> createRoom({
+    required String requestId,
     required String category,
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
     required String gameMode,
+    required String hostUsername,
+    required List<String> localNames,
   }) async {
-    return Right(roomWithStatus('waiting'));
+    final room = roomWithStatus('waiting');
+    final currentPlayer = player(room.id);
+    return Right(
+      RoomSession(
+        room: room,
+        currentPlayer: currentPlayer,
+        players: [currentPlayer],
+      ),
+    );
   }
 
   @override
-  ResultFuture<Player> addPlayerToRoom({
-    required String roomId,
+  ResultFuture<RoomSession> joinRoom({
+    required String roomCode,
     required String username,
-    required bool isHost,
-    bool isLocalPlayer = false,
   }) async {
+    final room = roomWithStatus('waiting');
+    final currentPlayer = player(room.id);
     return Right(
-      Player(
-        id: 'player-1',
-        roomId: roomId,
-        userId: 'user-1',
-        username: username,
-        score: 0,
-        isHost: isHost,
+      RoomSession(
+        room: room,
+        currentPlayer: currentPlayer,
+        players: [currentPlayer],
       ),
     );
   }
@@ -151,13 +162,16 @@ class FakeRoomRepository implements RoomRepository {
   }
 
   @override
-  ResultFuture<void> markStalePlayersOffline({required int staleSeconds}) async {
+  ResultFuture<void> markStalePlayersOffline({
+    required String roomId,
+    required int staleSeconds,
+  }) async {
     return const Right(null);
   }
 
   @override
-  ResultFuture<void> startGame(String roomId) async {
-    return const Right(null);
+  ResultFuture<String> startGame(String roomId) async {
+    return const Right('round-1');
   }
 
   @override
@@ -187,5 +201,16 @@ Room roomWithStatus(String status) {
     maxPlayers: 6,
     roundDuration: 60,
     gameMode: 'online',
+  );
+}
+
+Player player(String roomId) {
+  return Player(
+    id: 'player-1',
+    roomId: roomId,
+    userId: 'user-1',
+    username: 'Host',
+    score: 0,
+    isHost: true,
   );
 }

@@ -6,8 +6,13 @@ import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart'
     as entity;
+import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
-import 'package:guess_party/features/game/domain/usecases/advance_phase.dart';
+import 'package:guess_party/features/game/domain/usecases/advance_to_voting.dart';
+import 'package:guess_party/features/game/domain/usecases/create_next_round.dart';
+import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
+import 'package:guess_party/features/game/domain/usecases/finalize_voting.dart';
+import 'package:guess_party/features/game/domain/usecases/finish_game.dart';
 import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
@@ -23,27 +28,22 @@ class GameCubit extends Cubit<GameState> {
   final GetGameState getGameState;
   final SubmitHint submitHint;
   final SubmitVote submitVote;
-  final AdvancePhase advancePhase;
+  final AdvanceToVoting advanceToVoting;
+  final FinalizeVoting finalizeVotingUseCase;
+  final CreateNextRound createNextRound;
+  final FinishGame finishGameUseCase;
+  final ExtendLocalRoleReveal extendLocalRoleReveal;
   final GameRepository gameRepository;
 
   StreamSubscription? _roundSubscription;
-  StreamSubscription? _hintsSubscription;
-  StreamSubscription? _votesSubscription;
   StreamSubscription? _playersSubscription;
 
   /// Prevents double-tap from calling createNextRound twice (duplicate-key guard)
   bool _isCreatingRound = false;
 
-  /// Tracks which round IDs have already had scores calculated this session
-  /// Prevents calculateRoundScores from being called twice for the same round
-  /// (e.g. onShowResults button + timer expiry both firing)
-  final Set<String> _scoredRoundIds = {};
+  final Set<String> _finalizingRoundIds = <String>{};
   int _nonFatalMessageIdCounter = 0;
   int _errorIdCounter = 0;
-
-  /// Last successfully computed scores — fallback for calculateRoundScores if
-  /// state is temporarily GameError/GameLoading
-  Map<String, int> _lastKnownScores = {};
 
   /// The current player's Supabase auth user ID — stored once at load so the
   /// view layer does not need to access Supabase directly.
@@ -54,7 +54,11 @@ class GameCubit extends Cubit<GameState> {
     required this.getGameState,
     required this.submitHint,
     required this.submitVote,
-    required this.advancePhase,
+    required this.advanceToVoting,
+    required this.finalizeVotingUseCase,
+    required this.createNextRound,
+    required this.finishGameUseCase,
+    required this.extendLocalRoleReveal,
     required this.gameRepository,
   }) : super(GameInitial());
 
@@ -67,30 +71,6 @@ class GameCubit extends Cubit<GameState> {
         data: data,
       ),
     );
-  }
-
-  Player? _resolveCurrentRoomPlayer(GameStateEntity gameState) {
-    final currentPlayerIdentifier = gameState.currentPlayerId;
-    if (currentPlayerIdentifier.isEmpty) {
-      // Cannot resolve without an identifier — return null instead of
-      // falling back to host (which would grant host privileges to any player).
-      return null;
-    }
-
-    for (final player in gameState.players) {
-      if (player.id == currentPlayerIdentifier ||
-          player.userId == currentPlayerIdentifier) {
-        return player;
-      }
-    }
-
-    // Player not found in the current list (may have disconnected or
-    // list hasn't synced yet). Return null — callers must handle this.
-    return null;
-  }
-
-  String _resolveRequestingPlayerId(GameStateEntity gameState) {
-    return _resolveCurrentRoomPlayer(gameState)?.id ?? '';
   }
 
   // Load initial game state for a room
@@ -129,12 +109,7 @@ class GameCubit extends Cubit<GameState> {
         emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (gameState) {
-        // If preserved scores were passed (e.g. after local round transition),
-        // use them instead of DB scores to maintain accurate accumulation.
-        final stateToEmit =
-            preservedScores != null && preservedScores.isNotEmpty
-            ? gameState.copyWith(playerScores: preservedScores)
-            : gameState;
+        final stateToEmit = gameState;
         _addBreadcrumb(
           'loadGameState:success',
           data: {'roomId': roomId, 'roundId': stateToEmit.currentRound.id},
@@ -178,10 +153,7 @@ class GameCubit extends Cubit<GameState> {
       if (succeeded) {
         final refreshed = result.fold((_) => null, (value) => value);
         if (refreshed != null) {
-          final fallbackScores = _lastKnownScores.isNotEmpty
-              ? _lastKnownScores
-              : refreshed.playerScores;
-          final mergedState = refreshed.copyWith(playerScores: fallbackScores);
+          final mergedState = refreshed;
 
           _addBreadcrumb(
             'resumeRefresh:success',
@@ -216,7 +188,12 @@ class GameCubit extends Cubit<GameState> {
       } else if (previousState is! GameLoaded) {
         // If there is no previously visible game state, show the error.
         _errorIdCounter++;
-        emit(GameError(failure?.message ?? 'Connection error. Try again.', errorId: _errorIdCounter));
+        emit(
+          GameError(
+            failure?.message ?? 'Connection error. Try again.',
+            errorId: _errorIdCounter,
+          ),
+        );
       } else {
         emit(GameLoaded(previousState.gameState, isReconnecting: false));
       }
@@ -225,9 +202,18 @@ class GameCubit extends Cubit<GameState> {
 
   // Subscribe to real-time game updates
   void _subscribeToGameUpdates(String roundId, {required String roomId}) {
+    unawaited(_replaceGameSubscriptions(roundId, roomId: roomId));
+  }
+
+  Future<void> _replaceGameSubscriptions(
+    String roundId, {
+    required String roomId,
+  }) async {
     _addBreadcrumb('subscribeToGameUpdates', data: {'roundId': roundId});
-    // Subscribe to round updates
-    _roundSubscription?.cancel();
+    await _roundSubscription?.cancel();
+    await _playersSubscription?.cancel();
+    if (isClosed) return;
+
     _roundSubscription = gameRepository
         .watchRoundUpdates(roundId: roundId)
         .listen((updatedRound) {
@@ -246,62 +232,6 @@ class GameCubit extends Cubit<GameState> {
           }
         });
 
-    // Subscribe to hints updates
-    _hintsSubscription?.cancel();
-    _hintsSubscription = gameRepository
-        .watchHintsUpdates(roundId: roundId)
-        .listen((hints) {
-          if (!isClosed && state is GameLoaded) {
-            final loadedState = state as GameLoaded;
-            final currentState = loadedState.gameState;
-            // Convert Map<String, String> to Map<String, String?>
-            final hintsNullable = hints.map(
-              (k, v) => MapEntry(k, v as String?),
-            );
-            final updatedRound = currentState.currentRound.copyWith(
-              playerHints: hintsNullable,
-            );
-            final updatedGameState = currentState.copyWith(
-              currentRound: updatedRound,
-            );
-            emit(
-              GameLoaded(
-                updatedGameState,
-                isReconnecting: loadedState.isReconnecting,
-              ),
-            );
-          }
-        });
-
-    // Subscribe to votes updates
-    _votesSubscription?.cancel();
-    _votesSubscription = gameRepository
-        .watchVotesUpdates(roundId: roundId)
-        .listen((votes) {
-          if (!isClosed && state is GameLoaded) {
-            final loadedState = state as GameLoaded;
-            final currentState = loadedState.gameState;
-            // Convert Map<String, String> to Map<String, String?>
-            final votesNullable = votes.map(
-              (k, v) => MapEntry(k, v as String?),
-            );
-            final updatedRound = currentState.currentRound.copyWith(
-              playerVotes: votesNullable,
-            );
-            final updatedGameState = currentState.copyWith(
-              currentRound: updatedRound,
-            );
-            emit(
-              GameLoaded(
-                updatedGameState,
-                isReconnecting: loadedState.isReconnecting,
-              ),
-            );
-          }
-        });
-
-    // Subscribe to room players updates (presence + host changes)
-    _playersSubscription?.cancel();
     _playersSubscription = gameRepository
         .watchRoomPlayers(roomId: roomId)
         .listen((players) {
@@ -353,8 +283,7 @@ class GameCubit extends Cubit<GameState> {
         emit(GameError(failure.message, errorId: _errorIdCounter));
       },
       (_) {
-        // Hint submitted successfully - realtime will update the state
-        // No need to emit here, the _hintsSubscription will handle it
+        // The safe round revision stream reloads the complete snapshot.
       },
     );
   }
@@ -373,7 +302,10 @@ class GameCubit extends Cubit<GameState> {
       );
       final currentState = state;
       if (currentState is GameLoaded) {
-        _emitInlineValidationMessage(currentState, 'You cannot vote for yourself');
+        _emitInlineValidationMessage(
+          currentState,
+          'You cannot vote for yourself',
+        );
       }
       return;
     }
@@ -390,61 +322,36 @@ class GameCubit extends Cubit<GameState> {
     );
 
     if (isClosed) return;
-    result.fold(
-      (failure) {
-        final message = failure.message;
-        final lower = message.toLowerCase();
-        if (message.contains('لا يمكنك التصويت لنفسك') ||
-            lower.contains('cannot vote for yourself')) {
-          _addBreadcrumb(
-            'sendVote:selfVoteValidation',
-            data: {'roundId': roundId, 'voterId': voterId},
-          );
-          final latestState = state;
-          if (latestState is GameLoaded) {
-            _emitInlineValidationMessage(latestState, 'You cannot vote for yourself');
-          }
-          return;
-        }
-
+    result.fold((failure) {
+      final message = failure.message;
+      final lower = message.toLowerCase();
+      if (message.contains('لا يمكنك التصويت لنفسك') ||
+          lower.contains('cannot vote for yourself')) {
         _addBreadcrumb(
-          'sendVote:failure',
-          data: {
-            'roundId': roundId,
-            'voterId': voterId,
-            'error': failure.message,
-          },
+          'sendVote:selfVoteValidation',
+          data: {'roundId': roundId, 'voterId': voterId},
         );
-        _errorIdCounter++;
-        emit(GameError(failure.message, errorId: _errorIdCounter));
-      },
-      (_) {
-        // Optimistic update: Update state immediately for better UX
-        // Especially important in Local Mode where multiple players vote sequentially
-        if (state is GameLoaded) {
-          final loadedState = state as GameLoaded;
-          final currentState = loadedState.gameState;
-          final updatedVotes = Map<String, String?>.from(
-            currentState.currentRound.playerVotes,
-          );
-          updatedVotes[voterId] = votedPlayerId;
-
-          final updatedRound = currentState.currentRound.copyWith(
-            playerVotes: updatedVotes,
-          );
-          final updatedGameState = currentState.copyWith(
-            currentRound: updatedRound,
-          );
-          emit(
-            GameLoaded(
-              updatedGameState,
-              isReconnecting: loadedState.isReconnecting,
-            ),
+        final latestState = state;
+        if (latestState is GameLoaded) {
+          _emitInlineValidationMessage(
+            latestState,
+            'You cannot vote for yourself',
           );
         }
-        // Realtime subscription will sync any changes from other devices
-      },
-    );
+        return;
+      }
+
+      _addBreadcrumb(
+        'sendVote:failure',
+        data: {
+          'roundId': roundId,
+          'voterId': voterId,
+          'error': failure.message,
+        },
+      );
+      _errorIdCounter++;
+      emit(GameError(failure.message, errorId: _errorIdCounter));
+    }, (_) {});
   }
 
   // Advance to next phase (Host only)
@@ -469,23 +376,13 @@ class GameCubit extends Cubit<GameState> {
       }
     }
 
-    final requestingPlayerId = currentState is GameLoaded
-        ? _resolveRequestingPlayerId(currentState.gameState)
-        : '';
-    if (requestingPlayerId.isEmpty) {
-      if (currentState is GameLoaded) {
-        _emitInlineValidationMessage(
-          currentState,
-          'Unable to determine the current host.',
-        );
-      }
+    if (currentState is! GameLoaded) return;
+    if (currentState.gameState.currentRound.phase == GamePhase.voting) {
+      await finalizeVoting(roundId, 'host_skip');
       return;
     }
 
-    final result = await advancePhase(
-      roundId: roundId,
-      requestingPlayerId: requestingPlayerId,
-    );
+    final result = await advanceToVoting(roundId: roundId);
 
     if (isClosed) return;
     result.fold(
@@ -522,69 +419,57 @@ class GameCubit extends Cubit<GameState> {
     );
   }
 
-  // Calculate scores after voting (Host only)
-  Future<void> calculateRoundScores(String roundId) async {
-    if (isClosed) return;
-    _addBreadcrumb('calculateRoundScores:start', data: {'roundId': roundId});
-
-    // Guard: skip if already calculated for this round (prevents double scoring
-    // when both the timer expiry and the "Show Results" button fire)
-    if (_scoredRoundIds.contains(roundId)) return;
-    _scoredRoundIds.add(roundId);
-
-    // Use in-memory scores from current state — fallback to _lastKnownScores
-    // to guard against temporarily being in GameError/GameLoading state
-    Map<String, int> currentScores;
-    if (state is GameLoaded) {
-      currentScores = (state as GameLoaded).gameState.playerScores;
-      if (currentScores.isNotEmpty) {
-        _lastKnownScores = Map<String, int>.from(currentScores);
-      }
-    } else {
-      currentScores = _lastKnownScores.isNotEmpty
-          ? _lastKnownScores
-          : <String, int>{};
-    }
-
-    final result = await gameRepository.calculateScores(
-      roundId: roundId,
-      currentScores: currentScores,
+  Future<void> finalizeVoting(String roundId, String reason) async {
+    if (isClosed || !_finalizingRoundIds.add(roundId)) return;
+    _addBreadcrumb(
+      'finalizeVoting:start',
+      data: {'roundId': roundId, 'reason': reason},
     );
 
-    if (isClosed) return;
-    result.fold(
-      (failure) {
-        _addBreadcrumb(
-          'calculateRoundScores:failure',
-          data: {'roundId': roundId, 'error': failure.message},
-        );
-        _errorIdCounter++;
-        emit(GameError(failure.message, errorId: _errorIdCounter));
-      },
-      (scores) {
-        _lastKnownScores = Map<String, int>.from(scores); // keep fallback fresh
-        // Update the game state with new scores
-        if (state is GameLoaded) {
-          final loadedState = state as GameLoaded;
-          final currentState = loadedState.gameState;
-          final updatedGameState = currentState.copyWith(playerScores: scores);
-          emit(
-            GameLoaded(
-              updatedGameState,
-              isReconnecting: loadedState.isReconnecting,
-            ),
+    try {
+      final result = await finalizeVotingUseCase(
+        roundId: roundId,
+        reason: reason,
+      );
+      if (isClosed) return;
+
+      result.fold(
+        (failure) {
+          _addBreadcrumb(
+            'finalizeVoting:failure',
+            data: {'roundId': roundId, 'error': failure.message},
           );
-        }
-      },
-    );
+          final current = state;
+          if (current is GameLoaded) {
+            _emitInlineValidationMessage(current, failure.message);
+          }
+        },
+        (finalized) {
+          if (state is GameLoaded) {
+            final loadedState = state as GameLoaded;
+            final updatedGameState = loadedState.gameState.copyWith(
+              playerScores: finalized.scores,
+            );
+            emit(
+              GameLoaded(
+                updatedGameState,
+                isReconnecting: loadedState.isReconnecting,
+              ),
+            );
+          }
+        },
+      );
+    } finally {
+      _finalizingRoundIds.remove(roundId);
+    }
   }
 
   // Create a new round (Host only)
-  Future<void> createNewRound({
+  Future<bool> createNewRound({
     required String roomId,
     required int roundNumber,
   }) async {
-    if (isClosed || _isCreatingRound) return;
+    if (isClosed || _isCreatingRound) return false;
     _isCreatingRound = true;
     _addBreadcrumb(
       'createNewRound:start',
@@ -592,13 +477,14 @@ class GameCubit extends Cubit<GameState> {
     );
 
     try {
-      final result = await gameRepository.createNextRound(
+      final result = await createNextRound(
         roomId: roomId,
-        roundNumber: roundNumber,
+        expectedRoundNumber: roundNumber,
       );
 
-      if (isClosed) return;
-      result.fold(
+      if (isClosed) return false;
+      var succeeded = false;
+      await result.fold(
         (failure) {
           _addBreadcrumb(
             'createNewRound:failure',
@@ -611,30 +497,21 @@ class GameCubit extends Cubit<GameState> {
           _errorIdCounter++;
           emit(GameError(failure.message, errorId: _errorIdCounter));
         },
-        (newRound) {
-          // Cancel old subscriptions
-          _roundSubscription?.cancel();
-          _hintsSubscription?.cancel();
-          _votesSubscription?.cancel();
-          _playersSubscription?.cancel();
-
-          // Clear scored-round guard for the new round
-          _scoredRoundIds.clear();
-
-          // Reload the entire game state with the new round,
-          // preserving in-memory accumulated scores to avoid DB race conditions.
+        (newRound) async {
           if (state is GameLoaded) {
-            final currentState = (state as GameLoaded).gameState;
-            loadGameState(
-              roomId: roomId,
-              currentPlayerId: currentState.currentPlayerId,
-              preservedScores: currentState.playerScores.isNotEmpty
-                  ? currentState.playerScores
-                  : _lastKnownScores,
+            final loaded = state as GameLoaded;
+            emit(
+              GameLoaded(
+                loaded.gameState.copyWith(currentRound: newRound),
+                isReconnecting: loaded.isReconnecting,
+              ),
             );
           }
+          await _replaceGameSubscriptions(newRound.id, roomId: roomId);
+          succeeded = true;
         },
       );
+      return succeeded;
     } finally {
       _isCreatingRound = false;
     }
@@ -651,18 +528,9 @@ class GameCubit extends Cubit<GameState> {
       data: {'roundId': roundId, 'additionalSeconds': additionalSeconds},
     );
 
-    final currentState = state;
-    if (currentState is! GameLoaded) return;
-
-    final currentPhaseEndTime =
-        currentState.gameState.currentRound.phaseEndTime;
-    final newPhaseEndTime = currentPhaseEndTime.add(
-      Duration(seconds: additionalSeconds),
-    );
-
-    final result = await gameRepository.updatePhaseEndTime(
+    final result = await extendLocalRoleReveal(
       roundId: roundId,
-      phaseEndTime: newPhaseEndTime,
+      seconds: additionalSeconds,
     );
 
     if (isClosed) return;
@@ -673,19 +541,10 @@ class GameCubit extends Cubit<GameState> {
           data: {'roundId': roundId, 'error': failure.message},
         );
       },
-      (updatedRound) {
+      (_) {
         _addBreadcrumb(
           'adjustRoundTimer:success',
-          data: {'roundId': roundId, 'newPhaseEndTime': newPhaseEndTime},
-        );
-        final updatedGameState = currentState.gameState.copyWith(
-          currentRound: updatedRound,
-        );
-        emit(
-          GameLoaded(
-            updatedGameState,
-            isReconnecting: currentState.isReconnecting,
-          ),
+          data: {'roundId': roundId, 'seconds': additionalSeconds},
         );
       },
     );
@@ -697,7 +556,7 @@ class GameCubit extends Cubit<GameState> {
     _addBreadcrumb('finishGame:start', data: {'roomId': roomId});
 
     final snapshot = state;
-    final result = await gameRepository.endGame(roomId: roomId);
+    final result = await finishGameUseCase(roomId: roomId);
 
     if (isClosed) return;
     result.fold(
@@ -749,10 +608,7 @@ class GameCubit extends Cubit<GameState> {
         normalized.contains('permission');
   }
 
-  void _emitInlineValidationMessage(
-    GameLoaded currentState,
-    String message,
-  ) {
+  void _emitInlineValidationMessage(GameLoaded currentState, String message) {
     _nonFatalMessageIdCounter++;
     emit(
       GameLoaded(
@@ -765,11 +621,9 @@ class GameCubit extends Cubit<GameState> {
   }
 
   @override
-  Future<void> close() {
-    _roundSubscription?.cancel();
-    _hintsSubscription?.cancel();
-    _votesSubscription?.cancel();
-    _playersSubscription?.cancel();
-    return super.close();
+  Future<void> close() async {
+    await _roundSubscription?.cancel();
+    await _playersSubscription?.cancel();
+    await super.close();
   }
 }

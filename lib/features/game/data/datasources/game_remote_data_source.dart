@@ -1,18 +1,29 @@
 import 'package:guess_party/features/auth/data/models/player_model.dart';
 import 'package:guess_party/features/game/data/models/character_model.dart';
+import 'package:guess_party/features/game/data/models/finalize_voting_result_model.dart';
+import 'package:guess_party/features/game/data/models/local_role_reveal_bundle_model.dart';
 import 'package:guess_party/features/game/data/models/round_info_model.dart';
+import 'package:guess_party/features/game/data/models/vote_state_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 abstract class GameRemoteDataSource {
   Future<RoundInfoModel> getCurrentRound({required String roomId});
+
+  Future<RoundInfoModel> getRoundSnapshot({required String roundId});
+
+  Future<Map<String, dynamic>> getRoundForPlayerV2({required String roundId});
+
+  Future<LocalRoleRevealBundleModel> getLocalRoleRevealBundle({
+    required String roundId,
+  });
+
+  Future<VoteStateModel> getVoteState({required String roundId});
 
   Future<List<PlayerModel>> getRoomPlayers({required String roomId});
 
   Future<CharacterModel> getCharacter({required String characterId});
 
   Future<Map<String, String>> getHintsForRound({required String roundId});
-
-  Future<Map<String, String>> getVotesForRound({required String roundId});
 
   Future<Map<String, int>> getPlayerScores({required String roomId});
 
@@ -28,42 +39,26 @@ abstract class GameRemoteDataSource {
     required String votedPlayerId,
   });
 
-  Future<RoundInfoModel> updateRoundPhase({
+  Future<void> advanceToVoting({required String roundId});
+
+  Future<FinalizeVotingResultModel> finalizeVoting({
     required String roundId,
-    required String newPhase,
-    required DateTime phaseEndTime,
+    required String reason,
   });
 
-  Future<RoundInfoModel> updatePhaseEndTime({
+  Future<String> createNextRoundCommand({
+    required String roomId,
+    required int expectedRoundNumber,
+  });
+
+  Future<void> finishGameCommand({required String roomId});
+
+  Future<void> extendLocalRoleReveal({
     required String roundId,
-    required DateTime phaseEndTime,
+    required int seconds,
   });
 
-  Future<void> updatePlayerScores({required Map<String, int> scores});
-
-  Future<RoundInfoModel> createRound({
-    required String roomId,
-    required String imposterPlayerId,
-    required String characterId,
-    required int roundNumber,
-    required int roundDurationSeconds,
-  });
-
-  Future<void> updateRoomStatus({
-    required String roomId,
-    required String status,
-  });
-
-  /// Fetches round data via the SECURITY DEFINER RPC function.
-  /// Returns round data with `imposter_player_id` masked (NULL) for
-  /// non-imposter players during non-results phases.
-  Future<Map<String, dynamic>> getRoundViaRpc({required String roundId});
-
-  Stream<Map<String, dynamic>> watchRoundChanges({required String roundId});
-
-  Stream<Map<String, dynamic>> watchHintsChanges({required String roundId});
-
-  Stream<Map<String, dynamic>> watchVotesChanges({required String roundId});
+  Stream<Map<String, dynamic>> watchRoundRevision({required String roundId});
 
   Stream<List<PlayerModel>> watchPlayersChanges({required String roomId});
 }
@@ -74,91 +69,102 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
   GameRemoteDataSourceImpl({required this.client});
 
   @override
-  Future<Map<String, dynamic>> getRoundViaRpc({
+  Future<Map<String, dynamic>> getRoundForPlayerV2({
     required String roundId,
   }) async {
     try {
       final response = await client
-          .rpc('get_round_for_player', params: {'p_round_id': roundId})
+          .rpc('get_round_for_player_v2', params: {'p_round_id': roundId})
           .select()
-          .single();
-      return response;
-    } catch (e) {
-      throw Exception('Failed to get round via RPC: $e');
+          .maybeSingle();
+
+      if (response == null) {
+        throw StateError('ROUND_PARTICIPANT_REQUIRED');
+      }
+      return Map<String, dynamic>.from(response);
+    } catch (error) {
+      throw Exception('Failed to load the secure round snapshot: $error');
+    }
+  }
+
+  @override
+  Future<LocalRoleRevealBundleModel> getLocalRoleRevealBundle({
+    required String roundId,
+  }) async {
+    try {
+      final response = await client
+          .rpc('get_local_role_reveal_bundle', params: {'p_round_id': roundId})
+          .select()
+          .maybeSingle();
+
+      if (response == null) {
+        throw StateError('LOCAL_HOST_REVEAL_REQUIRED');
+      }
+      return LocalRoleRevealBundleModel.fromJson(response);
+    } catch (error) {
+      throw Exception('Failed to load the Local role reveal: $error');
+    }
+  }
+
+  @override
+  Future<VoteStateModel> getVoteState({required String roundId}) async {
+    try {
+      final response = await client.rpc(
+        'get_vote_state',
+        params: {'p_round_id': roundId},
+      );
+      return VoteStateModel.fromJson(
+        Map<String, dynamic>.from(response as Map),
+      );
+    } catch (error) {
+      throw Exception('Failed to load vote progress: $error');
     }
   }
 
   @override
   Future<RoundInfoModel> getCurrentRound({required String roomId}) async {
     try {
-      // Get round IDs + metadata for this room (no imposter_player_id needed)
-      final validRounds = await client
-          .from('rounds')
-          .select('id, room_id, character_id, round_number, phase, phase_end_time, imposter_revealed, created_at')
-          .eq('room_id', roomId)
-          .order('round_number', ascending: false);
-
-      if (validRounds.isEmpty) {
-        throw Exception(
-          'No rounds found for room $roomId. Please wait for round creation.',
-        );
+      final roundId = await client.rpc(
+        'get_current_round_id',
+        params: {'p_room_id': roomId},
+      );
+      if (roundId == null) {
+        throw StateError('ROUND_NOT_FOUND');
       }
-
-      // Filter in Dart to find the first valid round
-      Map<String, dynamic>? response;
-      Map<String, dynamic>? latestRound = validRounds.first;
-      final now = DateTime.now().toUtc();
-
-      for (final round in validRounds) {
-        final phaseEndTimeStr = round['phase_end_time'] as String;
-        DateTime phaseEndTime;
-
-        // Parse the timestamp as UTC
-        if (phaseEndTimeStr.endsWith('Z')) {
-          phaseEndTime = DateTime.parse(phaseEndTimeStr).toUtc();
-        } else if (phaseEndTimeStr.contains('+') ||
-            phaseEndTimeStr.contains('T')) {
-          phaseEndTime = DateTime.parse(phaseEndTimeStr).toUtc();
-        } else {
-          phaseEndTime = DateTime.parse('${phaseEndTimeStr}Z').toUtc();
-        }
-
-        // Check if this round is still valid (not expired) - compare UTC to UTC
-        if (phaseEndTime.isAfter(now)) {
-          response = round;
-          break;
-        }
-      }
-
-      // If no valid round found, use the latest round as fallback
-      response ??= latestRound;
-
-      // Fetch the full round data via the SECURITY DEFINER RPC
-      // to get properly masked imposter_player_id
-      final maskedRound = await getRoundViaRpc(
-        roundId: response['id'] as String,
-      );
-
-      final character = await getCharacter(
-        characterId: maskedRound['character_id'] as String,
-      );
-
-      final players = await getRoomPlayers(roomId: roomId);
-      final playerIds = players.map((p) => p.id).toList();
-
-      final hints = await getHintsForRound(roundId: maskedRound['id'] as String);
-      final votes = await getVotesForRound(roundId: maskedRound['id'] as String);
-
-      return RoundInfoModel.fromJson(
-        maskedRound,
-        character.toEntity(),
-        playerIds,
-        hints,
-        votes,
-      );
-    } catch (e) {
-      throw Exception('Failed to get current round: $e');
+      return getRoundSnapshot(roundId: roundId as String);
+    } catch (error) {
+      throw Exception('Failed to get the current round: $error');
     }
+  }
+
+  @override
+  Future<RoundInfoModel> getRoundSnapshot({required String roundId}) async {
+    final maskedRound = await getRoundForPlayerV2(roundId: roundId);
+    final characterId = maskedRound['character_id'] as String?;
+    final character = characterId == null
+        ? null
+        : await getCharacter(characterId: characterId);
+    final participantIds =
+        ((maskedRound['participant_ids'] as List?) ?? const [])
+            .map((id) => id as String)
+            .toList(growable: false);
+
+    final results = await Future.wait<Object>([
+      getHintsForRound(roundId: roundId),
+      getVoteState(roundId: roundId),
+    ]);
+    final hints = results[0] as Map<String, String>;
+    final voteState = results[1] as VoteStateModel;
+
+    return RoundInfoModel.fromJson(
+      maskedRound,
+      character?.toEntity(),
+      participantIds,
+      hints,
+      voteState.votes,
+      submittedVoteCount: voteState.submittedCount,
+      requiredVoteCount: voteState.requiredCount,
+    );
   }
 
   @override
@@ -166,15 +172,15 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     try {
       final response = await client
           .from('players')
-          .select('*')
+          .select()
           .eq('room_id', roomId)
           .order('created_at', ascending: true);
 
       return (response as List)
-          .map((json) => PlayerModel.fromJson(json))
-          .toList();
-    } catch (e) {
-      throw Exception('Failed to get room players: $e');
+          .map((json) => PlayerModel.fromJson(json as Map<String, dynamic>))
+          .toList(growable: false);
+    } catch (error) {
+      throw Exception('Failed to get room players: $error');
     }
   }
 
@@ -183,13 +189,12 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     try {
       final response = await client
           .from('characters')
-          .select('*')
+          .select()
           .eq('id', characterId)
           .single();
-
       return CharacterModel.fromJson(response);
-    } catch (e) {
-      throw Exception('Failed to get character: $e');
+    } catch (error) {
+      throw Exception('Failed to get character: $error');
     }
   }
 
@@ -202,37 +207,12 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
           .from('hints')
           .select('player_id, content')
           .eq('round_id', roundId);
-
-      final hintsMap = <String, String>{};
-      for (final hint in response) {
-        hintsMap[hint['player_id'] as String] = hint['content'] as String;
-      }
-      return hintsMap;
-    } catch (e) {
-      throw Exception('Failed to get hints: $e');
-    }
-  }
-
-  @override
-  Future<Map<String, String>> getVotesForRound({
-    required String roundId,
-  }) async {
-    try {
-      final response = await client
-          .from('votes')
-          .select('voter_player_id, voted_player_id')
-          .eq('round_id', roundId)
-          .order('created_at', ascending: true);
-
-      final votesMap = <String, String>{};
-      for (final vote in response) {
-        // Later votes (vote changes) overwrite earlier ones for same voter
-        votesMap[vote['voter_player_id'] as String] =
-            vote['voted_player_id'] as String;
-      }
-      return votesMap;
-    } catch (e) {
-      throw Exception('Failed to get votes: $e');
+      return <String, String>{
+        for (final hint in response)
+          hint['player_id'] as String: hint['content'] as String,
+      };
+    } catch (error) {
+      throw Exception('Failed to get hints: $error');
     }
   }
 
@@ -243,14 +223,12 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
           .from('players')
           .select('id, score')
           .eq('room_id', roomId);
-
-      final scoresMap = <String, int>{};
-      for (final player in response) {
-        scoresMap[player['id'] as String] = (player['score'] as int?) ?? 0;
-      }
-      return scoresMap;
-    } catch (e) {
-      throw Exception('Failed to get player scores: $e');
+      return <String, int>{
+        for (final player in response)
+          player['id'] as String: player['score'] as int? ?? 0,
+      };
+    } catch (error) {
+      throw Exception('Failed to get player scores: $error');
     }
   }
 
@@ -261,31 +239,13 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     required String hint,
   }) async {
     try {
-      // First, check if hint already exists
-      final existing = await client
-          .from('hints')
-          .select('id')
-          .eq('round_id', roundId)
-          .eq('player_id', playerId)
-          .maybeSingle();
-
-      if (existing != null) {
-        // Update existing hint
-        await client
-            .from('hints')
-            .update({'content': hint})
-            .eq('round_id', roundId)
-            .eq('player_id', playerId);
-      } else {
-        // Insert new hint
-        await client.from('hints').insert({
-          'round_id': roundId,
-          'player_id': playerId,
-          'content': hint,
-        });
-      }
-    } catch (e) {
-      throw Exception('Failed to submit hint: $e');
+      await client.from('hints').upsert({
+        'round_id': roundId,
+        'player_id': playerId,
+        'content': hint,
+      }, onConflict: 'round_id,player_id');
+    } catch (error) {
+      throw Exception('Failed to submit hint: $error');
     }
   }
 
@@ -296,199 +256,78 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
     required String votedPlayerId,
   }) async {
     try {
-      // UPSERT: insert or update if voter already voted in this round
-      // Requires UNIQUE(round_id, voter_player_id) constraint in DB
       await client.from('votes').upsert({
         'round_id': roundId,
         'voter_player_id': voterId,
         'voted_player_id': votedPlayerId,
       }, onConflict: 'round_id,voter_player_id');
-    } catch (e) {
-      throw Exception('Failed to submit vote: $e');
+    } catch (error) {
+      throw Exception('Failed to submit vote: $error');
     }
   }
 
   @override
-  Future<RoundInfoModel> updateRoundPhase({
+  Future<void> advanceToVoting({required String roundId}) async {
+    await client.rpc('advance_to_voting', params: {'p_round_id': roundId});
+  }
+
+  @override
+  Future<FinalizeVotingResultModel> finalizeVoting({
     required String roundId,
-    required String newPhase,
-    required DateTime phaseEndTime,
+    required String reason,
   }) async {
-    try {
-      await client
-          .from('rounds')
-          .update({
-            'phase': newPhase,
-            'phase_end_time': phaseEndTime.toIso8601String(),
-          })
-          .eq('id', roundId);
-
-      // Get updated round
-      final response = await client
-          .from('rounds')
-          .select('*')
-          .eq('id', roundId)
-          .single();
-
-      final character = await getCharacter(
-        characterId: response['character_id'] as String,
-      );
-
-      final players = await getRoomPlayers(
-        roomId: response['room_id'] as String,
-      );
-      final playerIds = players.map((p) => p.id).toList();
-
-      final hints = await getHintsForRound(roundId: roundId);
-      final votes = await getVotesForRound(roundId: roundId);
-
-      return RoundInfoModel.fromJson(
-        response,
-        character.toEntity(),
-        playerIds,
-        hints,
-        votes,
-      );
-    } catch (e) {
-      throw Exception('Failed to update round phase: $e');
-    }
+    final response = await client.rpc(
+      'finalize_voting',
+      params: {'p_round_id': roundId, 'p_reason': reason},
+    );
+    return FinalizeVotingResultModel.fromJson(
+      Map<String, dynamic>.from(response as Map),
+    );
   }
 
   @override
-  Future<RoundInfoModel> updatePhaseEndTime({
+  Future<String> createNextRoundCommand({
+    required String roomId,
+    required int expectedRoundNumber,
+  }) async {
+    final response = await client.rpc(
+      'create_next_round',
+      params: {
+        'p_room_id': roomId,
+        'p_expected_round_number': expectedRoundNumber,
+      },
+    );
+    return response as String;
+  }
+
+  @override
+  Future<void> finishGameCommand({required String roomId}) async {
+    await client.rpc('finish_game', params: {'p_room_id': roomId});
+  }
+
+  @override
+  Future<void> extendLocalRoleReveal({
     required String roundId,
-    required DateTime phaseEndTime,
+    required int seconds,
   }) async {
-    try {
-      await client
-          .from('rounds')
-          .update({'phase_end_time': phaseEndTime.toIso8601String()})
-          .eq('id', roundId);
-
-      final response = await client
-          .from('rounds')
-          .select('*')
-          .eq('id', roundId)
-          .single();
-
-      final character = await getCharacter(
-        characterId: response['character_id'] as String,
-      );
-
-      final players = await getRoomPlayers(
-        roomId: response['room_id'] as String,
-      );
-      final playerIds = players.map((p) => p.id).toList();
-
-      final hints = await getHintsForRound(roundId: roundId);
-      final votes = await getVotesForRound(roundId: roundId);
-
-      return RoundInfoModel.fromJson(
-        response,
-        character.toEntity(),
-        playerIds,
-        hints,
-        votes,
-      );
-    } catch (e) {
-      throw Exception('Failed to update phase end time: $e');
-    }
+    await client.rpc(
+      'extend_local_role_reveal',
+      params: {'p_round_id': roundId, 'p_seconds': seconds},
+    );
   }
 
   @override
-  Future<void> updatePlayerScores({required Map<String, int> scores}) async {
-    try {
-      for (final entry in scores.entries) {
-        await client
-            .from('players')
-            .update({'score': entry.value})
-            .eq('id', entry.key);
-      }
-    } catch (e) {
-      throw Exception('Failed to update player scores: $e');
-    }
-  }
-
-  @override
-  Future<RoundInfoModel> createRound({
-    required String roomId,
-    required String imposterPlayerId,
-    required String characterId,
-    required int roundNumber,
-    required int roundDurationSeconds,
-  }) async {
-    try {
-      final phaseEndTime = DateTime.now().toUtc().add(
-        Duration(seconds: roundDurationSeconds),
-      );
-
-      final response = await client
-          .from('rounds')
-          .insert({
-            'room_id': roomId,
-            'imposter_player_id': imposterPlayerId,
-            'character_id': characterId,
-            'round_number': roundNumber,
-            'phase': 'hints',
-            'phase_end_time': phaseEndTime.toIso8601String(),
-            'imposter_revealed': false,
-          })
-          .select()
-          .single();
-
-      final character = await getCharacter(characterId: characterId);
-      final players = await getRoomPlayers(roomId: roomId);
-      final playerIds = players.map((p) => p.id).toList();
-
-      return RoundInfoModel.fromJson(
-        response,
-        character.toEntity(),
-        playerIds,
-        {},
-        {},
-      );
-    } catch (e) {
-      throw Exception('Failed to create round: $e');
-    }
-  }
-
-  @override
-  Future<void> updateRoomStatus({
-    required String roomId,
-    required String status,
-  }) async {
-    try {
-      await client.from('rooms').update({'status': status}).eq('id', roomId);
-    } catch (e) {
-      throw Exception('Failed to update room status: $e');
-    }
-  }
-
-  @override
-  Stream<Map<String, dynamic>> watchRoundChanges({required String roundId}) {
+  Stream<Map<String, dynamic>> watchRoundRevision({required String roundId}) {
     return client
-        .from('rounds')
-        .stream(primaryKey: ['id'])
-        .eq('id', roundId)
-        .map((data) => data.first);
-  }
-
-  @override
-  Stream<Map<String, dynamic>> watchHintsChanges({required String roundId}) {
-    return client
-        .from('hints')
-        .stream(primaryKey: ['id'])
+        .from('round_revisions')
+        .stream(primaryKey: ['round_id'])
         .eq('round_id', roundId)
-        .map((data) => {'hints': data});
-  }
-
-  @override
-  Stream<Map<String, dynamic>> watchVotesChanges({required String roundId}) {
-    return client
-        .from('votes')
-        .stream(primaryKey: ['id'])
-        .eq('round_id', roundId)
-        .map((data) => {'votes': data});
+        .map((rows) {
+          if (rows.isEmpty) {
+            throw StateError('ROUND_REVISION_NOT_VISIBLE');
+          }
+          return rows.single;
+        });
   }
 
   @override
@@ -506,16 +345,12 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
             final bCreatedAt = DateTime.tryParse(
               b['created_at']?.toString() ?? '',
             );
-
             if (aCreatedAt == null && bCreatedAt == null) return 0;
             if (aCreatedAt == null) return -1;
             if (bCreatedAt == null) return 1;
             return aCreatedAt.compareTo(bCreatedAt);
           });
-
-          return rows
-              .map(PlayerModel.fromJson)
-              .toList();
+          return rows.map(PlayerModel.fromJson).toList(growable: false);
         });
   }
 }

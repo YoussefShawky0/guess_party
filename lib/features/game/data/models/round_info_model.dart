@@ -14,15 +14,19 @@ class RoundInfoModel extends RoundInfo {
     required super.playerIds,
     required super.playerHints,
     required super.playerVotes,
+    super.submittedVoteCount,
+    super.requiredVoteCount,
   });
 
   factory RoundInfoModel.fromJson(
     Map<String, dynamic> json,
-    Character character,
+    Character? character,
     List<String> playerIds,
     Map<String, String?> hints,
-    Map<String, String?> votes,
-  ) {
+    Map<String, String?> votes, {
+    int submittedVoteCount = 0,
+    int requiredVoteCount = 0,
+  }) {
     // Parse UTC timestamp and keep as UTC for comparison
     final phaseEndTimeString = json['phase_end_time'] as String;
 
@@ -42,7 +46,7 @@ class RoundInfoModel extends RoundInfo {
     return RoundInfoModel(
       id: json['id'] as String,
       roomId: json['room_id'] as String,
-      imposterPlayerId: (json['imposter_player_id'] as String?) ?? '',
+      imposterPlayerId: json['imposter_player_id'] as String?,
       character: character,
       roundNumber: json['round_number'] as int,
       phase: _parsePhase(json['phase'] as String),
@@ -51,6 +55,8 @@ class RoundInfoModel extends RoundInfo {
       playerIds: playerIds,
       playerHints: hints,
       playerVotes: votes,
+      submittedVoteCount: submittedVoteCount,
+      requiredVoteCount: requiredVoteCount,
     );
   }
 
@@ -63,7 +69,7 @@ class RoundInfoModel extends RoundInfo {
       case 'results':
         return GamePhase.results;
       default:
-        return GamePhase.hints;
+        throw FormatException('Unsupported game phase: $phase');
     }
   }
 
@@ -83,7 +89,7 @@ class RoundInfoModel extends RoundInfo {
       'id': id,
       'room_id': roomId,
       'imposter_player_id': imposterPlayerId,
-      'character_id': character.id,
+      'character_id': character?.id,
       'round_number': roundNumber,
       'phase': _phaseToString(phase),
       'phase_end_time': phaseEndTime.toIso8601String(),
@@ -104,6 +110,8 @@ class RoundInfoModel extends RoundInfo {
       playerIds: playerIds,
       playerHints: playerHints,
       playerVotes: playerVotes,
+      submittedVoteCount: submittedVoteCount,
+      requiredVoteCount: requiredVoteCount,
     );
   }
 }

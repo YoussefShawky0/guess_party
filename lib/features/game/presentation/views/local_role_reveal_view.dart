@@ -7,8 +7,8 @@ import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
-import 'package:guess_party/features/game/domain/entities/round_info.dart';
-import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/features/game/domain/entities/character.dart';
+import 'package:guess_party/features/game/presentation/cubit/local_role_reveal_cubit.dart';
 
 /// Screen for Local Mode where each player sees their role one by one
 /// before the game starts. This ensures privacy on a shared device.
@@ -25,11 +25,7 @@ class LocalRoleRevealScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => sl<GameCubit>()
-        ..loadGameState(
-          roomId: roomId,
-          currentPlayerId: '', // Will be set per player
-        ),
+      create: (context) => sl<LocalRoleRevealCubit>()..load(roomId),
       child: LocalRoleRevealContent(
         roomId: roomId,
         preservedScores: preservedScores,
@@ -56,7 +52,9 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
   int _currentPlayerIndex = 0;
   bool _isRoleRevealed = false;
   List<Player> _players = [];
-  RoundInfo? _roundInfo;
+  String? _roundId;
+  String? _imposterPlayerId;
+  Character? _character;
   bool _isLoading = true;
   DateTime? _roleRevealStartTime;
 
@@ -108,28 +106,47 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
         );
 
         if (shouldExit == true && context.mounted) {
+          context.read<LocalRoleRevealCubit>().clearSecrets();
+          _clearSecretFields();
           context.go(AppRoutes.home);
         }
       },
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
-        body: BlocConsumer<GameCubit, GameState>(
+        body: BlocConsumer<LocalRoleRevealCubit, LocalRoleRevealState>(
           listener: (context, state) {
-            if (state is GameLoaded) {
+            if (state is LocalRoleRevealLoaded) {
               setState(() {
-                _players = state.gameState.players;
-                _roundInfo = state.gameState.currentRound;
+                _players = state.data.players;
+                _roundId = state.data.roundId;
+                _imposterPlayerId = state.data.imposterPlayerId;
+                _character = state.data.character;
                 _isLoading = false;
                 _roleRevealStartTime ??= DateTime.now();
               });
-            } else if (state is GameError) {
+            } else if (state is LocalRoleRevealFailure) {
+              setState(() {
+                _isLoading = false;
+                _clearSecretFields();
+              });
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));
             }
           },
           builder: (context, state) {
-            if (_isLoading || _players.isEmpty || _roundInfo == null) {
+            if (state is LocalRoleRevealFailure) {
+              return ErrorScreen(
+                message: state.message,
+                onGoBack: () =>
+                    context.read<LocalRoleRevealCubit>().load(widget.roomId),
+              );
+            }
+            if (_isLoading ||
+                _players.isEmpty ||
+                _roundId == null ||
+                _character == null ||
+                _imposterPlayerId == null) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -149,7 +166,10 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
             }
 
             // Validate player list
-            if (_players.isEmpty || _roundInfo == null) {
+            if (_players.isEmpty ||
+                _roundId == null ||
+                _character == null ||
+                _imposterPlayerId == null) {
               return ErrorScreen(
                 message: 'Unable to load player information',
                 onGoBack: () => Navigator.of(context).pop(),
@@ -157,7 +177,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
             }
 
             final currentPlayer = _players[_currentPlayerIndex];
-            final isImposter = _roundInfo!.imposterPlayerId == currentPlayer.id;
+            final isImposter = _imposterPlayerId == currentPlayer.id;
 
             return SafeArea(
               child: Padding(
@@ -354,13 +374,13 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
               children: [
                 if (!isImposter) ...[
                   Text(
-                    _roundInfo!.character.emoji,
+                    _character!.emoji,
                     style: TextStyle(fontSize: isTablet ? 24 : 20),
                   ),
                   const SizedBox(width: 12),
                   Flexible(
                     child: Text(
-                      _roundInfo!.character.name,
+                      _character!.name,
                       style: TextStyle(
                         color: accent,
                         fontSize: isTablet ? 18 : 16,
@@ -440,7 +460,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
     );
   }
 
-  void _handleAction() {
+  Future<void> _handleAction() async {
     if (!_isRoleRevealed) {
       // Reveal the role
       setState(() {
@@ -456,18 +476,29 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
       } else {
         // All players have seen their roles, start the game
         // Calculate elapsed time and adjust timer
-        if (_roleRevealStartTime != null && _roundInfo != null) {
+        if (_roleRevealStartTime != null && _roundId != null) {
           final elapsedSeconds = DateTime.now()
               .difference(_roleRevealStartTime!)
               .inSeconds;
 
-          context.read<GameCubit>().adjustRoundTimer(
-            roundId: _roundInfo!.id,
-            additionalSeconds: elapsedSeconds,
-          );
+          final extended = await context
+              .read<LocalRoleRevealCubit>()
+              .extendReveal(roundId: _roundId!, seconds: elapsedSeconds);
+          if (!extended) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not start safely. Please try again.'),
+              ),
+            );
+            return;
+          }
         }
 
-        // Pass preserved scores so the new GameCubit restores them correctly
+        if (!mounted) return;
+        context.read<LocalRoleRevealCubit>().clearSecrets();
+        setState(_clearSecretFields);
+
         context.go(
           AppRoutes.roomLocalGame(widget.roomId),
           extra:
@@ -478,5 +509,17 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
         );
       }
     }
+  }
+
+  void _clearSecretFields() {
+    _roundId = null;
+    _imposterPlayerId = null;
+    _character = null;
+  }
+
+  @override
+  void dispose() {
+    _clearSecretFields();
+    super.dispose();
   }
 }

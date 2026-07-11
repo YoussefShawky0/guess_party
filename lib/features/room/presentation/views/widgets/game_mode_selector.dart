@@ -94,7 +94,9 @@ class GameModeSelector extends StatelessWidget {
               FaIcon(
                 icon,
                 size: isTablet ? 40 : 32,
-                color: isSelected ? AppColors.primary : AppColors.of(context).textSecondary,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.of(context).textSecondary,
               ),
               SizedBox(height: isTablet ? 12 : 8),
               Text(
@@ -102,7 +104,9 @@ class GameModeSelector extends StatelessWidget {
                 style: TextStyle(
                   fontSize: isTablet ? 18 : 16,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? AppColors.primary : AppColors.of(context).textPrimary,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.of(context).textPrimary,
                 ),
               ),
               SizedBox(height: isTablet ? 6 : 4),

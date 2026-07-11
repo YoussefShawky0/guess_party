@@ -2,6 +2,9 @@ import 'package:dartz/dartz.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart';
+import 'package:guess_party/features/game/domain/entities/finalize_voting_result.dart';
+import 'package:guess_party/features/game/domain/entities/local_role_reveal_bundle.dart';
+import 'package:guess_party/features/game/domain/entities/local_role_reveal_data.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 
 abstract class GameRepository {
@@ -28,41 +31,36 @@ abstract class GameRepository {
     required String votedPlayerId,
   });
 
-  /// Start next phase (hints -> voting -> results)
-  Future<Either<Failure, RoundInfo>> advancePhase({
+  Future<Either<Failure, RoundInfo>> advanceToVoting({required String roundId});
+
+  Future<Either<Failure, FinalizeVotingResult>> finalizeVoting({
     required String roundId,
-    required String requestingPlayerId,
+    required String reason,
   });
 
-  /// Update phase end time (for local mode timer adjustment)
-  Future<Either<Failure, RoundInfo>> updatePhaseEndTime({
+  Future<Either<Failure, void>> extendLocalRoleReveal({
     required String roundId,
-    required DateTime phaseEndTime,
+    required int seconds,
   });
 
-  // Calculate and update scores after voting
-  Future<Either<Failure, Map<String, int>>> calculateScores({
+  Future<Either<Failure, LocalRoleRevealBundle>> getLocalRoleRevealBundle({
     required String roundId,
-    required Map<String, int> currentScores,
+  });
+
+  Future<Either<Failure, LocalRoleRevealData>> getLocalRoleRevealData({
+    required String roomId,
   });
 
   // Create next round
   Future<Either<Failure, RoundInfo>> createNextRound({
     required String roomId,
-    required int roundNumber,
+    required int expectedRoundNumber,
   });
 
-  // End the game and update final scores
-  Future<Either<Failure, void>> endGame({required String roomId});
+  Future<Either<Failure, void>> finishGame({required String roomId});
 
   // Subscribe to round updates (real-time)
   Stream<RoundInfo> watchRoundUpdates({required String roundId});
-
-  // Subscribe to hints updates (real-time)
-  Stream<Map<String, String>> watchHintsUpdates({required String roundId});
-
-  // Subscribe to votes updates (real-time)
-  Stream<Map<String, String>> watchVotesUpdates({required String roundId});
 
   // Subscribe to room online players updates (real-time)
   Stream<List<Player>> watchRoomPlayers({required String roomId});

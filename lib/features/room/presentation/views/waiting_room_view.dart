@@ -173,12 +173,28 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
                   break;
                 }
               }
-              // Fallback to first player if current user not found
-              currentPlayer ??= players.first;
+            }
+
+            if (currentUserId == null || currentPlayer == null) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: AppColors.primary),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Syncing your player...',
+                      style: TextStyle(
+                        color: AppColors.of(context).textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
             }
 
             // Update player info for lifecycle management
-            if (currentPlayer != null && _currentPlayerId == null) {
+            if (_currentPlayerId == null) {
               final playerId = currentPlayer.id;
               final isHost = currentPlayer.isHost;
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -188,8 +204,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
             }
 
             final isHost =
-                currentPlayer?.isHost == true &&
-                currentPlayer?.userId == currentUserId;
+                currentPlayer.isHost && currentPlayer.userId == currentUserId;
             final playerCount = players.length;
 
             return WaitingRoomBody(

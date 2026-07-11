@@ -5,22 +5,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
-import 'package:guess_party/features/room/domain/usecases/add_player_to_room.dart';
 import 'package:guess_party/features/room/domain/usecases/create_room.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_by_code.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_players.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/usecases/join_room.dart';
 import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
 import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
+import 'package:uuid/uuid.dart';
 
 part 'room_state.dart';
 
 class RoomCubit extends Cubit<RoomState> {
   final CreateRoom createRoom;
-  final AddPlayerToRoom addPlayerToRoom;
   final GetRoomDetails getRoomDetails;
   final GetRoomPlayers getRoomPlayers;
   final GetRoomByCode getRoomByCode;
@@ -28,13 +28,15 @@ class RoomCubit extends Cubit<RoomState> {
   final UpdatePlayerStatus updatePlayerStatus;
   final MarkStalePlayersOffline markStalePlayersOffline;
   final LeaveRoom leaveRoom;
+  final JoinRoom joinRoomCommand;
   final WatchRoomDetails watchRoomDetails;
   StreamSubscription<Room>? _roomDetailsSubscription;
   Timer? _roomDetailsPollTimer;
+  String? _createRequestId;
+  String? _createRequestFingerprint;
 
   RoomCubit({
     required this.createRoom,
-    required this.addPlayerToRoom,
     required this.getRoomDetails,
     required this.getRoomPlayers,
     required this.getRoomByCode,
@@ -42,6 +44,7 @@ class RoomCubit extends Cubit<RoomState> {
     required this.updatePlayerStatus,
     required this.markStalePlayersOffline,
     required this.leaveRoom,
+    required this.joinRoomCommand,
     required this.watchRoomDetails,
   }) : super(RoomInitial());
 
@@ -56,12 +59,34 @@ class RoomCubit extends Cubit<RoomState> {
   }) async {
     emit(RoomLoading());
 
+    final localNames = gameMode == GameConstants.gameModeLocal
+        ? (localPlayerNames ?? const <String>[])
+        : const <String>[];
+    final hostUsername = localNames.isNotEmpty ? localNames.first : username;
+    final fingerprint = [
+      category,
+      maxRounds,
+      maxPlayers,
+      roundDuration,
+      gameMode,
+      hostUsername,
+      ...localNames,
+    ].join('|');
+    if (_createRequestFingerprint != fingerprint) {
+      _createRequestId = const Uuid().v4();
+      _createRequestFingerprint = fingerprint;
+    }
+    _createRequestId ??= const Uuid().v4();
+
     final roomResult = await createRoom(
+      requestId: _createRequestId!,
       category: category,
       maxRounds: maxRounds,
       maxPlayers: maxPlayers,
       roundDuration: roundDuration,
       gameMode: gameMode,
+      hostUsername: hostUsername,
+      localNames: localNames.length > 1 ? localNames.sublist(1) : const [],
     );
 
     if (isClosed) return;
@@ -70,53 +95,12 @@ class RoomCubit extends Cubit<RoomState> {
       emit(RoomError(roomResult.fold((f) => f.message, (_) => '')));
       return;
     }
-    final room = roomResult.getOrElse(() => throw StateError('unreachable'));
-
-    if (gameMode == GameConstants.gameModeLocal &&
-        localPlayerNames != null &&
-        localPlayerNames.isNotEmpty) {
-      await _addLocalPlayers(room, localPlayerNames);
-    } else {
-      final playerResult = await addPlayerToRoom(
-        roomId: room.id,
-        username: username,
-        isHost: true,
-      );
-      if (isClosed) return;
-      playerResult.fold(
-        (failure) => emit(RoomError(failure.message)),
-        (player) => emit(RoomWithPlayerCreated(room: room, player: player)),
-      );
-    }
-  }
-
-  Future<void> _addLocalPlayers(Room room, List<String> playerNames) async {
-    final hostResult = await addPlayerToRoom(
-      roomId: room.id,
-      username: playerNames.first,
-      isHost: true,
-      isLocalPlayer: true,
+    final session = roomResult.getOrElse(() => throw StateError('unreachable'));
+    _createRequestId = null;
+    _createRequestFingerprint = null;
+    emit(
+      RoomWithPlayerCreated(room: session.room, player: session.currentPlayer),
     );
-    if (isClosed) return;
-    if (hostResult.isLeft()) {
-      emit(RoomError(hostResult.fold((f) => f.message, (_) => '')));
-      return;
-    }
-    final hostPlayer = hostResult.getOrElse(
-      () => throw StateError('unreachable'),
-    );
-
-    for (int i = 1; i < playerNames.length; i++) {
-      await addPlayerToRoom(
-        roomId: room.id,
-        username: playerNames[i],
-        isHost: false,
-        isLocalPlayer: true,
-      );
-      if (isClosed) return;
-    }
-
-    emit(RoomWithPlayerCreated(room: room, player: hostPlayer));
   }
 
   Future<void> loadRoomDetails({required String roomId}) async {
@@ -143,7 +127,9 @@ class RoomCubit extends Cubit<RoomState> {
       },
     );
 
-    _roomDetailsPollTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+    _roomDetailsPollTimer = Timer.periodic(const Duration(seconds: 3), (
+      _,
+    ) async {
       if (isClosed) return;
 
       final result = await getRoomDetails(roomId: roomId);
@@ -161,7 +147,9 @@ class RoomCubit extends Cubit<RoomState> {
     emit(
       RoomDetailsLoaded(
         room,
-        players: currentState is RoomDetailsLoaded ? currentState.players : null,
+        players: currentState is RoomDetailsLoaded
+            ? currentState.players
+            : null,
       ),
     );
   }
@@ -217,7 +205,10 @@ class RoomCubit extends Cubit<RoomState> {
     await updatePlayerStatus(playerId: playerId, isOnline: isOnline);
   }
 
-  Future<void> cleanUpStalePlayers({required int staleSeconds}) async {
+  Future<void> cleanUpStalePlayers({
+    required String roomId,
+    required int staleSeconds,
+  }) async {
     // Only clean up stale players in Online Mode; skip for Local Mode
     if (state is RoomWithPlayerCreated) {
       final room = (state as RoomWithPlayerCreated).room;
@@ -226,7 +217,7 @@ class RoomCubit extends Cubit<RoomState> {
       final room = (state as RoomDetailsLoaded).room;
       if (room.gameMode == GameConstants.gameModeLocal) return;
     }
-    await markStalePlayersOffline(staleSeconds: staleSeconds);
+    await markStalePlayersOffline(roomId: roomId, staleSeconds: staleSeconds);
   }
 
   Future<void> leaveRoomSession({
@@ -244,46 +235,22 @@ class RoomCubit extends Cubit<RoomState> {
   }) async {
     emit(RoomLoading());
 
-    final roomResult = await getRoomByCode(roomCode: roomCode);
+    final roomResult = await joinRoomCommand(
+      roomCode: roomCode,
+      username: username,
+    );
 
     if (isClosed) return;
 
-    await roomResult.fold((failure) async => emit(RoomError(failure.message)), (
-      room,
-    ) async {
-      if (room.status != 'waiting') {
-        emit(const RoomError('This room has already started'));
-        return;
-      }
-
-      // Check current player count against the room's max limit
-      final playersResult = await getRoomPlayers(roomId: room.id);
-      if (playersResult.isLeft()) {
-        emit(
-          RoomError(
-            playersResult.fold((failure) => failure.message, (_) => ''),
-          ),
-        );
-        return;
-      }
-
-      final int currentCount = playersResult.fold((_) => 0, (p) => p.length);
-      if (currentCount >= room.maxPlayers) {
-        emit(RoomError('This room is full (${room.maxPlayers} players max)'));
-        return;
-      }
-
-      final playerResult = await addPlayerToRoom(
-        roomId: room.id,
-        username: username,
-        isHost: false,
-      );
-
-      playerResult.fold(
-        (failure) => emit(RoomError(failure.message)),
-        (player) => emit(RoomWithPlayerCreated(room: room, player: player)),
-      );
-    });
+    roomResult.fold(
+      (failure) => emit(RoomError(failure.message)),
+      (session) => emit(
+        RoomWithPlayerCreated(
+          room: session.room,
+          player: session.currentPlayer,
+        ),
+      ),
+    );
   }
 
   @override

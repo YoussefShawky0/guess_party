@@ -63,12 +63,18 @@ class RoundHeaderWidget extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.of(context).characterCardBg, AppColors.of(context).surface],
+          colors: [
+            AppColors.of(context).characterCardBg,
+            AppColors.of(context).surface,
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.of(context).characterCardBorder, width: 2),
+        border: Border.all(
+          color: AppColors.of(context).characterCardBorder,
+          width: 2,
+        ),
       ),
       child: Padding(
         padding: EdgeInsets.all(isTablet ? 20 : 16),

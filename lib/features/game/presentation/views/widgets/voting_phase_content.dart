@@ -57,7 +57,7 @@ class VotingPhaseContent extends StatelessWidget {
         ? round.playerVotes.containsKey(currentPlayer.id)
         : false;
 
-    final allVoted = players.every((p) => round.playerVotes.containsKey(p.id));
+    final allVoted = round.allRequiredVotesSubmitted;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -142,7 +142,9 @@ class VotingPhaseContent extends StatelessWidget {
               return const SizedBox.shrink();
             }
 
-            final voteCount = voteCountMap[player.id] ?? 0;
+            final voteCount = gameMode == GameConstants.gameModeLocal
+                ? voteCountMap[player.id] ?? 0
+                : 0;
 
             if (gameMode == GameConstants.gameModeLocal) {
               // LOCAL MODE: each tile = the VOTER (not the target)
@@ -249,7 +251,15 @@ class VotingPhaseContent extends StatelessWidget {
   // LOCAL MODE: voter presses their own tile, then picks who to vote for
   void _showTargetSelectionDialog(BuildContext context, String voterId) {
     final gameCubit = context.read<GameCubit>();
-    final voter = players.firstWhere((p) => p.id == voterId);
+    Player? voter;
+    for (final player in players) {
+      if (player.id == voterId) {
+        voter = player;
+        break;
+      }
+    }
+    if (voter == null) return;
+    final resolvedVoter = voter;
     final theme = AppColors.of(context);
 
     showDialog(
@@ -265,7 +275,7 @@ class VotingPhaseContent extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${voter.username}, who do you suspect?',
+                    '${resolvedVoter.username}, who do you suspect?',
                     style: TextStyle(color: theme.textPrimary),
                   ),
                   const SizedBox(height: 4),
@@ -462,9 +472,11 @@ class VotingPhaseContent extends StatelessWidget {
   }
 
   Widget _buildVotingProgress(BuildContext context, bool isTablet) {
-    final progress = players.isEmpty
+    final progress = round.requiredVoteCount <= 0
         ? 0.0
-        : round.playerVotes.length / players.length;
+        : (round.submittedVoteCount / round.requiredVoteCount)
+              .clamp(0.0, 1.0)
+              .toDouble();
 
     return Container(
       decoration: BoxDecoration(
@@ -477,7 +489,7 @@ class VotingPhaseContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Votes (${round.playerVotes.length}/${players.length})',
+            'Votes (${round.submittedVoteCount}/${round.requiredVoteCount})',
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,

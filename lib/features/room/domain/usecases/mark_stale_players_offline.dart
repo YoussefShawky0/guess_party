@@ -7,7 +7,13 @@ class MarkStalePlayersOffline {
 
   MarkStalePlayersOffline(this.repository);
 
-  Future<Either<Failure, void>> call({required int staleSeconds}) async {
-    return await repository.markStalePlayersOffline(staleSeconds: staleSeconds);
+  Future<Either<Failure, void>> call({
+    required String roomId,
+    required int staleSeconds,
+  }) async {
+    return repository.markStalePlayersOffline(
+      roomId: roomId,
+      staleSeconds: staleSeconds,
+    );
   }
 }

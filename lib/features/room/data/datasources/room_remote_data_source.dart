@@ -1,27 +1,27 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:guess_party/features/auth/data/models/player_model.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/data/models/room_model.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 abstract class RoomRemoteDataSource {
-  Future<Room> createRoom({
+  Future<RoomSession> createRoom({
+    required String requestId,
     required String category,
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
     required String gameMode,
+    required String hostUsername,
+    required List<String> localNames,
   });
 
-  Future<Player> addPlayerToRoom({
-    required String roomId,
+  Future<RoomSession> joinRoom({
+    required String roomCode,
     required String username,
-    required bool isHost,
-    bool isLocalPlayer = false,
   });
 
   Future<Room> getRoomDetails({required String roomId});
@@ -32,14 +32,17 @@ abstract class RoomRemoteDataSource {
 
   Future<Room> getRoomByCode({required String roomCode});
 
-  Future<void> startGame(String roomId);
+  Future<String> startGame(String roomId);
 
   Future<void> updatePlayerStatus({
     required String playerId,
     required bool isOnline,
   });
 
-  Future<void> markStalePlayersOffline({required int staleSeconds});
+  Future<void> markStalePlayersOffline({
+    required String roomId,
+    required int staleSeconds,
+  });
 
   Future<void> leaveRoom({
     required String playerId,
@@ -53,107 +56,53 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
 
   RoomRemoteDataSourceImpl({required this.client});
   @override
-  Future<Room> createRoom({
+  Future<RoomSession> createRoom({
+    required String requestId,
     required String category,
     required int maxRounds,
     required int maxPlayers,
     required int roundDuration,
     required String gameMode,
+    required String hostUsername,
+    required List<String> localNames,
   }) async {
     try {
-      final user = client.auth.currentUser;
-
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      final roomCode = _generateRoomCode();
-      const uuid = Uuid();
-      final roomId = uuid.v4();
-
-      final response = await client
-          .from('rooms')
-          .insert({
-            'id': roomId,
-            'host_id': user.id,
-            'category': category,
-            'max_rounds': maxRounds,
-            'current_round': 0,
-            'room_code': roomCode,
-            'status': 'waiting',
-            'used_character_ids': [],
-            'max_players': maxPlayers,
-            'round_duration': roundDuration,
-            'game_mode': gameMode,
-          })
-          .select()
-          .single();
-
-      return RoomModel.fromJson(response);
+      final response = await client.rpc(
+        'create_room',
+        params: {
+          'p_request_id': requestId,
+          'p_category': category,
+          'p_max_rounds': maxRounds,
+          'p_max_players': maxPlayers,
+          'p_round_duration': roundDuration,
+          'p_game_mode': gameMode,
+          'p_host_username': hostUsername,
+          'p_local_names': localNames,
+        },
+      );
+      return _parseCreatedSession(Map<String, dynamic>.from(response as Map));
     } catch (e) {
       rethrow;
     }
   }
 
   @override
-  Future<Player> addPlayerToRoom({
-    required String roomId,
+  Future<RoomSession> joinRoom({
+    required String roomCode,
     required String username,
-    required bool isHost,
-    bool isLocalPlayer = false,
   }) async {
-    try {
-      final user = client.auth.currentUser;
-
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      // For local mode players (except host), generate a unique UUID
-      // This allows multiple players on the same device
-      final playerId = isLocalPlayer && !isHost ? const Uuid().v4() : user.id;
-
-      final existing = await client
-          .from('players')
-          .select('*')
-          .eq('room_id', roomId)
-          .eq('user_id', playerId)
-          .maybeSingle();
-
-      if (existing != null) {
-        final response = await client
-            .from('players')
-            .update({
-              'username': username,
-              'is_host': isHost,
-              'is_online': true,
-              'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-            })
-            .eq('id', existing['id'] as String)
-            .select()
-            .single();
-
-        return PlayerModel.fromJson(response);
-      }
-
-      final response = await client
-          .from('players')
-          .insert({
-            'room_id': roomId,
-            'user_id': playerId,
-            'username': username,
-            'score': 0,
-            'is_host': isHost,
-            'is_online': true,
-            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .select()
-          .single();
-
-      return PlayerModel.fromJson(response);
-    } catch (e) {
-      rethrow;
-    }
+    final response = await client.rpc(
+      'join_room',
+      params: {'p_room_code': roomCode, 'p_username': username},
+    );
+    final json = Map<String, dynamic>.from(response as Map);
+    final room = RoomModel.fromJson(
+      Map<String, dynamic>.from(json['room'] as Map),
+    );
+    final player = PlayerModel.fromJson(
+      Map<String, dynamic>.from(json['player'] as Map),
+    );
+    return RoomSession(room: room, currentPlayer: player, players: [player]);
   }
 
   @override
@@ -253,13 +202,12 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   @override
   Future<Room> getRoomByCode({required String roomCode}) async {
     try {
-      final response = await client
-          .from('rooms')
-          .select()
-          .eq('room_code', roomCode)
-          .single();
-
-      return RoomModel.fromJson(response);
+      final response = await client.rpc(
+        'find_joinable_room',
+        params: {'p_room_code': roomCode},
+      );
+      final json = Map<String, dynamic>.from(response as Map);
+      return RoomModel.fromJson(Map<String, dynamic>.from(json['room'] as Map));
     } catch (e) {
       // Catch "no rows found" error and provide specific message for room code validation
       final errorText = e.toString().toLowerCase();
@@ -273,22 +221,13 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   }
 
   @override
-  Future<void> startGame(String roomId) async {
+  Future<String> startGame(String roomId) async {
     try {
-      // Update room status to active
-      await client
-          .from('rooms')
-          .update({'status': 'active'})
-          .eq('id', roomId)
-          .select();
-
-      // TODO: Create first round automatically
-      // Currently, the first round needs to be created manually via GameRepository.createNextRound()
-      // Options to fix this:
-      // 1. Create a Supabase Edge Function that triggers on room status change
-      // 2. Call GameRepository.createNextRound() from the host's device after countdown
-      // 3. Add a database trigger to auto-create first round
-      // For now, the game will show an error until the first round is created
+      final response = await client.rpc(
+        'start_game',
+        params: {'p_room_id': roomId},
+      );
+      return response as String;
     } catch (e) {
       rethrow;
     }
@@ -313,11 +252,14 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   }
 
   @override
-  Future<void> markStalePlayersOffline({required int staleSeconds}) async {
+  Future<void> markStalePlayersOffline({
+    required String roomId,
+    required int staleSeconds,
+  }) async {
     try {
       await client.rpc(
         'mark_stale_players_offline',
-        params: {'p_stale_seconds': staleSeconds},
+        params: {'p_room_id': roomId, 'p_stale_seconds': staleSeconds},
       );
     } catch (e) {
       rethrow;
@@ -346,10 +288,21 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     }
   }
 
-  String _generateRoomCode() {
-    final random = Random();
-    // Generate 6-digit code (100000 - 999999)
-    final code = random.nextInt(900000) + 100000;
-    return code.toString();
+  RoomSession _parseCreatedSession(Map<String, dynamic> json) {
+    final room = RoomModel.fromJson(
+      Map<String, dynamic>.from(json['room'] as Map),
+    );
+    final players = (json['players'] as List)
+        .map(
+          (value) =>
+              PlayerModel.fromJson(Map<String, dynamic>.from(value as Map)),
+        )
+        .toList(growable: false);
+    final currentPlayer = players.firstWhere((player) => player.isHost);
+    return RoomSession(
+      room: room,
+      currentPlayer: currentPlayer,
+      players: players,
+    );
   }
 }

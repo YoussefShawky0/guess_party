@@ -1,27 +1,153 @@
+import 'dart:async';
 import 'dart:math';
+
 import 'package:dartz/dartz.dart';
-import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/utils/error_handler.dart';
+import 'package:guess_party/features/auth/data/models/player_model.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/data/datasources/game_remote_data_source.dart';
+import 'package:guess_party/features/game/data/models/character_model.dart';
 import 'package:guess_party/features/game/data/models/round_info_model.dart';
+import 'package:guess_party/features/game/domain/entities/finalize_voting_result.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart';
+import 'package:guess_party/features/game/domain/entities/local_role_reveal_bundle.dart';
+import 'package:guess_party/features/game/domain/entities/local_role_reveal_data.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/features/room/domain/entities/room.dart';
 
 class GameRepositoryImpl implements GameRepository {
   final GameRemoteDataSource remoteDataSource;
   final RoomRemoteDataSource roomRemoteDataSource;
-  final SupabaseClient client;
 
   GameRepositoryImpl({
     required this.remoteDataSource,
     required this.roomRemoteDataSource,
-    required this.client,
   });
+
+  Stream<T> _watchWithRetry<S, T>({
+    required Stream<S> Function() streamFactory,
+    required FutureOr<T> Function(S event) eventMapper,
+    required String operationName,
+    Map<String, Object?> logData = const {},
+    int maxRetries = 10,
+  }) {
+    late final StreamController<T> controller;
+    StreamSubscription<S>? innerSubscription;
+    Timer? retryTimer;
+    var retryCount = 0;
+    var cancelled = false;
+    var retryScheduled = false;
+
+    const baseDelay = Duration(seconds: 3);
+    const maxDelay = Duration(seconds: 30);
+
+    Duration retryDelay(int attempt) {
+      final multiplier = 1 << attempt.clamp(0, 4);
+      final exponentialMilliseconds = baseDelay.inMilliseconds * multiplier;
+      final cappedMilliseconds = min(
+        exponentialMilliseconds,
+        maxDelay.inMilliseconds,
+      );
+      final jitterMilliseconds = Random().nextInt(
+        (cappedMilliseconds * 0.2).round() + 1,
+      );
+      return Duration(
+        milliseconds: min(
+          cappedMilliseconds + jitterMilliseconds,
+          maxDelay.inMilliseconds,
+        ),
+      );
+    }
+
+    Future<void> cancelInnerSubscription() async {
+      final subscription = innerSubscription;
+      innerSubscription = null;
+      if (subscription != null) await subscription.cancel();
+    }
+
+    late void Function() subscribe;
+
+    Future<void> scheduleRetry({Object? error, StackTrace? stackTrace}) async {
+      if (cancelled || controller.isClosed || retryScheduled) return;
+      retryScheduled = true;
+      await cancelInnerSubscription();
+      if (cancelled || controller.isClosed) return;
+
+      if (retryCount >= maxRetries) {
+        controller.addError(
+          StateError(
+            '$operationName: max retries ($maxRetries) exceeded'
+            '${error == null ? '' : ': $error'}',
+          ),
+          stackTrace,
+        );
+        await controller.close();
+        return;
+      }
+
+      retryCount++;
+      final delay = retryDelay(retryCount - 1);
+      await ErrorHandler.reportException(
+        error ?? StateError('$operationName stream ended unexpectedly'),
+        stackTrace: stackTrace,
+        operation: '$operationName.subscribe',
+        data: {
+          ...logData,
+          'retryAttempt': retryCount,
+          'maxRetries': maxRetries,
+          'retryDelayMs': delay.inMilliseconds,
+        },
+      );
+
+      if (cancelled || controller.isClosed) return;
+      retryTimer = Timer(delay, () {
+        retryScheduled = false;
+        if (!cancelled && !controller.isClosed) subscribe();
+      });
+    }
+
+    subscribe = () {
+      if (cancelled || controller.isClosed) return;
+      try {
+        innerSubscription = streamFactory().listen(
+          (event) async {
+            if (cancelled || controller.isClosed) return;
+            innerSubscription?.pause();
+            retryCount = 0;
+            try {
+              final mapped = await eventMapper(event);
+              if (!cancelled && !controller.isClosed) controller.add(mapped);
+            } catch (error, stackTrace) {
+              await scheduleRetry(error: error, stackTrace: stackTrace);
+            } finally {
+              if (!cancelled) innerSubscription?.resume();
+            }
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            unawaited(scheduleRetry(error: error, stackTrace: stackTrace));
+          },
+          onDone: () => unawaited(scheduleRetry()),
+          cancelOnError: true,
+        );
+      } catch (error, stackTrace) {
+        unawaited(scheduleRetry(error: error, stackTrace: stackTrace));
+      }
+    };
+
+    controller = StreamController<T>(
+      onListen: subscribe,
+      onCancel: () async {
+        cancelled = true;
+        retryTimer?.cancel();
+        retryTimer = null;
+        await cancelInnerSubscription();
+      },
+    );
+    return controller.stream;
+  }
 
   Future<Failure> _serverFailure(
     String operation,
@@ -35,9 +161,8 @@ class GameRepositoryImpl implements GameRepository {
       operation: operation,
       data: data,
     );
-
-    final errorMessage = ErrorHandler.extractErrorMessage(error);
-    return ServerFailure(ErrorHandler.getUserFriendlyMessage(errorMessage));
+    final message = ErrorHandler.extractErrorMessage(error);
+    return ServerFailure(ErrorHandler.getUserFriendlyMessage(message));
   }
 
   @override
@@ -45,13 +170,13 @@ class GameRepositoryImpl implements GameRepository {
     required String roomId,
   }) async {
     try {
-      final roundModel = await remoteDataSource.getCurrentRound(roomId: roomId);
-      return Right(roundModel.toEntity());
-    } catch (e, stackTrace) {
+      final model = await remoteDataSource.getCurrentRound(roomId: roomId);
+      return Right(model.toEntity());
+    } catch (error, stackTrace) {
       return Left(
         await _serverFailure(
           'getCurrentRound',
-          e,
+          error,
           stackTrace,
           data: {'roomId': roomId},
         ),
@@ -65,34 +190,34 @@ class GameRepositoryImpl implements GameRepository {
     required String currentPlayerId,
   }) async {
     try {
-      final roundModel = await remoteDataSource.getCurrentRound(roomId: roomId);
+      final results = await Future.wait<Object>([
+        remoteDataSource.getCurrentRound(roomId: roomId),
+        remoteDataSource.getRoomPlayers(roomId: roomId),
+        remoteDataSource.getPlayerScores(roomId: roomId),
+        roomRemoteDataSource.getRoomDetails(roomId: roomId),
+      ]);
+      final round = results[0] as RoundInfoModel;
+      final playerModels = results[1] as List<PlayerModel>;
+      final scores = results[2] as Map<String, int>;
+      final room = results[3] as Room;
 
-      final playerModels = await remoteDataSource.getRoomPlayers(
-        roomId: roomId,
+      return Right(
+        GameState(
+          roomId: roomId,
+          currentRound: round.toEntity(),
+          players: playerModels.map((model) => model.toEntity()).toList(),
+          currentPlayerId: currentPlayerId,
+          totalRounds: room.maxRounds,
+          roundDuration: room.roundDuration,
+          playerScores: scores,
+          gameMode: room.gameMode,
+        ),
       );
-      final players = playerModels.map((m) => m.toEntity()).toList();
-
-      final scores = await remoteDataSource.getPlayerScores(roomId: roomId);
-
-      final room = await roomRemoteDataSource.getRoomDetails(roomId: roomId);
-
-      final gameState = GameState(
-        roomId: roomId,
-        currentRound: roundModel.toEntity(),
-        players: players,
-        currentPlayerId: currentPlayerId,
-        totalRounds: room.maxRounds,
-        roundDuration: room.roundDuration,
-        playerScores: scores,
-        gameMode: room.gameMode,
-      );
-
-      return Right(gameState);
-    } catch (e, stackTrace) {
+    } catch (error, stackTrace) {
       return Left(
         await _serverFailure(
           'getGameState',
-          e,
+          error,
           stackTrace,
           data: {'roomId': roomId},
         ),
@@ -113,15 +238,8 @@ class GameRepositoryImpl implements GameRepository {
         hint: hint,
       );
       return const Right(null);
-    } catch (e, stackTrace) {
-      return Left(
-        await _serverFailure(
-          'submitHint',
-          e,
-          stackTrace,
-          data: {'roundId': roundId, 'playerId': playerId},
-        ),
-      );
+    } catch (error, stackTrace) {
+      return Left(await _serverFailure('submitHint', error, stackTrace));
     }
   }
 
@@ -138,183 +256,101 @@ class GameRepositoryImpl implements GameRepository {
         votedPlayerId: votedPlayerId,
       );
       return const Right(null);
-    } catch (e, stackTrace) {
-      return Left(
-        await _serverFailure(
-          'submitVote',
-          e,
-          stackTrace,
-          data: {'roundId': roundId, 'voterId': voterId},
-        ),
-      );
+    } catch (error, stackTrace) {
+      return Left(await _serverFailure('submitVote', error, stackTrace));
     }
   }
 
   @override
-  Future<Either<Failure, RoundInfo>> advancePhase({
+  Future<Either<Failure, RoundInfo>> advanceToVoting({
     required String roundId,
-    required String requestingPlayerId,
   }) async {
     try {
-      // Fetch current round phase only (no JOIN needed - durations are fixed)
-      final currentRoundResponse = await client
-          .from('rounds')
-          .select('phase, room_id')
-          .eq('id', roundId)
-          .single();
-
-      final currentPhase = currentRoundResponse['phase'] as String;
-      String newPhase;
-      int phaseDuration;
-
-      switch (currentPhase) {
-        case 'hints':
-          newPhase = 'voting';
-          phaseDuration = GameConstants.votingPhaseDurationSeconds;
-          break;
-        case 'voting':
-          newPhase = 'results';
-          phaseDuration = GameConstants.resultsPhaseDurationSeconds;
-          break;
-        default:
-          // Already at results phase — no-op, return current round as-is
-          final roundModel = await remoteDataSource.getCurrentRound(
-            roomId: currentRoundResponse['room_id'] as String,
-          );
-          return Right(roundModel.toEntity());
-      }
-
-      final requestingPlayerResponse = await client
-          .from('players')
-          .select('id, is_host, room_id')
-          .eq('id', requestingPlayerId)
-          .eq('room_id', currentRoundResponse['room_id'] as String)
-          .maybeSingle();
-
-      if (requestingPlayerResponse == null ||
-          requestingPlayerResponse['is_host'] != true) {
-        return Left(
-          ServerFailure('Only the current host can skip this phase.'),
-        );
-      }
-
-      final phaseEndTime = DateTime.now().toUtc().add(
-        Duration(seconds: phaseDuration),
-      );
-
-      final updatedRound = await remoteDataSource.updateRoundPhase(
+      await remoteDataSource.advanceToVoting(roundId: roundId);
+      final snapshot = await remoteDataSource.getRoundSnapshot(
         roundId: roundId,
-        newPhase: newPhase,
-        phaseEndTime: phaseEndTime,
       );
-
-      return Right(updatedRound.toEntity());
-    } catch (e, stackTrace) {
-      return Left(
-        await _serverFailure(
-          'advancePhase',
-          e,
-          stackTrace,
-          data: {'roundId': roundId},
-        ),
-      );
+      return Right(snapshot.toEntity());
+    } catch (error, stackTrace) {
+      return Left(await _serverFailure('advanceToVoting', error, stackTrace));
     }
   }
 
   @override
-  Future<Either<Failure, RoundInfo>> updatePhaseEndTime({
+  Future<Either<Failure, FinalizeVotingResult>> finalizeVoting({
     required String roundId,
-    required DateTime phaseEndTime,
+    required String reason,
   }) async {
     try {
-      final updatedRound = await remoteDataSource.updatePhaseEndTime(
+      final result = await remoteDataSource.finalizeVoting(
         roundId: roundId,
-        phaseEndTime: phaseEndTime,
+        reason: reason,
       );
-      return Right(updatedRound.toEntity());
-    } catch (e, stackTrace) {
+      return Right(result);
+    } catch (error, stackTrace) {
+      return Left(await _serverFailure('finalizeVoting', error, stackTrace));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> extendLocalRoleReveal({
+    required String roundId,
+    required int seconds,
+  }) async {
+    try {
+      await remoteDataSource.extendLocalRoleReveal(
+        roundId: roundId,
+        seconds: seconds,
+      );
+      return const Right(null);
+    } catch (error, stackTrace) {
       return Left(
-        await _serverFailure(
-          'updatePhaseEndTime',
-          e,
-          stackTrace,
-          data: {'roundId': roundId},
-        ),
+        await _serverFailure('extendLocalRoleReveal', error, stackTrace),
       );
     }
   }
 
   @override
-  Future<Either<Failure, Map<String, int>>> calculateScores({
+  Future<Either<Failure, LocalRoleRevealBundle>> getLocalRoleRevealBundle({
     required String roundId,
-    required Map<String, int> currentScores,
   }) async {
     try {
-      // Fetch round info
-      final roundResponse = await client
-          .from('rounds')
-          .select()
-          .eq('id', roundId)
-          .single();
-
-      final imposterPlayerId = roundResponse['imposter_player_id'] as String;
-
-      // Fetch votes
-      final votes = await remoteDataSource.getVotesForRound(roundId: roundId);
-
-      // Count votes per player
-      final voteCounts = <String, int>{};
-      for (final votedPlayerId in votes.values) {
-        voteCounts[votedPlayerId] = (voteCounts[votedPlayerId] ?? 0) + 1;
-      }
-
-      // Find the most-voted player
-      String? mostVotedPlayerId;
-      int maxVotes = 0;
-      for (final entry in voteCounts.entries) {
-        if (entry.value > maxVotes) {
-          maxVotes = entry.value;
-          mostVotedPlayerId = entry.key;
-        }
-      }
-
-      // Use in-memory scores passed from state instead of reading DB
-      // (avoids RLS restrictions and race conditions)
-      final newScores = Map<String, int>.from(currentScores);
-
-      // Award points
-      // Always: +10 to anyone who voted for the imposter (correct even if not the majority)
-      for (final entry in votes.entries) {
-        final voterId = entry.key;
-        final votedId = entry.value;
-        if (votedId == imposterPlayerId) {
-          newScores[voterId] = (newScores[voterId] ?? 0) + 10;
-        }
-      }
-
-      // Imposter wins +20 if they were NOT the most-voted (majority wrong)
-      if (mostVotedPlayerId != imposterPlayerId) {
-        newScores[imposterPlayerId] = (newScores[imposterPlayerId] ?? 0) + 20;
-      }
-      // If imposter was caught (majority correct) — no bonus for imposter
-
-      // Persist scores to DB (best-effort — RLS may block writes for some players)
-      // In-memory scores are always the source of truth
-      try {
-        await remoteDataSource.updatePlayerScores(scores: newScores);
-      } catch (_) {
-        // Ignore DB write failure — in-memory scores are correct
-      }
-
-      return Right(newScores);
-    } catch (e, stackTrace) {
+      return Right(
+        await remoteDataSource.getLocalRoleRevealBundle(roundId: roundId),
+      );
+    } catch (error, stackTrace) {
       return Left(
-        await _serverFailure(
-          'calculateScores',
-          e,
-          stackTrace,
-          data: {'roundId': roundId},
+        await _serverFailure('getLocalRoleRevealBundle', error, stackTrace),
+      );
+    }
+  }
+
+  @override
+  Future<Either<Failure, LocalRoleRevealData>> getLocalRoleRevealData({
+    required String roomId,
+  }) async {
+    try {
+      final round = await remoteDataSource.getCurrentRound(roomId: roomId);
+      final bundle = await remoteDataSource.getLocalRoleRevealBundle(
+        roundId: round.id,
+      );
+      final results = await Future.wait<Object>([
+        remoteDataSource.getCharacter(characterId: bundle.characterId),
+        remoteDataSource.getRoomPlayers(roomId: roomId),
+      ]);
+      final character = results[0] as CharacterModel;
+      final players = results[1] as List<PlayerModel>;
+      return Right(
+        LocalRoleRevealData(
+          roundId: bundle.roundId,
+          imposterPlayerId: bundle.imposterPlayerId,
+          character: character.toEntity(),
+          players: players.map((player) => player.toEntity()).toList(),
         ),
+      );
+    } catch (error, stackTrace) {
+      return Left(
+        await _serverFailure('getLocalRoleRevealData', error, stackTrace),
       );
     }
   }
@@ -322,353 +358,60 @@ class GameRepositoryImpl implements GameRepository {
   @override
   Future<Either<Failure, RoundInfo>> createNextRound({
     required String roomId,
-    required int roundNumber,
+    required int expectedRoundNumber,
   }) async {
     try {
-      // ── Guard: check if this round was already created (double-tap / race condition) ──
-      final List existingList = await client
-          .from('rounds')
-          .select()
-          .eq('room_id', roomId)
-          .eq('round_number', roundNumber);
-
-      if (existingList.isNotEmpty) {
-        // Round already exists — return its data instead of inserting again
-        final existing = existingList.first as Map<String, dynamic>;
-        final character = await remoteDataSource.getCharacter(
-          characterId: existing['character_id'] as String,
-        );
-        final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
-        final playerIds = players.map((p) => p.id).toList();
-        final hints = await remoteDataSource.getHintsForRound(
-          roundId: existing['id'] as String,
-        );
-        final votes = await remoteDataSource.getVotesForRound(
-          roundId: existing['id'] as String,
-        );
-        final model = RoundInfoModel.fromJson(
-          existing,
-          character.toEntity(),
-          playerIds,
-          hints,
-          votes,
-        );
-        return Right(model.toEntity());
-      }
-
-      // ── Normal flow ─────────────────────────────────────────────────────
-      final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
-
-      // Validate player count
-      if (players.isEmpty) {
-        throw Exception('No players available');
-      }
-      if (players.length < GameConstants.minPlayers) {
-        throw Exception(
-          'Not enough players. Minimum ${GameConstants.minPlayers} required.',
-        );
-      }
-
-      // Pick a random imposter
-      final rng = Random();
-      final imposterIndex = rng.nextInt(players.length);
-      final imposterPlayerId = players[imposterIndex].id;
-
-      // Fetch room details to get roundDuration and category
-      final room = await roomRemoteDataSource.getRoomDetails(roomId: roomId);
-
-      // Best-effort: avoid repeating characters across rounds.
-      // We prefer:
-      // 1) not repeating the immediately previous round's character, and
-      // 2) not repeating any character in room.usedCharacterIds (if maintained).
-      String? previousCharacterId;
-      try {
-        final latestRound = await client
-            .from('rounds')
-            .select('character_id')
-            .eq('room_id', roomId)
-            .order('round_number', ascending: false)
-            .limit(1)
-            .maybeSingle();
-
-        if (latestRound != null) {
-          previousCharacterId = latestRound['character_id'] as String?;
-        }
-      } catch (_) {
-        // Ignore — we can still pick randomly.
-      }
-
-      final trackedUsedIds = <String>{
-        ...room.usedCharacterIds,
-        if (previousCharacterId != null) previousCharacterId,
-      };
-
-      // Fetch a random character matching the room's category.
-      var charactersQuery = client
-          .from('characters')
-          .select('id')
-          .eq('is_active', true)
-          .eq('category', room.category);
-
-      // Select only IDs to keep payload small. Use a higher limit so large
-      // seed sets (e.g. 200+/category) are actually considered.
-      final charactersResponse = await charactersQuery.limit(5000);
-
-      final allCharacters = (charactersResponse as List)
-          .cast<Map<String, dynamic>>();
-      if (allCharacters.isEmpty) {
-        throw Exception(
-          'No characters available for category "${room.category}"',
-        );
-      }
-
-      final excludedIds = <String>{
-        ...trackedUsedIds,
-        if (previousCharacterId != null) previousCharacterId,
-      };
-
-      var availableCharacters = allCharacters;
-      var resetUsedCharacters = false;
-
-      // Only filter when we have meaningful choice.
-      if (allCharacters.length > 1 && excludedIds.isNotEmpty) {
-        final filtered = allCharacters
-            .where((c) => !excludedIds.contains(c['id'] as String))
-            .toList();
-
-        if (filtered.isNotEmpty) {
-          availableCharacters = filtered;
-        } else {
-          // Everything is "used" — start a new cycle, but still try to avoid
-          // repeating the immediately previous character if possible.
-          resetUsedCharacters = true;
-          if (previousCharacterId != null) {
-            final avoidImmediate = allCharacters
-                .where((c) => (c['id'] as String) != previousCharacterId)
-                .toList();
-            if (avoidImmediate.isNotEmpty) {
-              availableCharacters = avoidImmediate;
-            }
-          }
-        }
-      }
-
-      final characterIndex = rng.nextInt(availableCharacters.length);
-      final characterId = availableCharacters[characterIndex]['id'] as String;
-
-      // Persist used-character tracking (best-effort; ignore if blocked by RLS).
-      try {
-        final nextUsedIds = resetUsedCharacters
-            ? <String>[characterId]
-            : <String>{...trackedUsedIds, characterId}.toList();
-
-        await client
-            .from('rooms')
-            .update({
-              'used_character_ids': nextUsedIds,
-              'current_round': roundNumber,
-            })
-            .eq('id', roomId);
-      } catch (_) {
-        // Ignore — round creation should still succeed.
-      }
-
-      // Create new round with duration from room settings
-      final newRound = await remoteDataSource.createRound(
+      final roundId = await remoteDataSource.createNextRoundCommand(
         roomId: roomId,
-        imposterPlayerId: imposterPlayerId,
-        characterId: characterId,
-        roundNumber: roundNumber,
-        roundDurationSeconds: room.roundDuration,
+        expectedRoundNumber: expectedRoundNumber,
       );
-
-      return Right(newRound.toEntity());
-    } catch (e, stackTrace) {
+      final snapshot = await remoteDataSource.getRoundSnapshot(
+        roundId: roundId,
+      );
+      return Right(snapshot.toEntity());
+    } catch (error, stackTrace) {
       return Left(
         await _serverFailure(
           'createNextRound',
-          e,
+          error,
           stackTrace,
-          data: {'roomId': roomId, 'roundNumber': roundNumber},
+          data: {'roomId': roomId, 'expectedRoundNumber': expectedRoundNumber},
         ),
       );
     }
   }
 
   @override
-  Future<Either<Failure, void>> endGame({required String roomId}) async {
+  Future<Either<Failure, void>> finishGame({required String roomId}) async {
     try {
-      await remoteDataSource.updateRoomStatus(
-        roomId: roomId,
-        status: 'finished',
-      );
+      await remoteDataSource.finishGameCommand(roomId: roomId);
       return const Right(null);
-    } catch (e, stackTrace) {
-      return Left(
-        await _serverFailure(
-          'endGame',
-          e,
-          stackTrace,
-          data: {'roomId': roomId},
-        ),
-      );
+    } catch (error, stackTrace) {
+      return Left(await _serverFailure('finishGame', error, stackTrace));
     }
   }
 
   @override
-  Stream<RoundInfo> watchRoundUpdates({required String roundId}) async* {
-    while (true) {
-      try {
-        await for (final _ in remoteDataSource.watchRoundChanges(
-          roundId: roundId,
-        )) {
-          try {
-            // Fetch round details via SECURITY DEFINER RPC
-            // to get properly masked imposter_player_id
-            final roundResponse = await remoteDataSource.getRoundViaRpc(
-              roundId: roundId,
-            );
-
-            final character = await remoteDataSource.getCharacter(
-              characterId: roundResponse['character_id'] as String,
-            );
-
-            final roomId = roundResponse['room_id'] as String;
-            final players = await remoteDataSource.getRoomPlayers(
-              roomId: roomId,
-            );
-            final playerIds = players.map((p) => p.id).toList();
-
-            final hints = await remoteDataSource.getHintsForRound(
-              roundId: roundId,
-            );
-            final votes = await remoteDataSource.getVotesForRound(
-              roundId: roundId,
-            );
-
-            final roundModel = RoundInfoModel.fromJson(
-              roundResponse,
-              character.toEntity(),
-              playerIds,
-              hints,
-              votes,
-            );
-
-            yield roundModel.toEntity();
-          } catch (e, stackTrace) {
-            await ErrorHandler.reportException(
-              e,
-              stackTrace: stackTrace,
-              operation: 'watchRoundUpdates.processEvent',
-              data: {'roundId': roundId},
-            );
-          }
-        }
-        break; // Stream ended normally
-      } catch (e, stackTrace) {
-        await ErrorHandler.reportException(
-          e,
-          stackTrace: stackTrace,
-          operation: 'watchRoundUpdates.subscribe',
-          data: {'roundId': roundId},
-        );
-        // WebSocket dropped — wait and reconnect
-        await Future.delayed(const Duration(seconds: 3));
-      }
-    }
+  Stream<RoundInfo> watchRoundUpdates({required String roundId}) {
+    return _watchWithRetry<Map<String, dynamic>, RoundInfo>(
+      streamFactory: () =>
+          remoteDataSource.watchRoundRevision(roundId: roundId),
+      eventMapper: (_) async => (await remoteDataSource.getRoundSnapshot(
+        roundId: roundId,
+      )).toEntity(),
+      operationName: 'watchRoundUpdates',
+      logData: {'roundId': roundId},
+    );
   }
 
   @override
-  Stream<Map<String, String>> watchHintsUpdates({
-    required String roundId,
-  }) async* {
-    while (true) {
-      try {
-        await for (final _ in remoteDataSource.watchHintsChanges(
-          roundId: roundId,
-        )) {
-          try {
-            final hints = await remoteDataSource.getHintsForRound(
-              roundId: roundId,
-            );
-            yield hints;
-          } catch (e, stackTrace) {
-            await ErrorHandler.reportException(
-              e,
-              stackTrace: stackTrace,
-              operation: 'watchHintsUpdates.processEvent',
-              data: {'roundId': roundId},
-            );
-          }
-        }
-        break;
-      } catch (e, stackTrace) {
-        await ErrorHandler.reportException(
-          e,
-          stackTrace: stackTrace,
-          operation: 'watchHintsUpdates.subscribe',
-          data: {'roundId': roundId},
-        );
-        await Future.delayed(const Duration(seconds: 3));
-      }
-    }
-  }
-
-  @override
-  Stream<Map<String, String>> watchVotesUpdates({
-    required String roundId,
-  }) async* {
-    while (true) {
-      try {
-        await for (final _ in remoteDataSource.watchVotesChanges(
-          roundId: roundId,
-        )) {
-          try {
-            final votes = await remoteDataSource.getVotesForRound(
-              roundId: roundId,
-            );
-            yield votes;
-          } catch (e, stackTrace) {
-            await ErrorHandler.reportException(
-              e,
-              stackTrace: stackTrace,
-              operation: 'watchVotesUpdates.processEvent',
-              data: {'roundId': roundId},
-            );
-          }
-        }
-        break;
-      } catch (e, stackTrace) {
-        await ErrorHandler.reportException(
-          e,
-          stackTrace: stackTrace,
-          operation: 'watchVotesUpdates.subscribe',
-          data: {'roundId': roundId},
-        );
-        await Future.delayed(const Duration(seconds: 3));
-      }
-    }
-  }
-
-  @override
-  Stream<List<Player>> watchRoomPlayers({required String roomId}) async* {
-    while (true) {
-      try {
-        await for (final players in remoteDataSource.watchPlayersChanges(
-          roomId: roomId,
-        )) {
-          yield players.map((player) => player.toEntity()).toList();
-        }
-        break;
-      } catch (e, stackTrace) {
-        await ErrorHandler.reportException(
-          e,
-          stackTrace: stackTrace,
-          operation: 'watchRoomPlayers.subscribe',
-          data: {'roomId': roomId},
-        );
-        await Future.delayed(const Duration(seconds: 3));
-      }
-    }
+  Stream<List<Player>> watchRoomPlayers({required String roomId}) {
+    return _watchWithRetry<List<PlayerModel>, List<Player>>(
+      streamFactory: () => remoteDataSource.watchPlayersChanges(roomId: roomId),
+      eventMapper: (players) =>
+          players.map((player) => player.toEntity()).toList(growable: false),
+      operationName: 'watchRoomPlayers',
+      logData: {'roomId': roomId},
+    );
   }
 }

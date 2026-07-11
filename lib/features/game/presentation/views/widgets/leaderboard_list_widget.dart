@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 
@@ -37,7 +37,10 @@ class LeaderboardListWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.of(context).surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
+            border: Border.all(
+              color: AppColors.of(context).cardBorder,
+              width: 1,
+            ),
           ),
           child: Row(
             children: [

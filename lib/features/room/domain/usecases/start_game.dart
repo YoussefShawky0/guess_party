@@ -7,7 +7,7 @@ class StartGame {
 
   StartGame(this.repository);
 
-  Future<Either<Failure, void>> call(String roomId) async {
+  Future<Either<Failure, String>> call(String roomId) async {
     return await repository.startGame(roomId);
   }
 }

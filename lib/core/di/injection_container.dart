@@ -9,12 +9,18 @@ import 'package:guess_party/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:guess_party/features/game/data/datasources/game_remote_data_source.dart';
 import 'package:guess_party/features/game/data/repositories/game_repository_impl.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
-import 'package:guess_party/features/game/domain/usecases/advance_phase.dart';
+import 'package:guess_party/features/game/domain/usecases/advance_to_voting.dart';
+import 'package:guess_party/features/game/domain/usecases/create_next_round.dart';
+import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
+import 'package:guess_party/features/game/domain/usecases/finalize_voting.dart';
+import 'package:guess_party/features/game/domain/usecases/finish_game.dart';
+import 'package:guess_party/features/game/domain/usecases/get_local_role_reveal_data.dart';
 import 'package:guess_party/features/game/domain/usecases/get_current_round.dart';
 import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/features/game/presentation/cubit/local_role_reveal_cubit.dart';
 import 'package:guess_party/features/home/data/datasources/home_remote_data_source.dart';
 import 'package:guess_party/features/home/data/repositories/home_repository_impl.dart';
 import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
@@ -24,12 +30,12 @@ import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
 import 'package:guess_party/features/room/data/repositories/room_repository_impl.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
-import 'package:guess_party/features/room/domain/usecases/add_player_to_room.dart';
 import 'package:guess_party/features/room/domain/usecases/create_room.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_by_code.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_players.dart';
 import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/usecases/join_room.dart';
 import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
@@ -100,7 +106,6 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton(() => CreateRoom(sl()));
-  sl.registerLazySingleton(() => AddPlayerToRoom(sl()));
   sl.registerLazySingleton(() => GetRoomDetails(sl()));
   sl.registerLazySingleton(() => GetRoomPlayers(sl()));
   sl.registerLazySingleton(() => GetRoomByCode(sl()));
@@ -108,12 +113,12 @@ Future<void> init() async {
   sl.registerLazySingleton(() => UpdatePlayerStatus(sl()));
   sl.registerLazySingleton(() => MarkStalePlayersOffline(sl()));
   sl.registerLazySingleton(() => LeaveRoom(sl()));
+  sl.registerLazySingleton(() => JoinRoom(sl()));
   sl.registerLazySingleton(() => WatchRoomDetails(sl()));
 
   sl.registerFactory(
     () => RoomCubit(
       createRoom: sl(),
-      addPlayerToRoom: sl(),
       getRoomDetails: sl(),
       getRoomPlayers: sl(),
       getRoomByCode: sl(),
@@ -121,6 +126,7 @@ Future<void> init() async {
       updatePlayerStatus: sl(),
       markStalePlayersOffline: sl(),
       leaveRoom: sl(),
+      joinRoomCommand: sl(),
       watchRoomDetails: sl(),
     ),
   );
@@ -132,26 +138,39 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<GameRepository>(
-    () => GameRepositoryImpl(
-      remoteDataSource: sl(),
-      roomRemoteDataSource: sl(),
-      client: sl(),
-    ),
+    () =>
+        GameRepositoryImpl(remoteDataSource: sl(), roomRemoteDataSource: sl()),
   );
 
   sl.registerLazySingleton(() => GetCurrentRound(sl()));
   sl.registerLazySingleton(() => SubmitHint(sl()));
   sl.registerLazySingleton(() => SubmitVote(sl()));
   sl.registerLazySingleton(() => GetGameState(repository: sl()));
-  sl.registerLazySingleton(() => AdvancePhase(repository: sl()));
+  sl.registerLazySingleton(() => AdvanceToVoting(sl()));
+  sl.registerLazySingleton(() => FinalizeVoting(sl()));
+  sl.registerLazySingleton(() => CreateNextRound(sl()));
+  sl.registerLazySingleton(() => FinishGame(sl()));
+  sl.registerLazySingleton(() => ExtendLocalRoleReveal(sl()));
+  sl.registerLazySingleton(() => GetLocalRoleRevealData(sl()));
 
   sl.registerFactory(
     () => GameCubit(
       getGameState: sl(),
       submitHint: sl(),
       submitVote: sl(),
-      advancePhase: sl(),
+      advanceToVoting: sl(),
+      finalizeVotingUseCase: sl(),
+      createNextRound: sl(),
+      finishGameUseCase: sl(),
+      extendLocalRoleReveal: sl(),
       gameRepository: sl(),
+    ),
+  );
+
+  sl.registerFactory(
+    () => LocalRoleRevealCubit(
+      getLocalRoleRevealData: sl(),
+      extendLocalRoleReveal: sl(),
     ),
   );
 }

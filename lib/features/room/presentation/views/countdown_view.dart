@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
+import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
+import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 
 class CountdownScreen extends StatefulWidget {
   final String roomId;
@@ -41,15 +43,12 @@ class _CountdownScreenState extends State<CountdownScreen>
 
   Future<void> _loadGameMode() async {
     try {
-      final response = await Supabase.instance.client
-          .from('rooms')
-          .select('game_mode')
-          .eq('id', widget.roomId)
-          .single();
+      final result = await sl<GetRoomDetails>()(roomId: widget.roomId);
       if (mounted) {
-        setState(() {
-          _gameMode = response['game_mode'] as String?;
-        });
+        result.fold(
+          (_) => setState(() => _gameMode = GameConstants.gameModeOnline),
+          (room) => setState(() => _gameMode = room.gameMode),
+        );
       }
     } catch (e) {
       // Default to online if error
@@ -92,12 +91,10 @@ class _CountdownScreenState extends State<CountdownScreen>
       bool roundExists = false;
       for (var attempt = 0; attempt < 5; attempt++) {
         try {
-          final rounds = await Supabase.instance.client
-              .from('rounds')
-              .select('id')
-              .eq('room_id', widget.roomId)
-              .limit(1);
-          if ((rounds as List).isNotEmpty) {
+          final result = await sl<GameRepository>().getCurrentRound(
+            roomId: widget.roomId,
+          );
+          if (result.isRight()) {
             roundExists = true;
             break;
           }
