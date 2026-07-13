@@ -34,13 +34,13 @@ class ErrorHandler {
     // Invalid credentials
     if (errorLower.contains('invalid login credentials') ||
         errorLower.contains('invalid_credentials')) {
-      return 'Invalid username or password';
+      return 'Invalid sign-in details';
     }
 
     // User not found
     if (errorLower.contains('user not found') ||
         errorLower.contains('not_found')) {
-      return 'User not found. Please create an account first';
+      return 'Unable to sign in. Check your details or create an account.';
     }
 
     // User already exists
@@ -56,12 +56,12 @@ class ErrorHandler {
     if (errorLower.contains('user already registered') ||
         errorLower.contains('already exists') ||
         errorLower.contains('duplicate')) {
-      return 'Username already exists. Choose another one';
+      return 'An account already uses this email. Try signing in instead.';
     }
 
     // Weak password
     if (errorLower.contains('password') && errorLower.contains('weak')) {
-      return 'Password is too weak. Use at least 6 characters';
+      return 'Password is too weak. Use at least 8 characters';
     }
 
     // Network errors
@@ -84,6 +84,22 @@ class ErrorHandler {
     // Email address invalid
     if (errorLower.contains('email') && errorLower.contains('invalid')) {
       return 'Invalid email address';
+    }
+
+    if (errorLower.contains('sign in before upgrading')) {
+      return 'Please sign in before upgrading or migrating an account.';
+    }
+
+    if (errorLower.contains('already uses a real email')) {
+      return 'This account already uses a real email.';
+    }
+
+    if (errorLower.contains('verify your email')) {
+      return 'Verify your email before setting an account password.';
+    }
+
+    if (errorLower.contains('recovery') && errorLower.contains('no longer')) {
+      return 'This password recovery link is no longer valid.';
     }
 
     // Database column errors

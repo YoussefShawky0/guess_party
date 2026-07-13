@@ -13,19 +13,23 @@ import 'widgets/guest_button.dart';
 import 'widgets/username_field.dart';
 
 class AuthScreen extends StatelessWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({this.sessionEnded = false, super.key});
+
+  final bool sessionEnded;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => di.sl<AuthCubit>(),
-      child: const AuthView(),
+      child: AuthView(sessionEnded: sessionEnded),
     );
   }
 }
 
 class AuthView extends StatefulWidget {
-  const AuthView({super.key});
+  const AuthView({this.sessionEnded = false, super.key});
+
+  final bool sessionEnded;
 
   @override
   State<AuthView> createState() => _AuthViewState();
@@ -83,6 +87,21 @@ class _AuthViewState extends State<AuthView> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const AuthHeader(),
+                        if (widget.sessionEnded) ...[
+                          const SizedBox(height: 20),
+                          Container(
+                            key: const Key('session-ended-message'),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Your session ended. Please sign in again.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
                         SizedBox(height: isTablet ? 80 : 60),
                         UsernameField(
                           controller: _usernameController,

@@ -7,13 +7,7 @@ class SignInWithPassword {
 
   SignInWithPassword(this.repository);
 
-  ResultFuture<Player> call({
-    required String username,
-    required String password,
-  }) {
-    return repository.signInWithPassword(
-      username: username,
-      password: password,
-    );
+  ResultFuture<Player> call({required String email, required String password}) {
+    return repository.signInWithPassword(email: email, password: password);
   }
 }

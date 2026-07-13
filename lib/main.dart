@@ -12,6 +12,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_config.dart';
 import 'core/di/injection_container.dart' as di;
+import 'core/router/app_routes.dart';
+import 'core/services/auth_navigation_coordinator.dart';
+import 'core/services/auth_session_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +22,9 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (error) {
-    runApp(BootstrapErrorApp(message: 'Unable to load app configuration: $error'));
+    runApp(
+      BootstrapErrorApp(message: 'Unable to load app configuration: $error'),
+    );
     return;
   }
 
@@ -111,8 +116,39 @@ class BootstrapErrorApp extends StatelessWidget {
   }
 }
 
-class GuessParty extends StatelessWidget {
+class GuessParty extends StatefulWidget {
   const GuessParty({super.key});
+
+  @override
+  State<GuessParty> createState() => _GuessPartyState();
+}
+
+class _GuessPartyState extends State<GuessParty> {
+  late final AuthNavigationCoordinator _authNavigationCoordinator;
+
+  @override
+  void initState() {
+    super.initState();
+    _authNavigationCoordinator = AuthNavigationCoordinator(
+      sessionService: di.sl<AuthSessionService>(),
+      onSignedOut: () =>
+          _navigateAfterFrame('${AppRoutes.auth}?reason=session-ended'),
+      onIntentionalSignedOut: () => _navigateAfterFrame(AppRoutes.auth),
+      onPasswordRecovery: () => _navigateAfterFrame(AppRoutes.resetPassword),
+    )..start();
+  }
+
+  void _navigateAfterFrame(String location) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppRouter.router.go(location);
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_authNavigationCoordinator.close());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

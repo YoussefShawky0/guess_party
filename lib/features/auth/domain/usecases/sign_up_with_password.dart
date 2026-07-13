@@ -8,11 +8,13 @@ class SignUpWithPassword {
   SignUpWithPassword(this.repository);
 
   ResultFuture<Player> call({
-    required String username,
+    required String email,
+    required String displayName,
     required String password,
   }) {
     return repository.signUpWithPassword(
-      username: username,
+      email: email,
+      displayName: displayName,
       password: password,
     );
   }

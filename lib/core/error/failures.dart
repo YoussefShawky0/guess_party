@@ -12,6 +12,10 @@ class ServerFailure extends Failure {
   const ServerFailure(super.message);
 }
 
+class EmailVerificationRequiredFailure extends Failure {
+  const EmailVerificationRequiredFailure(super.message);
+}
+
 class CacheFailure extends Failure {
   const CacheFailure(super.message);
 }

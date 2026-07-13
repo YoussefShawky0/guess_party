@@ -1,5 +1,5 @@
 begin;
-select plan(36);
+select plan(38);
 
 select has_table('public', 'rooms', 'rooms table exists');
 select has_table('public', 'players', 'players table exists');
@@ -83,6 +83,32 @@ select ok(
 select ok(
   not has_function_privilege('anon', 'public.get_round_for_player_v2(uuid)', 'EXECUTE'),
   'anon cannot execute secure round snapshot RPC'
+);
+select ok(
+  exists (
+    select 1
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname = 'public'
+      and t.relname = 'players'
+      and c.contype = 'u'
+      and pg_get_constraintdef(c.oid) = 'UNIQUE (room_id, username)'
+  ),
+  'display names are unique within a room'
+);
+select ok(
+  not exists (
+    select 1
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname = 'public'
+      and t.relname = 'players'
+      and c.contype = 'u'
+      and pg_get_constraintdef(c.oid) = 'UNIQUE (username)'
+  ),
+  'display names are not globally unique account identifiers'
 );
 select is(
   (

@@ -8,6 +8,8 @@ import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/auth/presentation/views/auth_view.dart';
 import 'package:guess_party/features/auth/presentation/views/login_view.dart';
+import 'package:guess_party/features/auth/presentation/views/reset_password_view.dart';
+import 'package:guess_party/features/auth/presentation/views/account_upgrade_view.dart';
 import 'package:guess_party/features/game/presentation/views/game_over_view.dart';
 import 'package:guess_party/features/game/presentation/views/game_view.dart';
 import 'package:guess_party/features/game/presentation/views/local_mode_game_screen.dart';
@@ -54,11 +56,21 @@ class AppRouter {
       //auth flow
       GoRoute(
         path: AppRoutes.auth,
-        builder: (context, state) => const AuthScreen(),
+        builder: (context, state) => AuthScreen(
+          sessionEnded: state.uri.queryParameters['reason'] == 'session-ended',
+        ),
       ),
       GoRoute(
         path: AppRoutes.login,
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        builder: (context, state) => const ResetPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.accountUpgrade,
+        builder: (context, state) => const AccountUpgradeScreen(),
       ),
       GoRoute(
         path: AppRoutes.home,
@@ -177,10 +189,7 @@ class AppRouter {
               ),
             );
           }
-          return GameOverView(
-            players: players,
-            playerScores: playerScores,
-          );
+          return GameOverView(players: players, playerScores: playerScores);
         },
       ),
     ],

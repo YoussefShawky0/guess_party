@@ -41,11 +41,14 @@ additional_redirect_urls = ["io.supabase.guessparty://login-callback"]
 jwt_expiry = 3600
 enable_signup = true
 enable_anonymous_sign_ins = true
+enable_manual_linking = true
 minimum_password_length = 8
 
 [auth.email]
 enable_signup = true
-double_confirm_changes = true
+# Local Phase 7 migration testing: legacy synthetic addresses cannot confirm
+# an old-address email. Production requires an explicit rollout decision.
+double_confirm_changes = false
 enable_confirmations = false
 
 [analytics]

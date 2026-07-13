@@ -1,10 +1,16 @@
 import 'package:get_it/get_it.dart';
 import 'package:guess_party/features/auth/data/datasources/auth_remote_data_source.dart';
+import 'package:guess_party/features/auth/data/datasources/auth_api_client.dart';
 import 'package:guess_party/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:guess_party/features/auth/domain/repositories/auth_repository.dart';
 import 'package:guess_party/features/auth/domain/usecases/sign_in_guest.dart';
+import 'package:guess_party/features/auth/domain/usecases/sign_in_legacy_with_password.dart';
 import 'package:guess_party/features/auth/domain/usecases/sign_in_with_password.dart';
 import 'package:guess_party/features/auth/domain/usecases/sign_up_with_password.dart';
+import 'package:guess_party/features/auth/domain/usecases/request_password_reset.dart';
+import 'package:guess_party/features/auth/domain/usecases/begin_account_upgrade.dart';
+import 'package:guess_party/features/auth/domain/usecases/set_verified_account_password.dart';
+import 'package:guess_party/features/auth/domain/usecases/update_recovered_password.dart';
 import 'package:guess_party/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:guess_party/features/game/data/datasources/game_remote_data_source.dart';
 import 'package:guess_party/features/game/data/repositories/game_repository_impl.dart';
@@ -80,6 +86,11 @@ Future<void> init() async {
       signInGuest: sl(),
       signUpWithPassword: sl(),
       signInWithPasswordUseCase: sl(),
+      signInLegacyWithPasswordUseCase: sl(),
+      requestPasswordResetUseCase: sl(),
+      beginAccountUpgradeUseCase: sl(),
+      setVerifiedAccountPasswordUseCase: sl(),
+      updateRecoveredPasswordUseCase: sl(),
     ),
   );
 
@@ -87,15 +98,21 @@ Future<void> init() async {
   sl.registerLazySingleton(() => SignInGuest(sl()));
   sl.registerLazySingleton(() => SignUpWithPassword(sl()));
   sl.registerLazySingleton(() => SignInWithPassword(sl()));
+  sl.registerLazySingleton(() => SignInLegacyWithPassword(sl()));
+  sl.registerLazySingleton(() => RequestPasswordReset(sl()));
+  sl.registerLazySingleton(() => BeginAccountUpgrade(sl()));
+  sl.registerLazySingleton(() => SetVerifiedAccountPassword(sl()));
+  sl.registerLazySingleton(() => UpdateRecoveredPassword(sl()));
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(remoteDataSource: sl()),
+    () => AuthRepositoryImpl(remoteDataSource: sl(), authSessionService: sl()),
   );
   // Data Sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(client: sl()),
+    () => AuthRemoteDataSourceImpl(authApi: sl()),
   );
+  sl.registerLazySingleton<AuthApiClient>(() => SupabaseAuthApiClient(sl()));
 
   // ============= Home Feature =============
 
@@ -109,7 +126,10 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<HomeRemoteDataSource>(
-    () => HomeRemoteDataSourceImpl(supabaseClient: sl()),
+    () => HomeRemoteDataSourceImpl(
+      supabaseClient: sl(),
+      authSessionService: sl(),
+    ),
   );
 
   // ============= Room Feature =============

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -186,11 +186,7 @@ class _HomeContentState extends State<HomeContent> {
             ),
             Expanded(
               child: BlocConsumer<HomeCubit, HomeState>(
-                listener: (context, state) {
-                  if (state is HomeSignedOut) {
-                    context.go(AppRoutes.auth);
-                  }
-                },
+                listener: (context, state) {},
                 builder: (context, state) {
                   if (state is HomeLoading) {
                     return Center(
@@ -226,6 +222,23 @@ class _HomeContentState extends State<HomeContent> {
                                 username: state.userInfo.username,
                                 isTablet: isTablet,
                               ),
+                              if (state.userInfo.isAnonymous ||
+                                  state.userInfo.isLegacyAccount) ...[
+                                const SizedBox(height: 16),
+                                OutlinedButton.icon(
+                                  key: const Key('secure-account-button'),
+                                  onPressed: () =>
+                                      context.push(AppRoutes.accountUpgrade),
+                                  icon: const Icon(
+                                    Icons.mark_email_read_outlined,
+                                  ),
+                                  label: Text(
+                                    state.userInfo.isAnonymous
+                                        ? 'Secure this guest account'
+                                        : 'Link a real recovery email',
+                                  ),
+                                ),
+                              ],
                               SizedBox(height: isTablet ? 48 : 32),
                               HomeActionButtons(isTablet: isTablet),
                             ],
