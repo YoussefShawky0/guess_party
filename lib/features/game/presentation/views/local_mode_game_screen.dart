@@ -158,7 +158,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
         appBar: AppBar(
-          title: const Text('Game'),
+          title: const Text('Shared-Device Game'),
           backgroundColor: AppColors.of(context).surface,
           foregroundColor: AppColors.of(context).textPrimary,
           leading: IconButton(

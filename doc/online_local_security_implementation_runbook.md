@@ -1,4 +1,4 @@
-# Online and Local Gameplay Security — Implementation Runbook
+# Online and Shared-Device Gameplay Security — Implementation Runbook
 
 **Audience:** cost-optimized coding LLM or junior implementer  
 **Authority:** this runbook is the execution guide; architecture rationale remains in `doc/local_mode_security_remediation_plan.md`  
@@ -7,7 +7,7 @@
 
 ## 1. Mission
 
-Implement the Online/Local gameplay security remediation without breaking the existing round loop:
+Implement the Online/Shared-Device gameplay security remediation without breaking the existing round loop:
 
 ```text
 Create/Join → Start → Role/Character Reveal → Hints → Voting → Results → Next Round → Finish
@@ -19,7 +19,7 @@ The finished system must satisfy all of these:
 - Online clients cannot vote as another player.
 - Online host clients never choose or receive raw round secrets unless their role/results authorizes it.
 - Online imposters do not receive the selected character before results.
-- Local role reveal works for exactly one imposter and all Local votes succeed.
+- Shared-device role reveal works for exactly one imposter and all Local votes succeed.
 - Local shared gameplay state does not retain reveal secrets.
 - Round creation, phase commands, scoring, and next-round creation are idempotent.
 - Host migration races cannot double-score or double-create rounds.
@@ -372,7 +372,7 @@ online non-imposter participant        → character ID, imposter NULL
 local general gameplay before results  → both NULL
 ```
 
-`get_local_role_reveal_bundle` requires Local mode + current host + participant membership and returns both secrets.
+`get_local_role_reveal_bundle` requires Shared-Device mode + current host + participant membership and returns both secrets.
 
 `get_vote_state` returns this shape:
 
@@ -485,7 +485,7 @@ Replace global stale cleanup with room-scoped cleanup. It must reject Local room
 
 Add `round_revisions` to `supabase_realtime`; keep legacy publications until Phase D enforcement.
 
-**Gate B:** additive SQL applies in a staging database, old client still loads, Local role reveal/vote regression is fixed, and all new RPC security tests pass.
+**Gate B:** additive SQL applies in a staging database, old client still loads, Shared-device role reveal/vote regression is fixed, and all new RPC security tests pass.
 
 ## 9. Phase C — Flutter Compatible Client
 
@@ -641,8 +641,8 @@ Refactor `LocalRoleRevealScreen`:
 - Do not create a general `GameCubit` merely to obtain secrets.
 - Use a dedicated reveal Cubit/controller with `GetLocalRoleRevealBundle` plus room participants.
 - Hold bundle only for the reveal sequence.
-- Clear bundle/controller before navigating to Local game screen.
-- Local game screen loads general redacted round snapshot.
+- Clear bundle/controller before navigating to Shared-device game screen.
+- Shared-device game screen loads general redacted round snapshot.
 
 ### C06. Online voting readiness
 
@@ -726,7 +726,7 @@ Use separate Supabase clients where possible. Transaction test template:
 
 ```sql
 begin;
-set local role authenticated;
+set shared-device role authenticated;
 set local request.jwt.claims = '{"sub":"USER_UUID","role":"authenticated"}';
 -- test query
 rollback;

@@ -1,37 +1,37 @@
-# Online and Local Gameplay Security Remediation Plan
+# Online and Shared-Device Gameplay Security Remediation Plan
 
 **Status:** Implementation-ready  
 **Owner:** Gameplay / Platform  
 **Priority:** P0 game integrity and authorization  
-**Scope:** Local role reveal, Local voting, Online vote ownership, imposter and selected-character secrecy, authoritative round creation, presence/host migration, round Realtime, and score finalization
+**Scope:** Shared-device role reveal, Local voting, Online vote ownership, imposter and selected-character secrecy, authoritative round creation, presence/host migration, round Realtime, and score finalization
 
 ## 1. Executive Summary
 
 The production symptoms have two immediate causes:
 
-1. Local Mode role reveal uses an RPC that masks `imposter_player_id` for the shared host session.
-2. The deployed vote policy differs from the repository policy and rejects votes cast on behalf of local players.
+1. Shared-Device Mode role reveal uses an RPC that masks `imposter_player_id` for the shared host session.
+2. The deployed vote policy differs from the repository policy and rejects votes cast on behalf of shared-device players.
 
 The surrounding design also permits clients to query or receive secret round data through paths that bypass the masking RPC. Fixing only the two symptoms would leave Online Mode vulnerable to vote spoofing and imposter disclosure.
 
 This plan delivers the remediation in four controlled stages:
 
-1. Reconcile schema drift and restore Local Mode with mode-aware database authorization.
+1. Reconcile schema drift and restore Shared-Device Mode with mode-aware database authorization.
 2. Introduce safe round-change notifications and an atomic voting finalization RPC.
 3. Release a compatible Flutter client that no longer reads secret round rows directly.
 4. Enforce column privileges and remove `rounds` from Realtime after the compatible client is adopted.
 
-No client-provided mode or host flag is trusted. Online authority remains in Supabase. Local Mode remains a shared-device experience; moving it completely offline is tracked as a separate architectural follow-up because the current implementation persists Local games in Supabase.
+No client-provided mode or host flag is trusted. Supabase remains authoritative for both modes. Shared-Device Mode is an intentionally connected, authenticated pass-and-play experience; it is not an offline mode.
 
 ## 2. Non-Negotiable Invariants
 
 - An Online player can submit or update only their own vote.
-- The authenticated Local host can submit votes for local players on the shared device.
+- The authenticated Local host can submit votes for shared-device players on the shared device.
 - A voter and target must belong to the same room and round.
 - `players.is_host` is the source of host authority; `rooms.host_id` is not used for authorization.
 - `imposter_player_id` and the selected `character_id` are never available through direct round-table SELECT or raw Realtime payloads.
 - The masking RPC is the only client-readable source of either round secret.
-- A dedicated Local reveal flow receives both round secrets only for sequential pass-device reveal; normal shared Local game state remains redacted until results.
+- A dedicated Local reveal flow receives both round secrets only for sequential pass-device reveal; normal shared Shared-device game state remains redacted until results.
 - An Online player receives the imposter ID only when they are the imposter or the round is in results; an Online imposter does not receive the selected character before results.
 - Imposter and character selection occur only in PostgreSQL; the host client never generates or reads unmasked Online secrets.
 - Every round has an immutable participant snapshot used by voting, readiness, scoring, and reconnect logic.
@@ -53,11 +53,11 @@ The explicit tie rule replaces the current iteration-order-dependent behavior.
 
 ### 3.2 Room mode
 
-`game_mode` is selected when the room is created and becomes immutable. The mode is visible to participants and controls routing. A room cannot switch between Online and Local after creation.
+`game_mode` is selected when the room is created and becomes immutable. The mode is visible to participants and controls routing. A room cannot switch between Online and Shared-Device after creation. The persisted value `local` remains unchanged for compatibility and does not imply offline operation.
 
-### 3.3 Local Mode boundary
+### 3.3 Shared-Device Mode boundary
 
-This remediation secures the existing Supabase-backed Local Mode. A subsequent project should move Local Mode state into an in-memory/local game engine so it is fully network-free, as required by the project constitution. That refactor is intentionally excluded from this production repair.
+This remediation secures the approved Supabase-backed Shared-Device Mode. It requires internet access and an authenticated session while players pass one physical device between turns. A separate offline engine is not part of the approved product model.
 
 ## 4. Target Architecture
 
@@ -71,11 +71,11 @@ This remediation secures the existing Supabase-backed Local Mode. A subsequent p
 - Clients observe a non-sensitive `round_revisions` stream, then refresh through the masking RPC.
 - The host invokes one `finalize_voting` RPC to score and enter results.
 
-### 4.2 Local Mode
+### 4.2 Shared-Device Mode
 
 - The authenticated shared-device host owns the Supabase room session.
-- Local player rows retain distinct generated IDs.
-- Mode-aware vote policies let the current database host vote for those local player IDs.
+- Shared-device player rows retain distinct generated IDs.
+- Mode-aware vote policies let the current database host vote for those shared-device player IDs.
 - The masking RPC recognizes the current Local host and returns the imposter ID for pass-device role reveal.
 - The same atomic `finalize_voting` operation is used, preventing mode-specific score divergence.
 
@@ -143,13 +143,13 @@ Do not change the legacy RPC in a way that makes `character_id` nullable for alr
 The v2 contract enforces:
 
 1. Caller has a player row in the round's room.
-2. General Local game-state branch masks both secrets before results.
+2. General Shared-device game-state branch masks both secrets before results.
 3. Online imposter branch returns `imposter_player_id` but masks `character_id`.
 4. Online innocent branch returns `character_id` but masks `imposter_player_id`.
 5. Results return both secrets to authenticated round participants.
 6. Otherwise return no row.
 
-Add a separate `get_local_role_reveal_bundle(round_id)` RPC. It returns both Local secrets only to the current host of a Local room and only for the dedicated sequential reveal use case. It has no Realtime surface and uses the same hardened privileges. The reveal controller clears the bundle when reveal completes or is disposed; normal Local gameplay never stores it in shared `GameState`.
+Add a separate `get_local_role_reveal_bundle(round_id)` RPC. It returns both Local secrets only to the current host of a Local room and only for the dedicated sequential reveal use case. It has no Realtime surface and uses the same hardened privileges. The reveal controller clears the bundle when reveal completes or is disposed; normal Shared-device gameplay never stores it in shared `GameState`.
 
 Function requirements:
 
@@ -217,7 +217,7 @@ Create `public.round_participants` with a composite primary key `(round_id, play
 When a round is created, snapshot:
 
 - Online Mode: players who are online at round creation.
-- Local Mode: every local player row belonging to the shared-device room.
+- Shared-Device Mode: every shared-device player row belonging to the shared-device room.
 
 Rules:
 
@@ -288,13 +288,13 @@ It must:
 - Reconcile host migration and empty-room cleanup under the same per-room lock.
 - Use a bounded server-controlled stale interval.
 
-The current global RPC can mark unrelated Local players offline when any Online host runs cleanup. It must be retired.
+The current global RPC can mark unrelated Shared-device players offline when any Online host runs cleanup. It must be retired.
 
 ### DB-14: Harden room membership and identity
 
-- Restore/enforce one player identity per `(room_id, user_id)`; generated Local user IDs remain distinct, so this does not block Local Mode.
+- Restore/enforce one player identity per `(room_id, user_id)`; generated Local user IDs remain distinct, so this does not block Shared-Device Mode.
 - Enforce unique username per room separately if required by product behavior.
-- Introduce an atomic `create_room` command that inserts the room and its host player together. For Local Mode it validates and inserts the full supplied local-name roster in the same transaction. This prevents orphan rooms/partial Local rosters when one client insert fails and retries room-code collisions server-side.
+- Introduce an atomic `create_room` command that inserts the room and its host player together. For Shared-Device Mode it validates and inserts the full supplied local-name roster in the same transaction. This prevents orphan rooms/partial Local rosters when one client insert fails and retries room-code collisions server-side.
 - Replace permissive player INSERT with a `join_room` command that requires `rooms.status = 'waiting'`, enforces capacity atomically, prevents joining Local rooms remotely, and returns the caller's existing row idempotently on retry.
 - Remove fallback identity behavior: absence of the caller's player row is a synchronization/authorization failure, never permission to act as the first player.
 
@@ -310,7 +310,7 @@ The current hints policies/read stream must not remain globally readable.
 
 - SELECT requires membership in the hint round's room.
 - Online INSERT/UPDATE requires `hints.player_id` to belong to `auth.uid()` and the round participant snapshot.
-- Local Mode performs verbal hints and receives no database-write exception by default.
+- Shared-Device Mode performs verbal hints and receives no database-write exception by default.
 - Cross-room reads/writes are denied.
 - If hints are considered public to all room participants during the hints phase, document that visibility explicitly; otherwise introduce the same revision/RPC pattern selected for ballots.
 
@@ -345,8 +345,7 @@ Replace every `SELECT *`/implicit SELECT on `rounds`:
 
 - `updateRoundPhase` and `updatePhaseEndTime`: update, then fetch via masking RPC.
 - `createRound`: return only the inserted ID, then fetch via masking RPC.
-- `createNextRound` duplicate guard: select safe identity columns, then fetch the existing round via masking RPC.
-- `getCurrentRound`: retain its explicit safe metadata query and RPC fetch.
+- `createNextRound` duplicate guard: select safe identity columns, then fetch the existing round via masking RPC.…14 tokens truncated…a query and RPC fetch.
 
 All compatible-client reads use `get_round_for_player_v2`; the legacy RPC remains only for the staged mobile transition.
 
@@ -393,11 +392,11 @@ Player-facing RLS/authorization errors must map to concise in-flow messages. Do 
 - Online innocent: visible character, hidden imposter.
 - Online imposter: hidden character, visible own imposter identity.
 - Online results: both visible.
-- Local role reveal: both secrets exist only in a dedicated ephemeral reveal state; shared `GameState` remains redacted.
+- Shared-device role reveal: both secrets exist only in a dedicated ephemeral reveal state; shared `GameState` remains redacted.
 
 The data source must not call `getCharacter` when the RPC masks `character_id`. Logs, Equatable props, debug output, and error breadcrumbs must not serialize secret values.
 
-Refactor `LocalRoleRevealScreen` away from the general `loadGameState` path. Give it a dedicated reveal use case/state object for `get_local_role_reveal_bundle` and clear that state before navigating to the Local game screen.
+Refactor `LocalRoleRevealScreen` away from the general `loadGameState` path. Give it a dedicated reveal use case/state object for `get_local_role_reveal_bundle` and clear that state before navigating to the Shared-device game screen.
 
 ### APP-07: Use round participants for Online readiness
 
@@ -416,7 +415,7 @@ Update Room/Game repositories and use cases so both modes share command contract
 - Voting completion/expiry/skip → `finalize_voting`.
 - Results Next Round → `create_next_round`.
 - Final leaderboard → `finish_game`.
-- Local role-reveal extension → Local-only bounded RPC.
+- Shared-device role-reveal extension → Local-only bounded RPC.
 
 Online screens resolve the current authenticated player and host from synchronized player state. Local screens use the shared-device host session. Presentation code never supplies an authorization boolean.
 
@@ -490,7 +489,7 @@ Required identities:
 
 Required cases:
 
-- Dedicated Local reveal RPC returns both secrets to the Local host; general Local game-state RPC remains redacted before results.
+- Dedicated Local reveal RPC returns both secrets to the Local host; general Shared-device game-state RPC remains redacted before results.
 - Online non-imposter, including host, receives NULL before results.
 - Online imposter receives their own ID.
 - Online imposter receives no selected character before results.
@@ -501,7 +500,7 @@ Required cases:
 - Raw `rounds` Realtime subscription is unavailable after enforcement.
 - `round_revisions` contains no secret fields and is room-scoped.
 - Online self-vote succeeds; Online vote-as-other fails.
-- Local host voting for each local player succeeds.
+- Local host voting for each shared-device player succeeds.
 - Local non-host and outsider voting fail.
 - Cross-room targets and self-votes fail.
 - Finalization rejects non-hosts and wrong phases.
@@ -523,14 +522,14 @@ Required cases:
 
 ### 8.2 Flutter automated tests
 
-- Local role reveal identifies exactly one imposter.
-- Local sequential voting records one vote per local player.
+- Shared-device role reveal identifies exactly one imposter.
+- Local sequential voting records one vote per shared-device player.
 - Online vote ownership errors stay inline.
 - Finalization invokes one repository operation despite duplicate UI triggers.
 - Realtime revision updates refresh the masked RPC state.
 - Cancelled streams do not reconnect or leak channels.
 - Duplicate round guard returns RPC-derived masked/unmasked state correctly.
-- Online and Local flows remain routed to separate views.
+- Online and Shared-Device flows remain routed to separate views.
 - Online host never receives raw next-round secrets during creation.
 - Online imposter state contains no character object before results.
 - Online voting readiness uses online round participants rather than total room rows.
@@ -539,7 +538,7 @@ Required cases:
 
 ### 8.3 Manual matrix
 
-Test at least three physical clients for Online Mode and one shared device for Local Mode:
+Test at least three physical clients for Online Mode and one shared device for Shared-Device Mode:
 
 - Full round lifecycle, including next round.
 - Network loss and reconnection during each phase.
@@ -570,7 +569,7 @@ Test at least three physical clients for Online Mode and one shared device for L
 - Deploy room-scoped Online presence cleanup and membership hardening where backward compatible.
 - Keep existing `rounds` SELECT grants and publication temporarily for old clients.
 
-This phase fixes Local role reveal and Local votes without breaking the installed application.
+This phase fixes Shared-device role reveal and Local votes without breaking the installed application.
 
 **Gate:** database security tests pass except final column/publication enforcement tests.
 
@@ -615,21 +614,21 @@ This phase fixes Local role reveal and Local votes without breaking the installe
 
 The remediation is complete only when:
 
-- Exactly one Local player receives the imposter role on every round.
-- All Local players can vote through the shared host device.
+- Exactly one Shared-device player receives the imposter role on every round.
+- All Shared-device players can vote through the shared host device.
 - Online players cannot vote as another player.
 - Unauthorized clients cannot read the imposter or selected character through REST, RPC, or Realtime.
 - Online hosts do not generate or receive raw round secrets unless authorized by role/results.
 - Round participants are stable across join, leave, disconnect, reconnect, and host migration.
 - Voting finalization is atomic and cannot award twice.
 - Persisted and displayed scores follow the documented rules.
-- Online and Local full-round flows, next-round flow, reconnect, and disposal tests pass.
+- Online and Shared-Device full-round flows, next-round flow, reconnect, and disposal tests pass.
 - Flutter analysis/tests and Supabase security tests pass.
 - Database advisors have no unresolved findings relevant to the changed objects.
 
-## 12. Online/Local Compatibility Matrix
+## 12. Online/Shared-Device Compatibility Matrix
 
-| Shared capability | Online Mode contract | Local Mode contract | Required implementation |
+| Shared capability | Online Mode contract | Shared-Device Mode contract | Required implementation |
 |---|---|---|---|
 | Create room | Authenticated room with remote join enabled | Shared-device room; remote join denied | Immutable DB `game_mode`; server-enforced membership rules |
 | Add player | One authenticated identity per room, waiting status only | Host creates distinct generated local identities | `join_room`/policy validation plus `(room_id, user_id)` uniqueness |
@@ -646,7 +645,7 @@ The remediation is complete only when:
 | Next round | Current host; secrets generated server-side | Shared-device host; sequential reveal follows | Idempotent `create_next_round` RPC |
 | Finish game | Current host only; all clients observe room finished | Shared-device host | `finish_game` RPC and room-status Realtime |
 | Realtime | Safe revisions/events only; no secret payload | Optional refresh for current backend-backed Local implementation | `round_revisions`, scoped player/vote streams, owned cancellation |
-| Resume/reconnect | Reload authoritative round, participants, host, votes/progress, and scores | Reload shared-device session until offline refactor | Fail-closed identity resolution and subscription replacement |
+| Resume/reconnect | Reload authoritative round, participants, host, votes/progress, and scores | Reload the authoritative shared-device session from Supabase | Fail-closed identity resolution and subscription replacement |
 
 ## 13. Deep-Dive Edge-Case Decisions
 
@@ -659,19 +658,19 @@ The remediation is complete only when:
 - **Timer and manual skip race:** both call the same expected-phase command; one transition commits and the other receives the committed result without rescoring.
 - **Host migration and next round:** only the host authoritative after the lock may create it; the client never chooses secrets.
 - **Old mobile client during enforcement:** use minimum-version gating before revoking grants/publication access.
-- **Local players appear stale:** room-scoped cleanup rejects Local rooms, so fake identities are never marked offline by another room's host.
+- **Shared-device players appear stale:** room-scoped cleanup rejects Local rooms, so fake identities are never marked offline by another room's host.
 - **Room closes while RPC is in flight:** locked state is rechecked; commands on finished rooms return an idempotent terminal result or a recoverable validation failure.
 - **No character remains unused:** server starts a new used-character cycle while avoiding the immediately previous character when possible.
 - **Tie vote:** imposter escapes; UI result calculation must use the same deterministic outcome returned by the server rather than recomputing a different winner locally.
 - **Ballot privacy:** Online clients see only their own target and aggregate completion before results; raw votes never travel through Realtime.
 
-## 14. Follow-Up Architecture
+## 14. Connected Shared-Device Architecture
 
-Create a separate project to implement a true offline Local game engine:
+Shared-Device Mode remains Supabase-backed by product decision:
 
-- Local-only room, player, round, vote, and score state.
-- No Supabase Auth, Database, Realtime, or RLS dependency.
-- Shared domain rules where safe, with separate Online and Local repositories.
-- Migration of the Local screens without changing Online authority.
+- Room, player, round, vote, and score state remains authoritative in Supabase.
+- Internet access and an authenticated session are required.
+- Online and Shared-Device repositories, presentation flows, and secret-visibility boundaries remain distinct.
+- The stored `local` mode value remains stable so existing rooms and RPC contracts remain compatible.
 
-That follow-up resolves the underlying architectural tension instead of continuing to adapt online security policies to fake Local player identities.
+Future work may improve reconnect messaging or session recovery, but it must not describe this mode as offline or weaken its established security boundary.

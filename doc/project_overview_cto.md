@@ -30,7 +30,7 @@ The repository implements a client-heavy mobile system. Flutter owns presentatio
 
 A signed-in user chooses Create Room or Join Room. Room creation exposes:
 
-- game mode: Online or Local;
+- game mode: Online or Shared-Device (stored internally as `local` for compatibility);
 - category;
 - maximum rounds;
 - maximum players;
@@ -171,7 +171,7 @@ guess_party/
 | Countdown | Transitional countdown before gameplay. |
 | Local Role Reveal / Pass Device | Protects per-player secrets on a shared device. |
 | Online Game | Synchronized hints, voting, results, host controls, presence, and chat. |
-| Local Game | Shared-device hints, sequential voting, results, and progression. |
+| Shared-Device Game | Pass-and-play hints, sequential voting, results, and progression on one connected device. |
 | Game Over | Final sorted leaderboard/podium and return home. |
 
 ## 6. Data Flow
@@ -291,11 +291,11 @@ Key controls include server-side room capacity, unique per-round hint/vote const
 | Resolved | Shared-device connectivity expectations were previously unclear. | Players could incorrectly expect offline play. | The approved product model is connected Shared-Device Mode; UI and governance now state the connectivity requirement. |
 | High | SQL is a set of manually applied baseline/fix scripts with no migration ledger. | Environments may drift; deployment/rollback is not reproducible. | Adopt Supabase CLI migrations, ordered seed data, staging promotion, and schema checks. |
 | High | Presentation and router layers directly query Supabase. | Violates architecture rules, duplicates subscriptions, and expands security/consistency risk. | Move all access behind repositories/use cases; centralize lifecycle/realtime coordination. |
-| High | Only eight tests cover a large real-time game flow. | Host migration, reconnects, scoring, RLS, Local Mode, and end-to-end synchronization can regress undetected. | Add repository/RPC contract, Cubit phase, widget disposal, multi-client, and integration tests. |
+| High | Only eight tests cover a large real-time game flow. | Host migration, reconnects, scoring, RLS, Shared-Device Mode, and end-to-end synchronization can regress undetected. | Add repository/RPC contract, Cubit phase, widget disposal, multi-client, and integration tests. |
 | High | Static analysis reports four async `BuildContext` warnings in Settings. | Navigation/dialog calls may use a stale context. | Use `context.mounted` for the passed context or cache safe navigator/messenger references. |
 | Medium | `anonKey` initialization API is deprecated. | Future Supabase Flutter major upgrade will require change. | Rename configuration to a publishable key and migrate to the current initializer API. |
 | Medium | Five deprecated `withOpacity` calls remain. | Analyzer noise and future Flutter compatibility burden. | Replace with `withValues(alpha: ...)`. |
-| Medium | Very large presentation files (up to 1,228 lines). | Hard reviewability, broad rebuild scopes, and duplicated online/local behavior. | Extract lifecycle controllers and focused phase widgets without coupling secret surfaces. |
+| Medium | Very large presentation files (up to 1,228 lines). | Hard reviewability, broad rebuild scopes, and duplicated online/shared-device behavior. | Extract lifecycle controllers and focused phase widgets without coupling secret surfaces. |
 | Medium | Sentry traces sample rate is 100%. | Potential production cost/volume concern. | Use environment-specific sampling and release/environment tags. |
 | Medium | No build flavors or environment separation. | Accidental production access during development and difficult release promotion. | Add dev/staging/prod configs and separate Supabase/Sentry projects. |
 | Medium | Synthetic email authentication lacks recovery/verification UX. | Username collisions and password recovery/account ownership are weak. | Define identity strategy; support real email/OAuth or explicitly guest-only accounts. |
@@ -309,7 +309,7 @@ Audit validation performed on 11 July 2026:
 - `flutter test`: **8/8 tests passed**.
 - `flutter analyze`: **10 informational issues**; no analyzer errors, but the async-context and deprecation findings remain actionable.
 - Existing tests cover secure round-model redaction/parsing, room-status Cubit behavior, resource cancellation, and single navigation from waiting room.
-- No backend integration, RLS, scoring, host migration, reconnect, Local Mode full-flow, golden/accessibility, or platform build tests were found.
+- No backend integration, RLS, scoring, host migration, reconnect, Shared-Device Mode full-flow, golden/accessibility, or platform build tests were found.
 
 Passing tests should therefore be interpreted as a healthy narrow regression suite, not evidence that the entire product is production-certified.
 

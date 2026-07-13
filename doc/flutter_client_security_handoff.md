@@ -1,4 +1,4 @@
-# Flutter Client Handoff — Online/Local Gameplay Security
+# Flutter Client Handoff — Online/Shared-Device Gameplay Security
 
 **Audience:** cheaper implementation LLM  
 **Scope:** Flutter/Dart client only  
@@ -40,13 +40,13 @@ Live database behavior already provides:
 - Safe `round_revisions` Realtime events.
 - Server-side imposter and character selection.
 - Role-aware secret redaction.
-- Local-only reveal bundle.
+- Shared-device-only reveal bundle.
 - Identity-aware secret ballots.
 - Atomic room creation/join/start/phase/finalize/next/finish commands.
 - Atomic +10/+20 scoring and finalization idempotency.
 - Room-scoped Online stale-player cleanup; Local fake players are excluded.
 - Host migration serialized with gameplay commands.
-- Local host vote writes for fake Local players.
+- Local host vote writes for fake Shared-device players.
 
 The database was transaction-tested for a complete Local lifecycle, next-round retry, caught-imposter scoring, and no-vote imposter scoring.
 
@@ -67,11 +67,11 @@ Do not claim the security rollout is complete merely because the client compiles
 Do not reinterpret these rules:
 
 1. `players.is_host` is authoritative.
-2. Online and Local behavior remain separate.
+2. Online and Shared-Device behavior remain separate.
 3. Both `imposter_player_id` and `character_id` are secrets.
 4. Online imposter before results receives the imposter ID but no character.
 5. Online innocent before results receives the character but no imposter ID.
-6. General Local gameplay before results receives neither secret.
+6. General Shared-device gameplay before results receives neither secret.
 7. Only the dedicated Local reveal flow receives both Local secrets.
 8. Results participants receive both secrets.
 9. Online ballots are secret before results: caller vote plus aggregate progress only.
@@ -475,21 +475,21 @@ Create a small dedicated reveal Cubit/controller that:
 2. Loads the immutable participant/player display list.
 3. Drives the pass-device reveal sequence.
 4. Holds both secrets only in reveal state.
-5. Clears/closes reveal state before navigating to shared Local gameplay.
+5. Clears/closes reveal state before navigating to shared Shared-device gameplay.
 
-The shared Local game then loads `get_round_for_player_v2`, where both secrets are null until results. This is intentional.
+The shared Shared-device game then loads `get_round_for_player_v2`, where both secrets are null until results. This is intentional.
 
 If reveal time needs extension, call `extend_local_role_reveal`; never update `rounds.phase_end_time` directly.
 
 After any await before navigation/snackbar/dialog work, check `context.mounted` or the owning `State.mounted`.
 
-## 12. Online and Local UI Guards
+## 12. Online and Shared-Device UI Guards
 
 Update role/character/result widgets:
 
 - Online imposter UI must build when `character == null`.
 - Online innocent UI must build when `imposterPlayerId == null`.
-- Shared Local gameplay must build with both values null.
+- Shared Shared-device gameplay must build with both values null.
 - Results render only when both values are non-null; otherwise show a short syncing state and refresh.
 - Never force unwrap before these guards.
 
@@ -581,7 +581,7 @@ Do not implement the whole handoff in one uncontrolled edit.
 | C-05 | Game use cases, DI, Cubit finalization | Cubit tests pass |
 | C-06 | Dedicated Local reveal flow | Local reveal widget tests pass |
 | C-07 | Room create/join/start/cleanup migration | Room tests pass |
-| C-08 | Online/Local UI guards and vote progress | Widget tests pass |
+| C-08 | Online/Shared-Device UI guards and vote progress | Widget tests pass |
 | C-09 | Full static/analyze/test verification | All gates pass |
 
 At the end of every package, report:
@@ -672,7 +672,7 @@ After automated tests pass, report that these require device verification:
 - Four-player room creation produces exactly four players.
 - Every player sees one reveal; exactly one is imposter.
 - Shared gameplay no longer retains reveal secrets.
-- All Local players can vote through the host device.
+- All Shared-device players can vote through the host device.
 - All-votes, timer, and skip finalization score once.
 - Next round works after finalized results.
 

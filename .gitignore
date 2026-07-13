@@ -73,16 +73,13 @@ firebase_options.dart
 .github/*
 !.github/workflows/
 !.github/workflows/**
+!.github/copilot-instructions.md
 .agents/
 .agents.md
-AGENTS.md
 .gemini.md
 GEMINI.md
 .opencode/
-.specify/
-.specs/
 .spec/
 .sentryclirc
-specs/
 node_modules/
 .copilot/

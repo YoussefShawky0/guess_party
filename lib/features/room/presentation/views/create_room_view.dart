@@ -182,6 +182,10 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                       onModeChanged: (mode) =>
                           setState(() => _selectedGameMode = mode),
                     ),
+                    if (_selectedGameMode == GameConstants.gameModeLocal) ...[
+                      const SizedBox(height: 12),
+                      SharedDeviceConnectivityNotice(isTablet: isTablet),
+                    ],
                     const SizedBox(height: 24),
 
                     if (_isLoadingCategories)

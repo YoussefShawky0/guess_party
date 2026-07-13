@@ -480,29 +480,30 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               _HowToPlayStep(
                 number: '1',
-                title: 'Create or Join Room',
+                title: 'Choose a Mode',
                 description:
-                    'Start a new game or join an existing room with friends.',
+                    'Online uses one device per player. Shared-Device Mode is pass-and-play on one device and still requires internet access and a signed-in session.',
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(
                 number: '2',
-                title: 'Get Your Role',
+                title: 'Create or Join Room',
                 description:
-                    'You\'ll be assigned as either an Innocent player or the Imposter.',
+                    'Start a new game or join an existing Online room with friends.',
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(
                 number: '3',
-                title: 'Hints Phase',
+                title: 'Get Your Role',
                 description:
-                    'Innocents give hints about the character. Imposter tries to blend in!',
+                    'You\'ll be assigned as either an Innocent player or the Imposter. In Shared-Device Mode, pass the device privately for each reveal.',
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(
                 number: '4',
-                title: 'Voting Phase',
-                description: 'Vote for who you think is the Imposter.',
+                title: 'Hints & Voting',
+                description:
+                    'Give hints, then vote for who you think is the Imposter.',
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(

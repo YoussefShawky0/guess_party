@@ -154,7 +154,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                     CircularProgressIndicator(color: AppColors.primary),
                     const SizedBox(height: 24),
                     Text(
-                      'Loading game...',
+                      'Loading shared-device session...',
                       style: TextStyle(
                         color: AppColors.of(context).textSecondary,
                         fontSize: isTablet ? 20 : 16,

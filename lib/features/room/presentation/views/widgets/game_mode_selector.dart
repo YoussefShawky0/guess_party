@@ -133,3 +133,43 @@ class GameModeSelector extends StatelessWidget {
     );
   }
 }
+
+class SharedDeviceConnectivityNotice extends StatelessWidget {
+  final bool isTablet;
+
+  const SharedDeviceConnectivityNotice({super.key, required this.isTablet});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('shared-device-connectivity-notice'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const FaIcon(
+            FontAwesomeIcons.wifi,
+            color: AppColors.primary,
+            size: 18,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Shared-Device Mode requires an internet connection and an active signed-in session. Players still pass this device between turns.',
+              style: TextStyle(
+                color: AppColors.of(context).textSecondary,
+                fontSize: isTablet ? 14 : 12,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
