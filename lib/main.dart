@@ -10,33 +10,45 @@ import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/config/app_config.dart';
 import 'core/di/injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (error) {
+    runApp(BootstrapErrorApp(message: 'Unable to load app configuration: $error'));
+    return;
+  }
 
-  // Initialize Supabase with environment variables
+  late final AppConfig config;
+  try {
+    config = AppConfig.fromEnvironment();
+  } on AppConfigException catch (error) {
+    runApp(BootstrapErrorApp(message: error.message));
+    return;
+  }
+
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: config.supabaseUrl,
+    publishableKey: config.supabasePublishableKey,
   );
 
   await di.init();
 
-  final sentryDsn = dotenv.env['SENTRY_DSN'];
+  final sentryDsn = config.sentryDsn;
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
-    if (sentryDsn != null && sentryDsn.isNotEmpty) {
+    if (sentryDsn != null) {
       Sentry.captureException(details.exception, stackTrace: details.stack);
     }
   };
 
   PlatformDispatcher.instance.onError = (error, stackTrace) {
-    if (sentryDsn != null && sentryDsn.isNotEmpty) {
+    if (sentryDsn != null) {
       Sentry.captureException(error, stackTrace: stackTrace);
     }
     return false;
@@ -44,10 +56,11 @@ void main() async {
 
   await runZonedGuarded(
     () async {
-      if (sentryDsn != null && sentryDsn.isNotEmpty) {
+      if (sentryDsn != null) {
         await SentryFlutter.init((options) {
           options.dsn = sentryDsn;
-          options.tracesSampleRate = 1.0;
+          options.environment = config.environment;
+          options.tracesSampleRate = config.sentryTracesSampleRate;
           options.sendDefaultPii = false;
         }, appRunner: () => runApp(const GuessParty()));
       } else {
@@ -55,11 +68,47 @@ void main() async {
       }
     },
     (error, stackTrace) {
-      if (sentryDsn != null && sentryDsn.isNotEmpty) {
+      if (sentryDsn != null) {
         Sentry.captureException(error, stackTrace: stackTrace);
       }
     },
   );
+}
+
+class BootstrapErrorApp extends StatelessWidget {
+  const BootstrapErrorApp({required this.message, super.key});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.settings_suggest_outlined, size: 56),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Guess Party could not start',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(message, textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class GuessParty extends StatelessWidget {

@@ -128,7 +128,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
           const SizedBox(width: 4),
           Text(
             's',
-            style: TextStyle(fontSize: 14, color: color.withOpacity(0.7)),
+            style: TextStyle(fontSize: 14, color: color.withValues(alpha: 0.7)),
           ),
         ],
       ),
@@ -153,7 +153,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
               'Time Remaining',
               style: TextStyle(
                 fontSize: 14,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -169,7 +169,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
             ),
             Text(
               'seconds',
-              style: TextStyle(fontSize: 16, color: color.withOpacity(0.7)),
+              style: TextStyle(fontSize: 16, color: color.withValues(alpha: 0.7)),
             ),
           ],
         ),

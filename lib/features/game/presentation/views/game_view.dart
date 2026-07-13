@@ -8,6 +8,7 @@ import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
+import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
@@ -30,11 +31,12 @@ class GameView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = Supabase.instance.client.auth;
-    return StreamBuilder<AuthState>(
-      stream: auth.onAuthStateChange,
+    final session = sl<AuthSessionService>();
+    return StreamBuilder<String?>(
+      stream: session.userIdChanges,
+      initialData: session.currentUserId,
       builder: (context, snapshot) {
-        final currentUserId = auth.currentUser?.id;
+        final currentUserId = snapshot.data;
         if (currentUserId == null) {
           return Scaffold(
             backgroundColor: AppColors.of(context).background,
@@ -95,7 +97,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
   bool _isResumeRefreshInFlight = false;
 
   Future<void> _setCurrentUserOnlineStatus(bool isOnline) async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = sl<AuthSessionService>().currentUserId;
     if (userId == null) return;
 
     try {
@@ -124,7 +126,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
   bool _isCurrentUserHost() {
     final cubitState = _gameCubit.state;
     if (cubitState is! GameLoaded) return false;
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    final currentUserId = sl<AuthSessionService>().currentUserId;
     if (currentUserId == null) return false;
     for (final player in cubitState.gameState.players) {
       if (player.userId == currentUserId) {
@@ -211,7 +213,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     _isRefreshingPresenceSnapshot = true;
 
     try {
-      final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+      final currentUserId = sl<AuthSessionService>().currentUserId;
       final response = await Supabase.instance.client
           .from('players')
           .select('id, user_id, username, is_host, is_online, created_at')

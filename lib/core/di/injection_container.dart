@@ -43,6 +43,8 @@ import 'package:guess_party/features/room/domain/usecases/watch_room_details.dar
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/core/services/auth_session_service.dart';
+import 'package:guess_party/core/services/room_query_service.dart';
 
 final sl = GetIt.instance;
 
@@ -55,6 +57,12 @@ Future<void> init() async {
   // Supabase Client
   final supabase = Supabase.instance.client;
   sl.registerLazySingleton<SupabaseClient>(() => supabase);
+  sl.registerLazySingleton<AuthSessionService>(
+    () => SupabaseAuthSessionService(sl()),
+  );
+  sl.registerLazySingleton<RoomQueryService>(
+    () => SupabaseRoomQueryService(sl()),
+  );
 
   // ============= Auth Feature =============
   //Auth Cubit

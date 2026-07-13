@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/core/router/app_routes.dart';
+import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'widgets/room_lifecycle_manager.dart';
 import 'widgets/waiting_room_app_bar.dart';
@@ -227,7 +227,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
 
   String? _resolveCurrentUserId() {
     try {
-      return Supabase.instance.client.auth.currentUser?.id;
+      return di.sl<AuthSessionService>().currentUserId;
     } catch (_) {
       return null;
     }

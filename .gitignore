@@ -70,6 +70,9 @@ firebase_options.dart
 **/macos/Flutter/.last_build_id
 
 # Agent / Spec Tooling ignores
+.github/*
+!.github/workflows/
+!.github/workflows/**
 .agents/
 .agents.md
 AGENTS.md
@@ -79,7 +82,6 @@ GEMINI.md
 .specify/
 .specs/
 .spec/
-.github/
 .sentryclirc
 specs/
 node_modules/

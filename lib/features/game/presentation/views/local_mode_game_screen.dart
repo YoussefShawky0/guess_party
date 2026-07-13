@@ -6,6 +6,7 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
+import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
@@ -14,7 +15,6 @@ import 'package:guess_party/features/game/presentation/views/widgets/imposter_re
 import 'package:guess_party/features/game/presentation/views/widgets/round_header_widget.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/voting_results_card.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LocalModeGameScreen extends StatelessWidget {
   final String roomId;
@@ -28,7 +28,7 @@ class LocalModeGameScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final currentUserId = sl<AuthSessionService>().currentUserId ?? '';
 
     return BlocProvider(
       create: (context) => sl<GameCubit>()
@@ -247,7 +247,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                   context.read<GameCubit>().loadGameState(
                     roomId: widget.roomId,
                     currentPlayerId:
-                        Supabase.instance.client.auth.currentUser?.id ?? '',
+                        sl<AuthSessionService>().currentUserId ?? '',
                   );
                 },
                 onGoBack: () => context.go(AppRoutes.home),

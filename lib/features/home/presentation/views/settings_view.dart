@@ -122,15 +122,16 @@ class _SettingsViewState extends State<SettingsView> {
                   mode: LaunchMode.externalApplication,
                 ),
               ),
-              _SettingsTile(
-                icon: FontAwesomeIcons.download,
-                title: 'Check for Updates',
-                subtitle: 'You\'re on the latest version',
-                isTablet: isTablet,
-                onTap: () {
-                  _checkForUpdates(context);
-                },
-              ),
+              if (UpdateService.isSupported)
+                _SettingsTile(
+                  icon: FontAwesomeIcons.download,
+                  title: 'Check for Updates',
+                  subtitle: 'Managed by Google Play',
+                  isTablet: isTablet,
+                  onTap: () {
+                    _checkForUpdates(context);
+                  },
+                ),
               _SettingsTile(
                 icon: FontAwesomeIcons.fileShield,
                 title: 'Privacy Policy',
@@ -302,7 +303,7 @@ class _SettingsViewState extends State<SettingsView> {
 
     final updateInfo = await UpdateService.checkForUpdate();
 
-    if (!mounted) return;
+    if (!context.mounted) return;
     Navigator.of(context).pop();
 
     if (updateInfo == null) {

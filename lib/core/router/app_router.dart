@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/services/room_query_service.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -107,12 +108,8 @@ class AppRouter {
         redirect: (context, state) async {
           final roomId = state.pathParameters['roomId']!;
           try {
-            final room = await Supabase.instance.client
-                .from('rooms')
-                .select('status')
-                .eq('id', roomId)
-                .maybeSingle();
-            if (room == null || room['status'] == 'finished') {
+            final status = await sl<RoomQueryService>().getRoomStatus(roomId);
+            if (status == null || status == 'finished') {
               return AppRoutes.home;
             }
           } catch (_) {
@@ -132,12 +129,8 @@ class AppRouter {
         redirect: (context, state) async {
           final roomId = state.pathParameters['roomId']!;
           try {
-            final room = await Supabase.instance.client
-                .from('rooms')
-                .select('status')
-                .eq('id', roomId)
-                .maybeSingle();
-            if (room == null || room['status'] == 'finished') {
+            final status = await sl<RoomQueryService>().getRoomStatus(roomId);
+            if (status == null || status == 'finished') {
               return AppRoutes.home;
             }
           } catch (_) {

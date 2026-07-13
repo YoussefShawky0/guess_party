@@ -10,7 +10,7 @@ import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
 import 'package:guess_party/features/game/presentation/cubit/local_role_reveal_cubit.dart';
 
-/// Screen for Local Mode where each player sees their role one by one
+/// Shared-Device screen where each player sees their role one by one.
 /// before the game starts. This ensures privacy on a shared device.
 class LocalRoleRevealScreen extends StatelessWidget {
   final String roomId;

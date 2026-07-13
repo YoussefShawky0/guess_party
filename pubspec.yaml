@@ -1,5 +1,5 @@
 name: guess_party
-description: "A new Flutter project."
+description: "A connected social-deduction party game for online and shared-device play."
 publish_to: "none"
 version: 1.0.0
 

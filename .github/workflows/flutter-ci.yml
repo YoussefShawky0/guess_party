@@ -1,0 +1,42 @@
+name: Flutter CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test --reporter=expanded
+
+  migration-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify canonical migration assets
+        shell: bash
+        run: |
+          test -f supabase/config.toml
+          test -f supabase/seed.sql
+          test -f supabase/MIGRATION_MANIFEST.md
+          test -f supabase/tests/database_contracts.test.sql
+          test "$(find supabase/migrations -type f -name '*.sql' | wc -l)" -ge 18

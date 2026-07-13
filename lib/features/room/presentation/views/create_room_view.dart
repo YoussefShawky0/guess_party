@@ -7,10 +7,11 @@ import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/core/utils/error_handler.dart';
+import 'package:guess_party/core/services/auth_session_service.dart';
+import 'package:guess_party/core/services/room_query_service.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'widgets/category_selector.dart';
 import 'widgets/create_room_header.dart';
@@ -26,10 +27,10 @@ class CreateRoomScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final username = user?.userMetadata?['username'] ?? 'Guest';
+    final session = di.sl<AuthSessionService>();
+    final username = session.currentUsername;
 
-    if (user == null) {
+    if (session.currentUserId == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Create Room')),
         body: const Center(child: Text('User not authenticated')),
@@ -71,18 +72,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
 
   Future<void> _loadCategories() async {
     try {
-      final response = await Supabase.instance.client
-          .from('categories')
-          .select('key, name')
-          .eq('is_active', true)
-          .order('sort_order', ascending: true);
-
-      final fetched = <String, String>{};
-      for (final row in (response as List)) {
-        final key = row['key'] as String;
-        final name = row['name'] as String;
-        fetched[key] = name;
-      }
+      final fetched = await di.sl<RoomQueryService>().getActiveCategories();
 
       if (mounted && fetched.isNotEmpty) {
         setState(() {

@@ -48,8 +48,8 @@ class GameModeSelector extends StatelessWidget {
               child: _buildModeCard(
                 context: context,
                 mode: GameConstants.gameModeLocal,
-                title: 'Local',
-                subtitle: 'Pass & play on one device',
+                title: 'Shared Device',
+                subtitle: 'Pass & play on one connected device',
                 icon: FontAwesomeIcons.mobile,
                 isSelected: selectedMode == GameConstants.gameModeLocal,
                 isTablet: isTablet,

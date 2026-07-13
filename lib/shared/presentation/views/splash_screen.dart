@@ -2,7 +2,8 @@
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/services/auth_session_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -38,9 +39,9 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     // Check if user has active session
-    final session = Supabase.instance.client.auth.currentSession;
+    final userId = sl<AuthSessionService>().currentUserId;
 
-    if (session != null) {
+    if (userId != null) {
       // User is logged in → go to Home
       context.go(AppRoutes.home);
     } else {

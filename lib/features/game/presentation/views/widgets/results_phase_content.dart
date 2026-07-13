@@ -130,7 +130,7 @@ class ResultsPhaseContent extends StatelessWidget {
               context,
               'Waiting for host to show leaderboard...',
               AppColors.goldMedal,
-              AppColors.goldMedal.withOpacity(0.4),
+              AppColors.goldMedal.withValues(alpha: 0.4),
               isTablet,
             )
           else if (!isLastRound && isHost)

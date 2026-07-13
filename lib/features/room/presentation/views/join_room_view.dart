@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/core/router/app_routes.dart';
+import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_button.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_header.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/room_code_input.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class JoinRoomView extends StatelessWidget {
   const JoinRoomView({super.key});
@@ -51,8 +51,7 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
   void _joinRoom() {
     if (_formKey.currentState!.validate()) {
       setState(() => _roomCodeErrorMessage = null);
-      final user = Supabase.instance.client.auth.currentUser;
-      final username = user?.userMetadata?['username'] ?? 'Guest';
+      final username = di.sl<AuthSessionService>().currentUsername;
 
       context.read<RoomCubit>().joinRoom(
         roomCode: _roomCodeController.text.trim(),
