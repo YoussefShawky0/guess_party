@@ -1,14 +1,13 @@
 import 'dart:developer' as developer;
 
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/core/services/server_clock.dart';
 
 /// Handles time synchronization with Supabase server
 /// to ensure consistent timing across all devices in online mode
 class TimeSyncService {
-  static TimeSyncService? _instance;
-  static TimeSyncService get instance => _instance ??= TimeSyncService._();
+  final ServerClock clock;
 
-  TimeSyncService._();
+  TimeSyncService(this.clock);
 
   Duration? _timeOffset;
   DateTime? _lastSyncTime;
@@ -38,14 +37,8 @@ class TimeSyncService {
         final beforeLocal = DateTime.now().toUtc();
 
         // Query server time
-        final response = await Supabase.instance.client
-            .rpc('get_server_time')
-            .select()
-            .single();
-
+        final serverTime = await clock.getServerTime();
         final afterLocal = DateTime.now().toUtc();
-        final serverTimeStr = response['server_time'] as String;
-        final serverTime = DateTime.parse(serverTimeStr).toUtc();
 
         // Calculate average local time during the request
         final avgLocal = beforeLocal.add(

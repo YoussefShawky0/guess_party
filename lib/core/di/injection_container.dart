@@ -40,11 +40,17 @@ import 'package:guess_party/features/room/domain/usecases/mark_stale_players_off
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
 import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
+import 'package:guess_party/features/room/domain/usecases/watch_room_players.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/core/services/room_query_service.dart';
+import 'package:guess_party/core/data/supabase_server_clock.dart';
+import 'package:guess_party/core/services/server_clock.dart';
+import 'package:guess_party/core/utils/time_sync_service.dart';
+import 'package:guess_party/features/chat/data/repositories/supabase_chat_repository.dart';
+import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
 
 final sl = GetIt.instance;
 
@@ -63,6 +69,9 @@ Future<void> init() async {
   sl.registerLazySingleton<RoomQueryService>(
     () => SupabaseRoomQueryService(sl()),
   );
+  sl.registerLazySingleton<ServerClock>(() => SupabaseServerClock(sl()));
+  sl.registerLazySingleton(() => TimeSyncService(sl()));
+  sl.registerLazySingleton<ChatRepository>(() => SupabaseChatRepository(sl()));
 
   // ============= Auth Feature =============
   //Auth Cubit
@@ -123,6 +132,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => LeaveRoom(sl()));
   sl.registerLazySingleton(() => JoinRoom(sl()));
   sl.registerLazySingleton(() => WatchRoomDetails(sl()));
+  sl.registerLazySingleton(() => WatchRoomPlayers(sl()));
 
   sl.registerFactory(
     () => RoomCubit(
@@ -136,6 +146,7 @@ Future<void> init() async {
       leaveRoom: sl(),
       joinRoomCommand: sl(),
       watchRoomDetails: sl(),
+      watchRoomPlayers: sl(),
     ),
   );
 
@@ -172,6 +183,7 @@ Future<void> init() async {
       finishGameUseCase: sl(),
       extendLocalRoleReveal: sl(),
       gameRepository: sl(),
+      timeSyncService: sl(),
     ),
   );
 

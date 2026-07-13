@@ -414,4 +414,39 @@ class GameRepositoryImpl implements GameRepository {
       logData: {'roomId': roomId},
     );
   }
+
+  @override
+  Stream<String> watchRoomStatus({required String roomId}) {
+    return _watchWithRetry<String, String>(
+      streamFactory: () => remoteDataSource.watchRoomStatus(roomId: roomId),
+      eventMapper: (status) => status,
+      operationName: 'watchRoomStatus',
+      logData: {'roomId': roomId},
+    );
+  }
+
+  @override
+  Future<Either<Failure, void>> updateCurrentPlayerPresence({
+    required String roomId,
+    required String userId,
+    required bool isOnline,
+  }) async {
+    try {
+      await remoteDataSource.updateCurrentPlayerPresence(
+        roomId: roomId,
+        userId: userId,
+        isOnline: isOnline,
+      );
+      return const Right(null);
+    } catch (error, stackTrace) {
+      return Left(
+        await _serverFailure(
+          'updateCurrentPlayerPresence',
+          error,
+          stackTrace,
+          data: {'roomId': roomId, 'isOnline': isOnline},
+        ),
+      );
+    }
+  }
 }

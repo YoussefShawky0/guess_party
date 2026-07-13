@@ -61,6 +61,14 @@ abstract class GameRemoteDataSource {
   Stream<Map<String, dynamic>> watchRoundRevision({required String roundId});
 
   Stream<List<PlayerModel>> watchPlayersChanges({required String roomId});
+
+  Stream<String> watchRoomStatus({required String roomId});
+
+  Future<void> updateCurrentPlayerPresence({
+    required String roomId,
+    required String userId,
+    required bool isOnline,
+  });
 }
 
 class GameRemoteDataSourceImpl implements GameRemoteDataSource {
@@ -352,5 +360,31 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
           });
           return rows.map(PlayerModel.fromJson).toList(growable: false);
         });
+  }
+
+  @override
+  Stream<String> watchRoomStatus({required String roomId}) {
+    return client.from('rooms').stream(primaryKey: ['id']).eq('id', roomId).map(
+      (rows) {
+        if (rows.isEmpty) throw StateError('ROOM_NOT_VISIBLE');
+        return rows.single['status'] as String;
+      },
+    );
+  }
+
+  @override
+  Future<void> updateCurrentPlayerPresence({
+    required String roomId,
+    required String userId,
+    required bool isOnline,
+  }) async {
+    await client
+        .from('players')
+        .update({
+          'is_online': isOnline,
+          'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('room_id', roomId)
+        .eq('user_id', userId);
   }
 }

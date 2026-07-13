@@ -18,7 +18,6 @@ import 'widgets/create_room_header.dart';
 import 'widgets/game_mode_selector.dart';
 import 'widgets/local_players_input.dart';
 import 'widgets/max_players_selector.dart';
-import 'widgets/room_status_listener.dart';
 import 'widgets/round_duration_selector.dart';
 import 'widgets/rounds_selector.dart';
 
@@ -60,7 +59,6 @@ class _CreateRoomViewState extends State<CreateRoomView> {
   int _selectedRoundDuration = 300;
   String _selectedGameMode = GameConstants.gameModeOnline;
   List<String> _localPlayerNames = [];
-  String? _createdRoomId;
   bool _isLoadingCategories = true;
   Map<String, String> _categories = {};
 
@@ -153,10 +151,6 @@ class _CreateRoomViewState extends State<CreateRoomView> {
       body: BlocConsumer<RoomCubit, RoomState>(
         listener: (context, state) {
           if (state is RoomWithPlayerCreated) {
-            setState(() {
-              _createdRoomId = state.room.id;
-            });
-
             if (_selectedGameMode == GameConstants.gameModeLocal) {
               context.read<RoomCubit>().startGameSession(state.room.id);
               context.go(AppRoutes.roomCountdown(state.room.id));
@@ -284,13 +278,6 @@ class _CreateRoomViewState extends State<CreateRoomView> {
               ),
             ),
           );
-
-          if (_createdRoomId != null) {
-            return RoomStatusListener(
-              roomId: _createdRoomId!,
-              builder: (context) => body,
-            );
-          }
 
           return body;
         },

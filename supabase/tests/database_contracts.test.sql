@@ -50,7 +50,7 @@ select ok(
     where schemaname = 'public' and tablename = 'rounds'
       and policyname = 'Round participants can view completed rounds'
       and cmd = 'SELECT'
-      and qual like '%phase%results%'
+      and qual like '%can_view_completed_round%'
   ),
   'raw round reads are restricted to completed rounds'
 );
@@ -67,8 +67,7 @@ select ok(
     where schemaname = 'public' and tablename = 'votes'
       and policyname = 'Participants can view authorized votes'
       and cmd = 'SELECT'
-      and qual like '%voter_player_id%'
-      and qual like '%results%'
+      and qual like '%can_view_vote_row%'
   ),
   'raw vote reads preserve own-vote and results visibility'
 );

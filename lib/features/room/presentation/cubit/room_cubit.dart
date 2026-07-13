@@ -15,11 +15,13 @@ import 'package:guess_party/features/room/domain/usecases/mark_stale_players_off
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
 import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
+import 'package:guess_party/features/room/domain/usecases/watch_room_players.dart';
 import 'package:uuid/uuid.dart';
+import 'package:guess_party/features/room/presentation/coordinators/room_session_coordinator.dart';
 
 part 'room_state.dart';
 
-class RoomCubit extends Cubit<RoomState> {
+class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
   final CreateRoom createRoom;
   final GetRoomDetails getRoomDetails;
   final GetRoomPlayers getRoomPlayers;
@@ -30,10 +32,17 @@ class RoomCubit extends Cubit<RoomState> {
   final LeaveRoom leaveRoom;
   final JoinRoom joinRoomCommand;
   final WatchRoomDetails watchRoomDetails;
+  final WatchRoomPlayers watchRoomPlayers;
   StreamSubscription<Room>? _roomDetailsSubscription;
+  StreamSubscription<List<Player>>? _roomPlayersSubscription;
   Timer? _roomDetailsPollTimer;
   String? _createRequestId;
   String? _createRequestFingerprint;
+
+  @override
+  int get activeSessionSubscriptionCount =>
+      (_roomDetailsSubscription == null ? 0 : 1) +
+      (_roomPlayersSubscription == null ? 0 : 1);
 
   RoomCubit({
     required this.createRoom,
@@ -46,6 +55,7 @@ class RoomCubit extends Cubit<RoomState> {
     required this.leaveRoom,
     required this.joinRoomCommand,
     required this.watchRoomDetails,
+    required this.watchRoomPlayers,
   }) : super(RoomInitial());
 
   Future<void> createNewRoom({
@@ -114,8 +124,12 @@ class RoomCubit extends Cubit<RoomState> {
     );
   }
 
+  @override
   Future<void> watchRoomStatus({required String roomId}) async {
     await _roomDetailsSubscription?.cancel();
+    await _roomPlayersSubscription?.cancel();
+    _roomDetailsSubscription = null;
+    _roomPlayersSubscription = null;
     _roomDetailsPollTimer?.cancel();
 
     _roomDetailsSubscription = watchRoomDetails(roomId: roomId).listen(
@@ -127,16 +141,30 @@ class RoomCubit extends Cubit<RoomState> {
       },
     );
 
-    _roomDetailsPollTimer = Timer.periodic(const Duration(seconds: 3), (
+    _roomPlayersSubscription = watchRoomPlayers(roomId: roomId).listen(
+      _emitWatchedPlayers,
+      onError: (_) {
+        // The centralized polling fallback below preserves the last roster.
+      },
+    );
+
+    _roomDetailsPollTimer = Timer.periodic(const Duration(seconds: 10), (
       _,
     ) async {
       if (isClosed) return;
 
-      final result = await getRoomDetails(roomId: roomId);
+      final results = await Future.wait([
+        getRoomDetails(roomId: roomId),
+        getRoomPlayers(roomId: roomId),
+      ]);
 
       if (isClosed) return;
 
-      result.fold((_) {}, _emitWatchedRoom);
+      results[0].fold((_) {}, (room) => _emitWatchedRoom(room as Room));
+      results[1].fold(
+        (_) {},
+        (players) => _emitWatchedPlayers(players as List<Player>),
+      );
     });
   }
 
@@ -152,6 +180,14 @@ class RoomCubit extends Cubit<RoomState> {
             : null,
       ),
     );
+  }
+
+  void _emitWatchedPlayers(List<Player> players) {
+    if (isClosed) return;
+    final current = state;
+    if (current is RoomDetailsLoaded) {
+      emit(current.copyWith(players: players));
+    }
   }
 
   Future<void> loadRoomPlayers({required String roomId}) async {
@@ -256,6 +292,9 @@ class RoomCubit extends Cubit<RoomState> {
   @override
   Future<void> close() async {
     await _roomDetailsSubscription?.cancel();
+    await _roomPlayersSubscription?.cancel();
+    _roomDetailsSubscription = null;
+    _roomPlayersSubscription = null;
     _roomDetailsPollTimer?.cancel();
     return super.close();
   }

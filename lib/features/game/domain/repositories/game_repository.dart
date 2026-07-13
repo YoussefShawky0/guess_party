@@ -64,4 +64,12 @@ abstract class GameRepository {
 
   // Subscribe to room online players updates (real-time)
   Stream<List<Player>> watchRoomPlayers({required String roomId});
+
+  Stream<String> watchRoomStatus({required String roomId});
+
+  Future<Either<Failure, void>> updateCurrentPlayerPresence({
+    required String roomId,
+    required String userId,
+    required bool isOnline,
+  });
 }

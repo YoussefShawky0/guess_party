@@ -75,6 +75,11 @@ class RoomRepositoryImpl implements RoomRepository {
   }
 
   @override
+  Stream<List<Player>> watchRoomPlayers({required String roomId}) {
+    return remoteDataSource.watchRoomPlayers(roomId: roomId);
+  }
+
+  @override
   Future<Either<Failure, List<Player>>> getRoomPlayers({
     required String roomId,
   }) async {

@@ -30,6 +30,7 @@ corrected in the canonical schema:
 | `20260712000200_routine_execution_grants.sql` | Exact production routine grants, with client access revoked by default. |
 | `20260712000300_realtime_publication.sql` | Exact Realtime table membership; deliberately excludes `round_participants`. |
 | `20260712195404_table_grants.sql` | Exact production table privileges for `anon`, `authenticated`, and `service_role`. |
+| `20260713015743_fix_recursive_secret_state_rls.sql` | Replaces recursive round/vote SELECT policy joins with boolean-only private predicates while preserving the approved visibility rules. |
 
 ## Legacy SQL Mapping
 
@@ -62,6 +63,13 @@ applied after the canonical chain.
 
 - `supabase/tests/database_contracts.test.sql` checks required tables/RPCs and
   rejects restoration of either broad SELECT policy.
+- `supabase/tests/gameplay_security_contracts.test.sql` exercises authenticated
+  RLS, host authorization, redaction, shared-device reveal access, capacity,
+  uniqueness, self-voting, and score-finalization idempotency transactionally.
+- `supabase/tests/presence_lifecycle_contracts.test.sql` exercises heartbeat
+  freshness, deterministic host migration, former-host reconnect behavior,
+  near-simultaneous presence changes, stale cleanup isolation, and empty-room
+  completion transactionally.
 - Production table ACLs grant the Data API roles access to the exposed tables;
   RLS policies remain the row-authorization boundary. `round_participants` and
   `round_revisions` deliberately expose only `SELECT` to `authenticated` and no

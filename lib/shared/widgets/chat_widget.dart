@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
+import 'dart:async';
 
 class ChatWidget extends StatefulWidget {
   final String roomId;
@@ -22,15 +24,16 @@ class ChatWidget extends StatefulWidget {
 class _ChatWidgetState extends State<ChatWidget> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final _supabase = Supabase.instance.client;
+  late final ChatRepository _repository;
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = true;
   bool _isSending = false;
-  RealtimeChannel? _channel;
+  StreamSubscription<List<Map<String, dynamic>>>? _subscription;
 
   @override
   void initState() {
     super.initState();
+    _repository = sl<ChatRepository>();
     _loadMessages();
     _subscribeToMessages();
   }
@@ -40,7 +43,7 @@ class _ChatWidgetState extends State<ChatWidget> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.roundId != widget.roundId ||
         oldWidget.roomId != widget.roomId) {
-      _channel?.unsubscribe();
+      _subscription?.cancel();
       _messages = [];
       _isLoading = true;
       _loadMessages();
@@ -52,18 +55,16 @@ class _ChatWidgetState extends State<ChatWidget> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-    _channel?.unsubscribe();
+    _subscription?.cancel();
     super.dispose();
   }
 
   Future<void> _loadMessages() async {
     try {
-      final response = await _supabase
-          .from('messages')
-          .select('*, players!inner(username)')
-          .eq('room_id', widget.roomId)
-          .eq('round_id', widget.roundId)
-          .order('created_at', ascending: true);
+      final response = await _repository.getMessages(
+        roomId: widget.roomId,
+        roundId: widget.roundId,
+      );
 
       if (!mounted) return;
       setState(() {
@@ -81,68 +82,20 @@ class _ChatWidgetState extends State<ChatWidget> {
 
   void _subscribeToMessages() {
     try {
-      final channel = _supabase
-          .channel('messages:${widget.roomId}:${widget.roundId}')
-          .onPostgresChanges(
-            event: PostgresChangeEvent.insert,
-            schema: 'public',
-            table: 'messages',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'round_id',
-              value: widget.roundId,
-            ),
-            callback: (payload) {
-              _handleNewMessage(payload.newRecord);
-            },
-          );
-
-      channel.subscribe((status, error) {
-        if (status == RealtimeSubscribeStatus.channelError ||
-            status == RealtimeSubscribeStatus.closed) {
-          Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              _channel?.unsubscribe();
-              _subscribeToMessages();
-            }
+      _subscription?.cancel();
+      _subscription = _repository
+          .watchMessages(roomId: widget.roomId, roundId: widget.roundId)
+          .listen((messages) {
+            if (!mounted) return;
+            setState(() {
+              _messages = messages;
+              _sortMessages();
+              _isLoading = false;
+            });
+            _scrollToBottom();
           });
-        }
-      });
-
-      _channel = channel;
     } catch (_) {
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) _subscribeToMessages();
-      });
-    }
-  }
-
-  Future<void> _handleNewMessage(Map<String, dynamic> newMessage) async {
-    try {
-      final messageId = newMessage['id'] as String?;
-      if (messageId != null &&
-          _messages.any((message) => message['id'] == messageId)) {
-        return;
-      }
-
-      // Fetch player info for the new message
-      final playerData = await _supabase
-          .from('players')
-          .select('username')
-          .eq('id', newMessage['player_id'])
-          .maybeSingle();
-
-      if (!mounted) return;
-      setState(() {
-        _messages.add({
-          ...newMessage,
-          'players': playerData ?? {'username': 'Player'},
-        });
-        _sortMessages();
-      });
-      _scrollToBottom();
-    } catch (e) {
-      // Error handling new message
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -184,12 +137,12 @@ class _ChatWidgetState extends State<ChatWidget> {
 
     setState(() => _isSending = true);
     try {
-      await _supabase.from('messages').insert({
-        'room_id': widget.roomId,
-        'round_id': widget.roundId,
-        'player_id': widget.currentPlayerId,
-        'content': content,
-      });
+      await _repository.sendMessage(
+        roomId: widget.roomId,
+        roundId: widget.roundId,
+        playerId: widget.currentPlayerId,
+        content: content,
+      );
 
       _messageController.clear();
     } catch (e) {

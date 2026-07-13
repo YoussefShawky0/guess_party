@@ -24,6 +24,8 @@ abstract class RoomRepository {
 
   Stream<Room> watchRoomDetails({required String roomId});
 
+  Stream<List<Player>> watchRoomPlayers({required String roomId});
+
   ResultFuture<List<Player>> getRoomPlayers({required String roomId});
 
   ResultFuture<Room> getRoomByCode({required String roomCode});

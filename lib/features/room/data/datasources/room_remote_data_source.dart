@@ -28,6 +28,8 @@ abstract class RoomRemoteDataSource {
 
   Stream<Room> watchRoomDetails({required String roomId});
 
+  Stream<List<Player>> watchRoomPlayers({required String roomId});
+
   Future<List<Player>> getRoomPlayers({required String roomId});
 
   Future<Room> getRoomByCode({required String roomCode});
@@ -197,6 +199,30 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     } catch (e) {
       rethrow;
     }
+  }
+
+  @override
+  Stream<List<Player>> watchRoomPlayers({required String roomId}) {
+    return client
+        .from('players')
+        .stream(primaryKey: ['id'])
+        .eq('room_id', roomId)
+        .map((rows) {
+          final players = rows
+              .where((row) => row['is_online'] == true)
+              .map(PlayerModel.fromJson)
+              .toList(growable: false);
+          players.sort((a, b) {
+            final aTime = a.createdAt;
+            final bTime = b.createdAt;
+            if (aTime == null && bTime == null) return a.id.compareTo(b.id);
+            if (aTime == null) return -1;
+            if (bTime == null) return 1;
+            final compared = aTime.compareTo(bTime);
+            return compared == 0 ? a.id.compareTo(b.id) : compared;
+          });
+          return players;
+        });
   }
 
   @override

@@ -30,7 +30,7 @@ class StartGameButton extends StatelessWidget {
           onPressed: isEnabled && !needMorePlayers
               ? () {
                   onPressed();
-                  // Navigation is handled by RoomStatusListener via realtime updates
+                  // Navigation is handled by the waiting-room Cubit status stream.
                 }
               : null,
           style: ElevatedButton.styleFrom(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/di/injection_container.dart';
@@ -10,10 +9,8 @@ import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
-import 'package:guess_party/features/game/presentation/views/widgets/current_scores_card.dart';
-import 'package:guess_party/features/game/presentation/views/widgets/imposter_reveal_card.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/round_header_widget.dart';
-import 'package:guess_party/features/game/presentation/views/widgets/voting_results_card.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/shared_device_phase_content.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 
 class LocalModeGameScreen extends StatelessWidget {
@@ -292,98 +289,38 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
             onTimeUp: () => _handlePhaseTimeUp(state),
           ),
           const SizedBox(height: 16),
-          _buildLocalCharacterCard(isTablet),
+          SharedDeviceIntroCard(isTablet: isTablet),
           const SizedBox(height: 16),
-          if (round.phase == GamePhase.hints || round.phase == GamePhase.voting)
+          if (round.phase == GamePhase.hints ||
+              round.phase == GamePhase.voting) ...[
             _buildSkipButton(round.phase),
-          if (round.phase == GamePhase.hints || round.phase == GamePhase.voting)
             const SizedBox(height: 16),
-          if (round.phase == GamePhase.hints) _buildHintsContent(isTablet),
+          ],
+          if (round.phase == GamePhase.hints)
+            SharedDeviceHintsContent(isTablet: isTablet),
           if (round.phase == GamePhase.voting)
-            _buildVotingContent(state, isTablet),
+            SharedDeviceVotingContent(
+              round: round,
+              players: players,
+              isTablet: isTablet,
+              isFinalizing: _isFinalizingVotingRoundId == round.id,
+              onSelectVoter: (playerId) =>
+                  _showLocalTargetSelectionDialog(context, playerId),
+              onShowResults: () => _finalizeVotingAndProgress(round.id),
+            ),
           if (round.phase == GamePhase.results)
-            _buildResultsContent(state, isTablet),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocalCharacterCard(bool isTablet) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.of(context).cardBorder, width: 1.5),
-      ),
-      padding: EdgeInsets.all(isTablet ? 24 : 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.groups_rounded,
-            size: isTablet ? 54 : 42,
-            color: AppColors.of(context).textSecondary,
-          ),
-          SizedBox(height: isTablet ? 12 : 10),
-          Text(
-            'Shared game screen',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontSize: isTablet ? 20 : 16,
-              fontWeight: FontWeight.w700,
+            SharedDeviceResultsContent(
+              state: state,
+              isTablet: isTablet,
+              isStartingNextRound: _isStartingNextRound,
+              onFinishGame: () =>
+                  context.read<GameCubit>().finishGame(widget.roomId),
+              onStartNextRound: () async {
+                setState(() => _isStartingNextRound = true);
+                await _startNextRound(state);
+                if (mounted) setState(() => _isStartingNextRound = false);
+              },
             ),
-          ),
-          SizedBox(height: isTablet ? 8 : 6),
-          Text(
-            'Continue the round on the shared device.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: isTablet ? 15 : 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHintsContent(bool isTablet) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).hintCardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.of(context).hintCardBorder,
-          width: 2,
-        ),
-      ),
-      padding: EdgeInsets.all(isTablet ? 24 : 16),
-      child: Column(
-        children: [
-          Icon(
-            Icons.people,
-            size: isTablet ? 64 : 48,
-            color: AppColors.of(context).characterCardIcon,
-          ),
-          SizedBox(height: isTablet ? 16 : 12),
-          Text(
-            'Discuss and give hints verbally!',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: AppColors.of(context).textPrimary,
-              fontSize: isTablet ? 20 : 16,
-            ),
-          ),
-          SizedBox(height: isTablet ? 12 : 8),
-          Text(
-            'Talk about the character without revealing yourself. The timer will move to voting automatically.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: isTablet ? 16 : 14,
-            ),
-          ),
         ],
       ),
     );
@@ -414,107 +351,20 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
             ],
           ),
         );
-
         if (confirmed != true || !mounted) return;
 
+        final current = context.read<GameCubit>().state;
+        if (current is! GameLoaded) return;
         if (phase == GamePhase.hints) {
           context.read<GameCubit>().progressPhase(
-            context.read<GameCubit>().state is GameLoaded
-                ? (context.read<GameCubit>().state as GameLoaded)
-                      .gameState
-                      .currentRound
-                      .id
-                : '',
+            current.gameState.currentRound.id,
           );
         } else {
-          final state = context.read<GameCubit>().state;
-          if (state is GameLoaded) {
-            _finalizeVotingAndProgress(state.gameState.currentRound.id);
-          }
+          _finalizeVotingAndProgress(current.gameState.currentRound.id);
         }
       },
       icon: const Icon(Icons.skip_next),
       label: Text(skipLabel),
-    );
-  }
-
-  Widget _buildVotingContent(GameLoaded state, bool isTablet) {
-    final round = state.gameState.currentRound;
-    final players = state.gameState.players;
-
-    final allVoted = round.allRequiredVotesSubmitted;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Voting Phase',
-          style: TextStyle(
-            fontSize: isTablet ? 24 : 20,
-            fontWeight: FontWeight.w600,
-            color: AppColors.of(context).textPrimary,
-          ),
-        ),
-        SizedBox(height: isTablet ? 12 : 8),
-        Text(
-          'Find the Impostor! Each player taps their own name, then picks who they suspect.',
-          style: TextStyle(
-            color: AppColors.of(context).textSecondary,
-            fontSize: isTablet ? 16 : 14,
-          ),
-        ),
-        SizedBox(height: isTablet ? 20 : 16),
-        _buildLocalVotingList(isTablet, players, round),
-        SizedBox(height: isTablet ? 20 : 16),
-        _buildVotingProgress(isTablet, players, round),
-        if (allVoted) ...[
-          SizedBox(height: isTablet ? 16 : 12),
-          _buildShowResultsButton(isTablet, round.id),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildLocalVotingList(
-    bool isTablet,
-    List<Player> players,
-    RoundInfo round,
-  ) {
-    final voteCountMap = round.voteCounts;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
-      ),
-      padding: EdgeInsets.all(isTablet ? 20 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Tap your name to vote ↓',
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontWeight: FontWeight.w500,
-              fontSize: isTablet ? 18 : 16,
-            ),
-          ),
-          SizedBox(height: isTablet ? 16 : 12),
-          ...players.map((player) {
-            final voteCount = voteCountMap[player.id] ?? 0;
-            final hasThisPlayerVoted = round.playerVotes.containsKey(player.id);
-
-            return _LocalVotePlayerTile(
-              player: player,
-              voteCount: voteCount,
-              hasAlreadyVotedAsVoter: hasThisPlayerVoted,
-              isTablet: isTablet,
-              onVote: () => _showLocalTargetSelectionDialog(context, player.id),
-            );
-          }),
-        ],
-      ),
     );
   }
 
@@ -638,319 +488,6 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildVotingProgress(
-    bool isTablet,
-    List<Player> players,
-    RoundInfo round,
-  ) {
-    final progress = round.requiredVoteCount <= 0
-        ? 0.0
-        : (round.submittedVoteCount / round.requiredVoteCount)
-              .clamp(0.0, 1.0)
-              .toDouble();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
-      ),
-      padding: EdgeInsets.all(isTablet ? 20 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Votes (${round.submittedVoteCount}/${round.requiredVoteCount})',
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontWeight: FontWeight.w500,
-              fontSize: isTablet ? 18 : 16,
-            ),
-          ),
-          SizedBox(height: isTablet ? 12 : 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: isTablet ? 12 : 8,
-              backgroundColor: AppColors.of(context).surfaceLight,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                progress >= 1.0 ? AppColors.success : AppColors.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShowResultsButton(bool isTablet, String roundId) {
-    return ElevatedButton.icon(
-      onPressed: _isFinalizingVotingRoundId == roundId
-          ? null
-          : () => _finalizeVotingAndProgress(roundId),
-      icon: const Icon(Icons.check_circle_outline),
-      label: Text(
-        _isFinalizingVotingRoundId == roundId
-            ? 'Finalizing Results...'
-            : 'Show Results Now →',
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.success,
-        foregroundColor: AppColors.of(context).textPrimary,
-        minimumSize: const Size.fromHeight(50),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  Widget _buildResultsContent(GameLoaded state, bool isTablet) {
-    final round = state.gameState.currentRound;
-    final players = state.gameState.players;
-    if (players.isEmpty) return const SizedBox.shrink();
-    final imposterPlayerId = round.imposterPlayerId;
-    if (imposterPlayerId == null || round.character == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final voteCounts = round.voteCounts;
-    final isLastRound = state.gameState.isLastRound;
-
-    Player? imposter;
-    for (final player in players) {
-      if (player.id == imposterPlayerId) {
-        imposter = player;
-        break;
-      }
-    }
-    if (imposter == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final maxVotes = voteCounts.values.fold<int>(
-      0,
-      (max, count) => count > max ? count : max,
-    );
-    final topEntries = maxVotes == 0
-        ? const <MapEntry<String, int>>[]
-        : voteCounts.entries
-              .where((entry) => entry.value == maxVotes)
-              .toList(growable: false);
-    final mostVotedPlayerId = topEntries.length == 1
-        ? topEntries.single.key
-        : null;
-    final imposterCaught = mostVotedPlayerId == imposterPlayerId;
-
-    Player? mostVotedPlayer;
-    if (mostVotedPlayerId != null) {
-      for (final player in players) {
-        if (player.id == mostVotedPlayerId) {
-          mostVotedPlayer = player;
-          break;
-        }
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ImposterRevealCard(imposter: imposter, imposterCaught: imposterCaught),
-        SizedBox(height: isTablet ? 24 : 16),
-        VotingResultsCard(
-          voteCounts: voteCounts,
-          players: players,
-          imposterPlayerId: imposterPlayerId,
-          mostVotedPlayer: mostVotedPlayer,
-          maxVotes: maxVotes,
-        ),
-        SizedBox(height: isTablet ? 24 : 16),
-        CurrentScoresCard(
-          players: players,
-          playerScores: state.gameState.playerScores,
-          imposterPlayerId: imposterPlayerId,
-        ),
-        SizedBox(height: isTablet ? 32 : 24),
-        if (isLastRound)
-          ElevatedButton.icon(
-            onPressed: () =>
-                context.read<GameCubit>().finishGame(widget.roomId),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.goldMedal,
-              foregroundColor: AppColors.scoreBadgeText,
-              padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            icon: Icon(Icons.leaderboard_rounded, size: isTablet ? 24 : 20),
-            label: Text(
-              'View Final Leaderboard',
-              style: TextStyle(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          )
-        else
-          ElevatedButton(
-            onPressed: _isStartingNextRound
-                ? null
-                : () async {
-                    setState(() => _isStartingNextRound = true);
-                    await _startNextRound(state);
-                    if (mounted) {
-                      setState(() => _isStartingNextRound = false);
-                    }
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: AppColors.of(context).textPrimary,
-              padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              _isStartingNextRound ? 'Creating Round...' : 'Start Next Round',
-              style: TextStyle(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _LocalVotePlayerTile extends StatelessWidget {
-  final Player player;
-  final int voteCount;
-  final bool hasAlreadyVotedAsVoter;
-  final bool isTablet;
-  final VoidCallback onVote;
-
-  const _LocalVotePlayerTile({
-    required this.player,
-    required this.voteCount,
-    required this.hasAlreadyVotedAsVoter,
-    required this.isTablet,
-    required this.onVote,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: isTablet ? 12 : 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: hasAlreadyVotedAsVoter
-              ? AppColors.voteSelectedBg
-              : AppColors.of(context).voteUnselectedBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: hasAlreadyVotedAsVoter
-                ? AppColors.success
-                : AppColors.of(context).cardBorder,
-            width: hasAlreadyVotedAsVoter ? 2 : 1,
-          ),
-        ),
-        child: ListTile(
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: isTablet ? 20 : 16,
-            vertical: isTablet ? 8 : 4,
-          ),
-          leading: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              CircleAvatar(
-                radius: isTablet ? 24 : 20,
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  player.username[0].toUpperCase(),
-                  style: TextStyle(
-                    color: AppColors.of(context).textPrimary,
-                    fontSize: isTablet ? 20 : 16,
-                  ),
-                ),
-              ),
-              if (voteCount > 0)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    width: isTablet ? 22 : 18,
-                    height: isTablet ? 22 : 18,
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.of(context).surface,
-                        width: 1.5,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '$voteCount',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isTablet ? 12 : 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          title: Text(
-            player.username,
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontSize: isTablet ? 18 : 16,
-            ),
-          ),
-          subtitle: voteCount > 0
-              ? Text(
-                  voteCount == 1 ? '1 vote' : '$voteCount votes',
-                  style: TextStyle(
-                    color: AppColors.error,
-                    fontSize: isTablet ? 13 : 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                )
-              : null,
-          trailing: hasAlreadyVotedAsVoter
-              ? FaIcon(
-                  FontAwesomeIcons.circleCheck,
-                  color: AppColors.success,
-                  size: isTablet ? 28 : 22,
-                )
-              : ElevatedButton(
-                  onPressed: onVote,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
-                    foregroundColor: AppColors.of(context).textPrimary,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isTablet ? 24 : 16,
-                      vertical: isTablet ? 12 : 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Vote',
-                    style: TextStyle(
-                      fontSize: isTablet ? 16 : 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-        ),
-      ),
     );
   }
 }

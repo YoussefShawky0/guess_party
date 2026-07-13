@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
@@ -17,6 +18,7 @@ import 'package:guess_party/features/room/domain/usecases/mark_stale_players_off
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
 import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
+import 'package:guess_party/features/room/domain/usecases/watch_room_players.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 
 void main() {
@@ -36,6 +38,7 @@ void main() {
       leaveRoom: LeaveRoom(repository),
       joinRoomCommand: JoinRoom(repository),
       watchRoomDetails: WatchRoomDetails(repository),
+      watchRoomPlayers: WatchRoomPlayers(repository),
     );
   });
 
@@ -48,6 +51,7 @@ void main() {
     final waitingRoom = roomWithStatus('waiting');
     final activeRoom = roomWithStatus('active');
     final players = [player()];
+    repository.currentPlayers = players;
 
     cubit.emit(RoomDetailsLoaded(waitingRoom, players: players));
 
@@ -105,11 +109,112 @@ void main() {
       await subscription.cancel();
     },
   );
+
+  test('waiting room owns exactly two replaceable session streams', () async {
+    await cubit.watchRoomStatus(roomId: 'room-1');
+    expect(cubit.activeSessionSubscriptionCount, 2);
+
+    await cubit.watchRoomStatus(roomId: 'room-1');
+    expect(cubit.activeSessionSubscriptionCount, 2);
+
+    await cubit.close();
+    expect(cubit.activeSessionSubscriptionCount, 0);
+  });
+
+  test(
+    'create room captures current command shape and emits session',
+    () async {
+      await cubit.createNewRoom(
+        category: 'animals',
+        maxRounds: 3,
+        username: 'Host',
+        maxPlayers: 4,
+        roundDuration: 60,
+        gameMode: 'online',
+      );
+
+      expect(repository.createCalls, 1);
+      expect(repository.lastCreateCategory, 'animals');
+      expect(repository.lastCreateGameMode, 'online');
+      expect(cubit.state, isA<RoomWithPlayerCreated>());
+    },
+  );
+
+  test('start validation failure currently becomes RoomError', () async {
+    repository.startFailure = const ServerFailure('NOT_ENOUGH_PLAYERS');
+
+    await cubit.startGameSession('room-1');
+
+    expect(repository.startCalls, 1);
+    expect(cubit.state, const RoomError('NOT_ENOUGH_PLAYERS'));
+  });
+
+  test(
+    'presence heartbeat delegates online status with player identity',
+    () async {
+      await cubit.setPlayerStatus(playerId: 'player-1', isOnline: true);
+
+      expect(repository.statusUpdates, [('player-1', true)]);
+    },
+  );
+
+  test('formal leave delegates once without changing visible state', () async {
+    final before = cubit.state;
+
+    await cubit.leaveRoomSession(
+      playerId: 'player-1',
+      roomId: 'room-1',
+      isHost: true,
+    );
+
+    expect(repository.leaveCalls, 1);
+    expect(cubit.state, same(before));
+  });
+
+  test(
+    'online room invokes stale cleanup and shared-device room skips it',
+    () async {
+      cubit.emit(RoomDetailsLoaded(roomWithStatus('waiting')));
+      await cubit.cleanUpStalePlayers(roomId: 'room-1', staleSeconds: 90);
+      expect(repository.cleanupCalls, 1);
+
+      cubit.emit(
+        RoomDetailsLoaded(
+          Room(
+            id: 'room-1',
+            hostId: 'host-1',
+            category: 'animals',
+            maxRounds: 3,
+            currentRound: 0,
+            roomCode: '123456',
+            status: 'waiting',
+            usedCharacterIds: const [],
+            maxPlayers: 4,
+            roundDuration: 60,
+            gameMode: 'local',
+          ),
+        ),
+      );
+      await cubit.cleanUpStalePlayers(roomId: 'room-1', staleSeconds: 90);
+      expect(repository.cleanupCalls, 1);
+    },
+  );
 }
 
 class FakeRoomRepository implements RoomRepository {
   final StreamController<Room> _controller = StreamController<Room>.broadcast();
+  final StreamController<List<Player>> _playersController =
+      StreamController<List<Player>>.broadcast();
   Room currentRoom = roomWithStatus('waiting');
+  List<Player> currentPlayers = const <Player>[];
+  int createCalls = 0;
+  int startCalls = 0;
+  String? lastCreateCategory;
+  String? lastCreateGameMode;
+  Failure? startFailure;
+  int cleanupCalls = 0;
+  int leaveCalls = 0;
+  final List<(String, bool)> statusUpdates = [];
 
   void emitRoom(Room room) {
     currentRoom = room;
@@ -118,6 +223,7 @@ class FakeRoomRepository implements RoomRepository {
 
   Future<void> dispose() async {
     await _controller.close();
+    await _playersController.close();
   }
 
   @override
@@ -131,6 +237,9 @@ class FakeRoomRepository implements RoomRepository {
     required String hostUsername,
     required List<String> localNames,
   }) async {
+    createCalls++;
+    lastCreateCategory = category;
+    lastCreateGameMode = gameMode;
     final currentPlayer = player();
     return Right(
       RoomSession(
@@ -177,6 +286,7 @@ class FakeRoomRepository implements RoomRepository {
     required String roomId,
     required bool isHost,
   }) async {
+    leaveCalls++;
     return const Right(null);
   }
 
@@ -185,11 +295,14 @@ class FakeRoomRepository implements RoomRepository {
     required String roomId,
     required int staleSeconds,
   }) async {
+    cleanupCalls++;
     return const Right(null);
   }
 
   @override
   ResultFuture<String> startGame(String roomId) async {
+    startCalls++;
+    if (startFailure case final failure?) return Left(failure);
     return const Right('round-1');
   }
 
@@ -198,6 +311,7 @@ class FakeRoomRepository implements RoomRepository {
     required String playerId,
     required bool isOnline,
   }) async {
+    statusUpdates.add((playerId, isOnline));
     return const Right(null);
   }
 
@@ -206,6 +320,19 @@ class FakeRoomRepository implements RoomRepository {
     return Stream.multi((multi) {
       multi.add(currentRoom);
       final subscription = _controller.stream.listen(
+        multi.add,
+        onError: multi.addError,
+        onDone: multi.close,
+      );
+      multi.onCancel = subscription.cancel;
+    });
+  }
+
+  @override
+  Stream<List<Player>> watchRoomPlayers({required String roomId}) {
+    return Stream.multi((multi) {
+      multi.add(currentPlayers);
+      final subscription = _playersController.stream.listen(
         multi.add,
         onError: multi.addError,
         onDone: multi.close,

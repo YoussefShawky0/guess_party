@@ -17,12 +17,13 @@ import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:guess_party/features/game/presentation/coordinators/online_game_coordinator.dart';
 
 part 'game_state.dart';
 
 typedef GameStateEntity = entity.GameState;
 
-class GameCubit extends Cubit<GameState> {
+class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
   static const int _minConnectedPlayersForPhaseAdvance = 2;
 
   final GetGameState getGameState;
@@ -34,9 +35,17 @@ class GameCubit extends Cubit<GameState> {
   final FinishGame finishGameUseCase;
   final ExtendLocalRoleReveal extendLocalRoleReveal;
   final GameRepository gameRepository;
+  final TimeSyncService timeSyncService;
 
   StreamSubscription? _roundSubscription;
   StreamSubscription? _playersSubscription;
+  StreamSubscription? _roomStatusSubscription;
+
+  @override
+  int get activeOnlineGameSubscriptionCount =>
+      (_roundSubscription == null ? 0 : 1) +
+      (_playersSubscription == null ? 0 : 1) +
+      (_roomStatusSubscription == null ? 0 : 1);
 
   /// Prevents double-tap from calling createNextRound twice (duplicate-key guard)
   bool _isCreatingRound = false;
@@ -60,6 +69,7 @@ class GameCubit extends Cubit<GameState> {
     required this.finishGameUseCase,
     required this.extendLocalRoleReveal,
     required this.gameRepository,
+    required this.timeSyncService,
   }) : super(GameInitial());
 
   void _addBreadcrumb(String message, {Map<String, Object?> data = const {}}) {
@@ -85,7 +95,7 @@ class GameCubit extends Cubit<GameState> {
     emit(GameLoading());
 
     // Sync time with server for accurate timer calculations
-    final synced = await TimeSyncService.instance.syncWithServer();
+    final synced = await timeSyncService.syncWithServer();
     if (!synced) {
       _addBreadcrumb(
         'loadGameState:timeSyncFailed',
@@ -125,6 +135,7 @@ class GameCubit extends Cubit<GameState> {
 
   /// Refresh game state when app is resumed.
   /// Keeps current UI state on transient network failures and retries silently.
+  @override
   Future<void> refreshGameStateOnResume({
     required String roomId,
     int maxRetries = 3,
@@ -212,6 +223,10 @@ class GameCubit extends Cubit<GameState> {
     _addBreadcrumb('subscribeToGameUpdates', data: {'roundId': roundId});
     await _roundSubscription?.cancel();
     await _playersSubscription?.cancel();
+    await _roomStatusSubscription?.cancel();
+    _roundSubscription = null;
+    _playersSubscription = null;
+    _roomStatusSubscription = null;
     if (isClosed) return;
 
     _roundSubscription = gameRepository
@@ -248,6 +263,34 @@ class GameCubit extends Cubit<GameState> {
             );
           }
         });
+
+    _roomStatusSubscription = gameRepository
+        .watchRoomStatus(roomId: roomId)
+        .listen((status) {
+          if (!isClosed && status == 'finished' && state is GameLoaded) {
+            final loaded = state as GameLoaded;
+            emit(
+              GameEnded(
+                'Game Over',
+                players: loaded.gameState.players,
+                playerScores: loaded.gameState.playerScores,
+              ),
+            );
+          }
+        });
+  }
+
+  @override
+  Future<void> setCurrentPlayerPresence({
+    required String roomId,
+    required String userId,
+    required bool isOnline,
+  }) async {
+    await gameRepository.updateCurrentPlayerPresence(
+      roomId: roomId,
+      userId: userId,
+      isOnline: isOnline,
+    );
   }
 
   // Submit a hint for the current round
@@ -624,6 +667,10 @@ class GameCubit extends Cubit<GameState> {
   Future<void> close() async {
     await _roundSubscription?.cancel();
     await _playersSubscription?.cancel();
+    await _roomStatusSubscription?.cancel();
+    _roundSubscription = null;
+    _playersSubscription = null;
+    _roomStatusSubscription = null;
     await super.close();
   }
 }

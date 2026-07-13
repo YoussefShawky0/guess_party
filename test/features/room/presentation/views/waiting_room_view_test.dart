@@ -18,6 +18,7 @@ import 'package:guess_party/features/room/domain/usecases/mark_stale_players_off
 import 'package:guess_party/features/room/domain/usecases/start_game.dart';
 import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
 import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
+import 'package:guess_party/features/room/domain/usecases/watch_room_players.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/features/room/presentation/views/waiting_room_view.dart';
 
@@ -91,6 +92,7 @@ class TestRoomCubit extends RoomCubit {
         leaveRoom: LeaveRoom(repository),
         joinRoomCommand: JoinRoom(repository),
         watchRoomDetails: WatchRoomDetails(repository),
+        watchRoomPlayers: WatchRoomPlayers(repository),
       );
 
   void emitState(RoomState state) {
@@ -184,6 +186,11 @@ class FakeRoomRepository implements RoomRepository {
 
   @override
   Stream<Room> watchRoomDetails({required String roomId}) {
+    return const Stream.empty();
+  }
+
+  @override
+  Stream<List<Player>> watchRoomPlayers({required String roomId}) {
     return const Stream.empty();
   }
 }

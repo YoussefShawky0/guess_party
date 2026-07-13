@@ -10,6 +10,7 @@ class PlayerModel extends Player {
     required super.isHost,
     super.isOnline,
     super.lastSeenAt,
+    super.createdAt,
   });
 
   Player toEntity() => Player(
@@ -21,6 +22,7 @@ class PlayerModel extends Player {
     isHost: isHost,
     isOnline: isOnline,
     lastSeenAt: lastSeenAt,
+    createdAt: createdAt,
   );
 
   static DateTime _parseLastSeenAt(dynamic value) {
@@ -43,6 +45,9 @@ class PlayerModel extends Player {
       isHost: json['is_host'] as bool? ?? false,
       isOnline: json['is_online'] as bool? ?? true,
       lastSeenAt: _parseLastSeenAt(json['last_seen_at']),
+      createdAt: json['created_at'] == null
+          ? null
+          : DateTime.tryParse(json['created_at'].toString())?.toUtc(),
     );
   }
 
@@ -56,6 +61,7 @@ class PlayerModel extends Player {
       'is_host': isHost,
       'is_online': isOnline,
       'last_seen_at': lastSeenAt?.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
     };
   }
 }
