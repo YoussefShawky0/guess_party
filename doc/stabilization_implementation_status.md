@@ -51,8 +51,8 @@ next phase begins.
 | 4 | Realtime and architecture ownership | Complete | Repository/coordinator ownership and subscription-count validation |
 | 5 | Gameplay presentation decomposition | Complete | Online/Shared-Device orchestration shells and phase widget tests |
 | 6 | Connected Shared-Device alignment | Complete | UI, README, architecture, and constitution aligned; internal `local` value preserved |
-| 7 | Authentication identity and recovery | Implemented and locally verified; not yet committed | 58 Flutter tests, 71 database contracts, local Auth/gameplay smoke pass |
-| 8 | Chat security and reliability | Not started | [Phase 8 runbook](phase_08_chat_security_implementation_plan.md) |
+| 7 | Authentication identity and recovery | Complete | Commit `d1e8891`; 58 Flutter tests, 71 database contracts, local Auth/gameplay smoke pass |
+| 8 | Chat security and reliability | Implemented and locally verified; pending review/commit | 66 Flutter tests, 103 database contracts, local REST/Auth chat smoke pass |
 | 9 | Environment separation and observability | Not started | [Phase 9 runbook](phase_09_environment_observability_implementation_plan.md) |
 | 10 | Release engineering | Not started; partial safeguards pre-exist | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md) |
 | 11 | Platform policy, localization, accessibility | Not started | [Phase 11 runbook](phase_11_platform_localization_accessibility_plan.md) |
@@ -133,38 +133,64 @@ next phase begins.
 - Physical-device email callback delivery and production SMTP/Auth settings
   remain release-environment gates.
 
+### Phase 8
+
+- Added a canonical chat security migration with `player_mutes`,
+  `message_reports`, `send_chat_message`, `list_chat_messages`,
+  `set_player_muted`, and `report_chat_message`.
+- Removed direct authenticated `messages` inserts; sender identity now comes
+  from `auth.uid()` membership inside the RPC.
+- Added server-side content length checks, room/round membership checks, one
+  player-derived sender, five-message-per-ten-second rate limiting,
+  deterministic cursor pagination, mute filtering, idempotent reporting, and
+  least-privilege report access.
+- Moved chat history, sending, pagination, Realtime merge, deduplication, mute
+  filtering, and disposal ownership into a `ChatCubit`; `ChatWidget` now
+  renders state and forwards user intent.
+- Added database contracts for non-member denial, direct insert blocking,
+  impersonation resistance, throttling, cursor behavior, mutes, duplicate
+  reports, and report moderation lockout.
+- Added Flutter Cubit/widget coverage for bounded loading, older-page merge,
+  Realtime deduplication, subscription cancellation, mute filtering, safe copy,
+  and presentation-level send/mute behavior.
+
 ## Current Verification Baseline
 
-The Phase 7 local baseline is:
+The Phase 8 local baseline is:
 
 ```text
 flutter analyze
 No issues found!
 
 flutter test
-00:08 +58: All tests passed!
+00:14 +66: All tests passed!
 
 supabase test db
-Files=3, Tests=71
+Files=4, Tests=103
 Result: PASS
 
-scripts/phase7_auth_smoke.ps1
-Phase 7 local Auth API smoke: PASS
+Phase 8 local REST/Auth chat smoke
+Phase 8 local REST/Auth chat smoke: PASS
 ```
 
 Commits containing accepted earlier work:
 
 - `4757778` — `feat: stabilize gameplay architecture through phase 5`
 - `e7ab980` — `docs: align connected shared-device mode`
+- `d1e8891` — `feat: implement auth identity migration`
 
-Phase 7 changes are currently a verified working-tree change and must be
-committed before Phase 8 is delegated.
+Phase 8 changes are currently a verified working-tree change and must be
+reviewed and committed before Phase 9 is delegated.
 
 ## Environment and Production State
 
-- No Phase 1–7 task wrote to the production Supabase project.
+- No Phase 1–8 task wrote to the production Supabase project.
 - Canonical migrations have been applied only to the disposable local stack.
 - Local Auth uses test configuration; it is not production authorization.
+- During Phase 8 verification, Kong/Auth/PostgREST and the database were
+  usable locally. The Realtime container started and served logs, but Docker
+  continued to mark its healthcheck unhealthy with timeout/connection messages;
+  no production Realtime setting was changed.
 - The app selects its backend through its runtime configuration. The local
   stack does not silently replace the deployed backend.
 - Production still needs approved SMTP, callback allowlisting, Auth linking and

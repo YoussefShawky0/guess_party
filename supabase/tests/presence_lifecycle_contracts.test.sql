@@ -58,6 +58,8 @@ select is((select count(*) from public.players where room_id = '21000000-0000-40
 update public.players set last_seen_at = now() - interval '120 seconds' where id = '31000000-0000-4000-8000-000000000004';
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"11000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '11000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select is(public.mark_stale_players_offline('21000000-0000-4000-8000-000000000001', 60), 1, 'room-scoped cleanup marks one stale player offline');
 reset role;
 select is((select is_online from public.players where id = '31000000-0000-4000-8000-000000000004'), false, 'stale player is offline after cleanup');

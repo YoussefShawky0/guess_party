@@ -35,12 +35,16 @@ values
 -- Outsider: neither raw RLS rows nor secure RPC snapshots are visible.
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000099","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000099', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select is((select count(*) from public.rounds where id = '40000000-0000-4000-8000-000000000001'), 0::bigint, 'non-participant cannot read raw protected round');
 select is((select count(*) from public.votes where round_id = '40000000-0000-4000-8000-000000000001'), 0::bigint, 'non-participant cannot read raw votes');
 select is((select count(*) from public.get_round_for_player_v2('40000000-0000-4000-8000-000000000001')), 0::bigint, 'non-participant gets no secure round snapshot');
 
 -- Non-host participant cannot call any host-only lifecycle RPC.
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000003', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select throws_ok($$select public.advance_to_voting('40000000-0000-4000-8000-000000000001')$$, '42501', 'HOST_REQUIRED', 'non-host cannot advance to voting');
 select throws_ok($$select public.finalize_voting('40000000-0000-4000-8000-000000000001', 'timer')$$, '42501', 'HOST_REQUIRED', 'non-host cannot finalize voting');
 select throws_ok($$select public.create_next_round('20000000-0000-4000-8000-000000000001', 2)$$, '42501', 'HOST_REQUIRED', 'non-host cannot create next round');
@@ -49,11 +53,15 @@ select throws_ok($$select public.finish_game('20000000-0000-4000-8000-0000000000
 -- Identity-aware redaction during hints.
 select is((select character_id is not null and imposter_player_id is null from public.get_round_for_player_v2('40000000-0000-4000-8000-000000000001')), true, 'regular player sees character but not imposter identity');
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000002', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select is((select character_id is null and imposter_player_id = '30000000-0000-4000-8000-000000000002' from public.get_round_for_player_v2('40000000-0000-4000-8000-000000000001')), true, 'imposter sees own role but not character');
 
 -- Shared-device secret bundle is host-only.
 select is((select count(*) from public.get_local_role_reveal_bundle('40000000-0000-4000-8000-000000000002')), 0::bigint, 'non-host cannot read shared-device reveal bundle');
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select is((select count(*) from public.get_local_role_reveal_bundle('40000000-0000-4000-8000-000000000002')), 1::bigint, 'shared-device host can read reveal bundle');
 
 reset role;
@@ -75,11 +83,15 @@ update public.rounds set phase = 'voting' where id = '40000000-0000-4000-8000-00
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select lives_ok($$select public.finalize_voting('40000000-0000-4000-8000-000000000001', 'all_votes')$$, 'first finalization succeeds');
 reset role;
 create temp table score_snapshot as select id, score from public.players where room_id = '20000000-0000-4000-8000-000000000001';
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claim.sub', '10000000-0000-4000-8000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 select lives_ok($$select public.finalize_voting('40000000-0000-4000-8000-000000000001', 'all_votes')$$, 'second finalization is accepted idempotently');
 reset role;
 select is((select count(*) from public.players p join score_snapshot s using (id) where p.score <> s.score), 0::bigint, 'double finalization does not apply scores twice');
