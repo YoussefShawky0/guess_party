@@ -3,7 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:guess_party/core/observability/telemetry_scrubber.dart';
 import 'package:guess_party/core/router/app_router.dart';
 import 'package:guess_party/core/theme/app_theme.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
@@ -19,18 +19,9 @@ import 'core/services/auth_session_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (error) {
-    runApp(
-      BootstrapErrorApp(message: 'Unable to load app configuration: $error'),
-    );
-    return;
-  }
-
   late final AppConfig config;
   try {
-    config = AppConfig.fromEnvironment();
+    config = AppConfig.fromCompileTime();
   } on AppConfigException catch (error) {
     runApp(BootstrapErrorApp(message: error.message));
     return;
@@ -44,6 +35,7 @@ void main() async {
   await di.init();
 
   final sentryDsn = config.sentryDsn;
+  const telemetryScrubber = TelemetryScrubber();
 
   FlutterError.onError = (details) {
     FlutterError.presentError(details);
@@ -64,9 +56,13 @@ void main() async {
       if (sentryDsn != null) {
         await SentryFlutter.init((options) {
           options.dsn = sentryDsn;
-          options.environment = config.environment;
+          options.environment = config.environment.name;
+          options.release = config.sentryRelease;
+          options.dist = config.sentryDist;
           options.tracesSampleRate = config.sentryTracesSampleRate;
           options.sendDefaultPii = false;
+          options.beforeSend = telemetryScrubber.scrubEvent;
+          options.beforeBreadcrumb = telemetryScrubber.scrubBreadcrumb;
         }, appRunner: () => runApp(const GuessParty()));
       } else {
         runApp(const GuessParty());

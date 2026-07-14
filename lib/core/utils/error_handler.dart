@@ -132,7 +132,7 @@ class ErrorHandler {
         data: {
           if (operation != null) 'operation': operation,
           if (data != null) ...data,
-          'error': extractErrorMessage(error),
+          'error_type': error.runtimeType.toString(),
         },
       ),
     );

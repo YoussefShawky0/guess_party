@@ -52,8 +52,8 @@ next phase begins.
 | 5 | Gameplay presentation decomposition | Complete | Online/Shared-Device orchestration shells and phase widget tests |
 | 6 | Connected Shared-Device alignment | Complete | UI, README, architecture, and constitution aligned; internal `local` value preserved |
 | 7 | Authentication identity and recovery | Complete | Commit `d1e8891`; 58 Flutter tests, 71 database contracts, local Auth/gameplay smoke pass |
-| 8 | Chat security and reliability | Implemented and locally verified; pending review/commit | 66 Flutter tests, 103 database contracts, local REST/Auth chat smoke pass |
-| 9 | Environment separation and observability | Not started | [Phase 9 runbook](phase_09_environment_observability_implementation_plan.md) |
+| 8 | Chat security and reliability | Complete | Commit `21310ff`; 66 Flutter tests, 104 database contracts, local REST/Auth chat smoke pass |
+| 9 | Environment separation and observability | Implemented and locally verified; pending review/commit | 72 Flutter tests, 104 database contracts, development flavor APK build, define guard pass/fail checks |
 | 10 | Release engineering | Not started; partial safeguards pre-exist | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md) |
 | 11 | Platform policy, localization, accessibility | Not started | [Phase 11 runbook](phase_11_platform_localization_accessibility_plan.md) |
 
@@ -179,8 +179,9 @@ Commits containing accepted earlier work:
 - `e7ab980` — `docs: align connected shared-device mode`
 - `d1e8891` — `feat: implement auth identity migration`
 
-Phase 8 changes are currently a verified working-tree change and must be
-reviewed and committed before Phase 9 is delegated.
+Phase 8 has been reviewed, committed, and pushed. Phase 9 is implemented in the
+working tree and locally verified. It has not been committed, pushed, or applied
+to production Supabase/Sentry.
 
 ## Environment and Production State
 

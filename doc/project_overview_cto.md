@@ -117,7 +117,7 @@ Core RPCs include room creation/join/start, joinable-room lookup, secure player-
 | Value equality | `equatable` | Stable entity and Cubit-state comparison. |
 | Backend | Supabase | Managed Auth, PostgreSQL Data API/RPC, and Realtime; eliminates a separate server application. |
 | Database | PostgreSQL via Supabase | Relational integrity, constraints, triggers, RLS, and atomic game procedures. |
-| Observability | Sentry Flutter | Uncaught Flutter/platform/zone errors and lifecycle breadcrumbs; tracing is configured at 100%. |
+| Observability | Sentry Flutter | Uncaught Flutter/platform/zone errors and privacy-scrubbed lifecycle/game breadcrumbs; tracing is configured by build environment. |
 | Local persistence | `shared_preferences` | Persists theme selection. |
 | UI/support | Font Awesome, UUID, profanity filter | Icons, idempotent room request IDs, and player-input moderation. |
 | Platform services | Share Plus, URL Launcher, Package Info Plus, In-App Update | Room-code sharing, external links, displayed version, and Android Play in-app updates. |
@@ -217,40 +217,51 @@ Clients periodically update online status and last-seen time. Stale-player clean
 
 ## 8. Environment and Configuration
 
-### Required Environment Variables
+### Compile-Time Configuration
 
-The app loads a root `.env` file as a bundled Flutter asset.
+The app now reads runtime configuration from compile-time Dart defines rather
+than a bundled `.env` asset. The required contract is:
 
-```dotenv
-SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_ANON_KEY=<legacy-anon-or-publishable-client-key>
-SENTRY_DSN=<optional-sentry-dsn>
-```
+| Define | Requirement |
+|---|---|
+| `APP_ENVIRONMENT` | `development`, `staging`, or `production`. |
+| `APP_DISTRIBUTION` | `local`, `internal`, `play`, or `appstore`. |
+| `SUPABASE_URL` | Valid HTTPS Supabase endpoint, except local development may use loopback HTTP. |
+| `SUPABASE_PUBLISHABLE_KEY` | Public publishable client key only; service-role/JWT/secret markers are rejected. |
+| `SENTRY_DSN` | Optional; empty disables Sentry cleanly. |
+| `SENTRY_TRACES_SAMPLE_RATE` | Optional, defaults to `0.1`, and is clamped to `0.0–1.0`. |
+| `SENTRY_RELEASE` / `SENTRY_DIST` | Required for staging and production builds. |
 
-`SUPABASE_URL` and `SUPABASE_ANON_KEY` are force-unwrapped and will terminate startup if absent. `SENTRY_DSN` is optional. The service-role/secret key must never be placed in this client file. Because `.env` is bundled as an asset, its values are extractable from the application; only public client keys belong there.
+Tracked configuration examples contain placeholders only. Real staging and
+production values remain external inputs supplied by CI or a trusted local
+operator. The app fails closed if production points at loopback, development, or
+staging-style endpoints.
 
 ### Build Configuration
 
 - Package version is `1.0.0` with no explicit build number in `pubspec.yaml`.
-- Android namespace/application ID is still `com.example.guess_party`.
+- Android namespace/application ID is still `com.example.guess_party`; Phase 9
+  adds development/staging/production flavors while Phase 10 still owns the
+  permanent organization ID.
 - Android release builds currently use the debug signing key.
 - Android requests internet access and supports HTTPS link handlers.
-- iOS identifiers inherit Xcode build settings; phone/tablet orientations are configured.
+- iOS identifiers inherit Xcode build settings; shared development/staging/
+  production scheme names are present, while signing/team work remains Phase 10.
 - Web and Windows runners exist, but the product documentation and update service focus on Android/iOS.
 - Splash and launcher icon generation are configured for Android and iOS.
-- No flavors, environment-specific entry points, or separate dev/staging/prod configuration were found.
 
 ## 9. Deployment and Infrastructure
 
 ### Client Build
 
-Standard Flutter commands apply after supplying `.env`:
+Standard Flutter commands apply after supplying a Dart define file:
 
 ```bash
 flutter pub get
 flutter analyze
 flutter test
-flutter build appbundle   # Android Play distribution
+flutter run --flavor development --dart-define-from-file=config/development.local.json
+flutter build appbundle --flavor production --dart-define-from-file=$PRODUCTION_DEFINE_FILE
 flutter build ipa         # iOS archive on macOS
 ```
 
@@ -280,7 +291,8 @@ Key controls include server-side room capacity, unique per-round hint/vote const
 - Documentation SQL is not proof of the live Supabase project's deployed schema/policies.
 - Presentation code directly accesses Supabase in multiple places, increasing the chance of bypassing domain policy and complicating security review.
 - User metadata supplies display identity only and must never be treated as authorization data.
-- Bundled client environment values are public by design.
+- Client configuration is public by design; service-role and secret values are
+  rejected from app configuration and must remain server/CI-only.
 - There is no automated RLS integration test suite or database-advisor evidence in the repository.
 
 ## 11. Technical Debt and Risks
@@ -296,8 +308,8 @@ Key controls include server-side room capacity, unique per-round hint/vote const
 | Medium | `anonKey` initialization API is deprecated. | Future Supabase Flutter major upgrade will require change. | Rename configuration to a publishable key and migrate to the current initializer API. |
 | Medium | Five deprecated `withOpacity` calls remain. | Analyzer noise and future Flutter compatibility burden. | Replace with `withValues(alpha: ...)`. |
 | Medium | Very large presentation files (up to 1,228 lines). | Hard reviewability, broad rebuild scopes, and duplicated online/shared-device behavior. | Extract lifecycle controllers and focused phase widgets without coupling secret surfaces. |
-| Medium | Sentry traces sample rate is 100%. | Potential production cost/volume concern. | Use environment-specific sampling and release/environment tags. |
-| Medium | No build flavors or environment separation. | Accidental production access during development and difficult release promotion. | Add dev/staging/prod configs and separate Supabase/Sentry projects. |
+| Resolved | Sentry traces sample rate was effectively production-unsafe. | Potential production cost/volume concern. | Phase 9 introduced environment-controlled sampling, release/dist metadata, and telemetry scrubbing. |
+| Resolved | No build flavors or environment separation. | Accidental production access during development and difficult release promotion. | Phase 9 introduced compile-time config validation and Android dev/staging/production flavors; real project values remain external. |
 | Medium | Synthetic email authentication lacks recovery/verification UX. | Username collisions and password recovery/account ownership are weak. | Define identity strategy; support real email/OAuth or explicitly guest-only accounts. |
 | Medium | Mixed-language hard-coded UI copy without localization resources. | Inconsistent UX and costly translation. | Introduce Flutter localization/ARB files and accessibility review. |
 | Low | `pubspec` still says “A new Flutter project.” | Poor package/release metadata. | Replace with approved product description and ownership metadata. |
