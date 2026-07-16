@@ -57,20 +57,23 @@ void main() {
       expect(config.sentryDist, '42');
     });
 
-    test('allows production only with store distribution and release metadata', () {
-      final config = AppConfig.fromMap(
-        _baseConfig(
-          environment: 'production',
-          distribution: 'play',
-          url: 'https://prod-project.supabase.co',
-          release: 'guess-party@1.0.0+99',
-          dist: '99',
-        ),
-      );
+    test(
+      'allows production only with store distribution and release metadata',
+      () {
+        final config = AppConfig.fromMap(
+          _baseConfig(
+            environment: 'production',
+            distribution: 'play',
+            url: 'https://prod-project.supabase.co',
+            release: 'guess-party@1.0.0+99',
+            dist: '99',
+          ),
+        );
 
-      expect(config.environment, AppEnvironment.production);
-      expect(config.distribution, AppDistribution.play);
-    });
+        expect(config.environment, AppEnvironment.production);
+        expect(config.distribution, AppDistribution.play);
+      },
+    );
 
     test('rejects missing required define values', () {
       expect(

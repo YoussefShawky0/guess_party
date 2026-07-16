@@ -14,6 +14,11 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+val isProductionReleaseTask = gradle.startParameter.taskNames.any {
+    it.contains("Production", ignoreCase = true) &&
+        it.contains("Release", ignoreCase = true)
+}
+
 android {
     namespace = "com.example.guess_party"
     compileSdk = flutter.compileSdkVersion
@@ -72,6 +77,9 @@ android {
 
     buildTypes {
         release {
+            if (isProductionReleaseTask && !keystorePropertiesFile.exists()) {
+                throw GradleException("Production release signing is not configured.")
+            }
             // Release artifacts are never signed with the debug key. A production
             // key.properties file is supplied outside version control/through CI.
             if (keystorePropertiesFile.exists()) {

@@ -28,8 +28,7 @@ class SupabaseRoomQueryService implements RoomQueryService {
         .eq('is_active', true)
         .order('sort_order', ascending: true);
     return <String, String>{
-      for (final row in rows)
-        row['key'] as String: row['name'] as String,
+      for (final row in rows) row['key'] as String: row['name'] as String,
     };
   }
 }

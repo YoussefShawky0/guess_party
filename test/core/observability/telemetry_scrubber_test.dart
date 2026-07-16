@@ -30,7 +30,10 @@ void main() {
       final scrubbed = scrubber.scrubEvent(event, Hint());
 
       expect(scrubbed, isNotNull);
-      expect(scrubbed!.message!.formatted, contains(TelemetryScrubber.redacted));
+      expect(
+        scrubbed!.message!.formatted,
+        contains(TelemetryScrubber.redacted),
+      );
       expect(scrubbed.message!.formatted, isNot(contains('sb_secret_hidden')));
       expect(scrubbed.extra!['room_id'], startsWith('id_'));
       expect(scrubbed.extra!['room_id'], isNot('room-1'));

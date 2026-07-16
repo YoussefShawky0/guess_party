@@ -8,22 +8,43 @@ void main() {
     final gate = ReconnectNoticeGate();
     gate.startCycle(start);
 
-    expect(gate.shouldShowBackOnline(start.add(const Duration(seconds: 2))), isTrue);
-    expect(gate.shouldShowBackOnline(start.add(const Duration(seconds: 3))), isFalse);
+    expect(
+      gate.shouldShowBackOnline(start.add(const Duration(seconds: 2))),
+      isTrue,
+    );
+    expect(
+      gate.shouldShowBackOnline(start.add(const Duration(seconds: 3))),
+      isFalse,
+    );
   });
 
-  test('suppresses short reconnects and cooldown stacking deterministically', () {
-    final gate = ReconnectNoticeGate();
-    gate.startCycle(start);
-    expect(gate.shouldShowBackOnline(start.add(const Duration(milliseconds: 500))), isFalse);
+  test(
+    'suppresses short reconnects and cooldown stacking deterministically',
+    () {
+      final gate = ReconnectNoticeGate();
+      gate.startCycle(start);
+      expect(
+        gate.shouldShowBackOnline(start.add(const Duration(milliseconds: 500))),
+        isFalse,
+      );
 
-    gate.startCycle(start.add(const Duration(seconds: 2)));
-    expect(gate.shouldShowBackOnline(start.add(const Duration(seconds: 4))), isTrue);
+      gate.startCycle(start.add(const Duration(seconds: 2)));
+      expect(
+        gate.shouldShowBackOnline(start.add(const Duration(seconds: 4))),
+        isTrue,
+      );
 
-    gate.startCycle(start.add(const Duration(seconds: 5)));
-    expect(gate.shouldShowBackOnline(start.add(const Duration(seconds: 7))), isFalse);
+      gate.startCycle(start.add(const Duration(seconds: 5)));
+      expect(
+        gate.shouldShowBackOnline(start.add(const Duration(seconds: 7))),
+        isFalse,
+      );
 
-    gate.startCycle(start.add(const Duration(seconds: 11)));
-    expect(gate.shouldShowBackOnline(start.add(const Duration(seconds: 12))), isTrue);
-  });
+      gate.startCycle(start.add(const Duration(seconds: 11)));
+      expect(
+        gate.shouldShowBackOnline(start.add(const Duration(seconds: 12))),
+        isTrue,
+      );
+    },
+  );
 }
