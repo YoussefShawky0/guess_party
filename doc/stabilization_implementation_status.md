@@ -54,7 +54,7 @@ next phase begins.
 | 7 | Authentication identity and recovery | Complete | Commit `d1e8891`; 58 Flutter tests, 71 database contracts, local Auth/gameplay smoke pass |
 | 8 | Chat security and reliability | Complete | Commit `21310ff`; 66 Flutter tests, 104 database contracts, local REST/Auth chat smoke pass |
 | 9 | Environment separation and observability | Complete | Commit `8216bc3`; 72 Flutter tests, 104 database contracts, development flavor APK build, define guard pass/fail checks |
-| 10 | Release engineering | Local guardrails implemented; external IDs/secrets and staging promotion blocked | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md), [staging promotion preflight](phase_10_preflight_staging_promotion.md), [release operations](phase_10_release_operations.md) |
+| 10 | Release engineering | Local guardrails implemented; production backend delta applied with approval; external IDs/secrets remain blocked | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md), [staging promotion preflight](phase_10_preflight_staging_promotion.md), [release operations](phase_10_release_operations.md) |
 | 11 | Platform policy, localization, accessibility | Not started | [Phase 11 runbook](phase_11_platform_localization_accessibility_plan.md) |
 
 ## Completed Work
@@ -194,10 +194,23 @@ path is documented without linking, pushing, or writing to any remote project.
 Actual staging promotion remains blocked until the staging project/DB URL,
 staging define file, and explicit staging write approval are supplied.
 
+After explicit production approval, migration
+`20260716160813_production_policy_and_chat_delta.sql` was applied to the
+`Guess Party game` Supabase project (`bkpignyvtkqlicirpmmp`). The migration
+removed the legacy broad raw `rounds`/`votes` SELECT policies, added the
+secure raw-table visibility helpers, added Phase 8 chat security tables/RPCs,
+and preserved the existing eight-table Realtime publication membership. Local
+pgTAP validation passed before production application; production read-only
+verification confirmed the new migration ledger entry, expected policies,
+tables, functions, grants, and RLS state.
+
 ## Environment and Production State
 
 - No Phase 1–9 task wrote to the production Supabase project.
-- Canonical migrations have been applied only to the disposable local stack.
+- Phase 10 applied one approved production-compatible backend delta migration
+  to `bkpignyvtkqlicirpmmp`.
+- The canonical baseline migrations remain the local/staging deployment
+  authority; production has an older migration ledger plus the approved delta.
 - Local Auth uses test configuration; it is not production authorization.
 - During Phase 8 verification, Kong/Auth/PostgREST and the database were
   usable locally. The Realtime container started and served logs, but Docker
@@ -231,7 +244,8 @@ Its report must include:
 - exact analyzer, Flutter test, and database-contract output;
 - manual validation evidence;
 - unresolved risks or unavailable external inputs;
-- confirmation that production was not changed.
+- confirmation whether production was changed and, if so, the exact approval,
+  migration name, and verification results.
 
 The senior reviewer then checks scope, architecture, direct Supabase access,
 RLS/RPC safety, hidden-state integrity, test validity, migration compatibility,
