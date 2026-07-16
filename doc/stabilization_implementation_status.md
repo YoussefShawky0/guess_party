@@ -53,8 +53,8 @@ next phase begins.
 | 6 | Connected Shared-Device alignment | Complete | UI, README, architecture, and constitution aligned; internal `local` value preserved |
 | 7 | Authentication identity and recovery | Complete | Commit `d1e8891`; 58 Flutter tests, 71 database contracts, local Auth/gameplay smoke pass |
 | 8 | Chat security and reliability | Complete | Commit `21310ff`; 66 Flutter tests, 104 database contracts, local REST/Auth chat smoke pass |
-| 9 | Environment separation and observability | Implemented and locally verified; pending review/commit | 72 Flutter tests, 104 database contracts, development flavor APK build, define guard pass/fail checks |
-| 10 | Release engineering | Not started; partial safeguards pre-exist | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md) |
+| 9 | Environment separation and observability | Complete | Commit `8216bc3`; 72 Flutter tests, 104 database contracts, development flavor APK build, define guard pass/fail checks |
+| 10 | Release engineering | Preflight started; external IDs/secrets blocked | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md), [staging promotion preflight](phase_10_preflight_staging_promotion.md) |
 | 11 | Platform policy, localization, accessibility | Not started | [Phase 11 runbook](phase_11_platform_localization_accessibility_plan.md) |
 
 ## Completed Work
@@ -156,21 +156,21 @@ next phase begins.
 
 ## Current Verification Baseline
 
-The Phase 8 local baseline is:
+The Phase 9 local baseline is:
 
 ```text
 flutter analyze
 No issues found!
 
 flutter test
-00:14 +66: All tests passed!
+00:19 +72: All tests passed!
 
 supabase test db
-Files=4, Tests=103
+Files=4, Tests=104
 Result: PASS
 
-Phase 8 local REST/Auth chat smoke
-Phase 8 local REST/Auth chat smoke: PASS
+Development flavor APK
+Built build\app\outputs\flutter-apk\app-development-debug.apk
 ```
 
 Commits containing accepted earlier work:
@@ -178,14 +178,21 @@ Commits containing accepted earlier work:
 - `4757778` — `feat: stabilize gameplay architecture through phase 5`
 - `e7ab980` — `docs: align connected shared-device mode`
 - `d1e8891` — `feat: implement auth identity migration`
+- `21310ff` — `feat: harden chat security and reliability`
+- `8216bc3` — `feat: separate environments and scrub telemetry`
 
-Phase 8 has been reviewed, committed, and pushed. Phase 9 is implemented in the
-working tree and locally verified. It has not been committed, pushed, or applied
-to production Supabase/Sentry.
+Phase 8 and Phase 9 have been reviewed, committed, and pushed. Phase 9 did not
+write to production Supabase or Sentry.
+
+Phase 10 preflight has started. The working tree was confirmed clean first, and
+the staging Supabase migration promotion path is documented without linking,
+pushing, or writing to any remote project. Actual staging promotion is blocked
+until the staging project/DB URL, staging define file, and explicit staging
+write approval are supplied.
 
 ## Environment and Production State
 
-- No Phase 1–8 task wrote to the production Supabase project.
+- No Phase 1–9 task wrote to the production Supabase project.
 - Canonical migrations have been applied only to the disposable local stack.
 - Local Auth uses test configuration; it is not production authorization.
 - During Phase 8 verification, Kong/Auth/PostgREST and the database were
