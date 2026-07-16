@@ -54,3 +54,47 @@ jobs:
       - name: Stop local Supabase database
         if: always()
         run: supabase stop --no-backup
+
+  android-build-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Write CI define files
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/development.defines.json" <<'JSON'
+          {
+            "APP_ENVIRONMENT": "development",
+            "APP_DISTRIBUTION": "local",
+            "SUPABASE_URL": "http://127.0.0.1:54321",
+            "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ci_development"
+          }
+          JSON
+
+          cat > "$RUNNER_TEMP/staging.defines.json" <<'JSON'
+          {
+            "APP_ENVIRONMENT": "staging",
+            "APP_DISTRIBUTION": "internal",
+            "SUPABASE_URL": "https://staging-guess-party.supabase.co",
+            "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ci_staging",
+            "SENTRY_RELEASE": "guess-party@ci",
+            "SENTRY_DIST": "ci",
+            "SENTRY_TRACES_SAMPLE_RATE": "0.0"
+          }
+          JSON
+      - name: Validate CI define files
+        shell: bash
+        run: |
+          dart run tool/validate_dart_defines.dart "$RUNNER_TEMP/development.defines.json"
+          dart run tool/validate_dart_defines.dart "$RUNNER_TEMP/staging.defines.json"
+      - name: Build development debug APK
+        run: flutter build apk --debug --flavor development --dart-define-from-file="$RUNNER_TEMP/development.defines.json"
+      - name: Build staging debug APK
+        run: flutter build apk --debug --flavor staging --dart-define-from-file="$RUNNER_TEMP/staging.defines.json"

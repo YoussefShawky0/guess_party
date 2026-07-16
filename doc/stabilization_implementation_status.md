@@ -54,7 +54,7 @@ next phase begins.
 | 7 | Authentication identity and recovery | Complete | Commit `d1e8891`; 58 Flutter tests, 71 database contracts, local Auth/gameplay smoke pass |
 | 8 | Chat security and reliability | Complete | Commit `21310ff`; 66 Flutter tests, 104 database contracts, local REST/Auth chat smoke pass |
 | 9 | Environment separation and observability | Complete | Commit `8216bc3`; 72 Flutter tests, 104 database contracts, development flavor APK build, define guard pass/fail checks |
-| 10 | Release engineering | Preflight started; external IDs/secrets blocked | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md), [staging promotion preflight](phase_10_preflight_staging_promotion.md) |
+| 10 | Release engineering | Local guardrails implemented; external IDs/secrets and staging promotion blocked | [Phase 10 runbook](phase_10_release_engineering_implementation_plan.md), [staging promotion preflight](phase_10_preflight_staging_promotion.md), [release operations](phase_10_release_operations.md) |
 | 11 | Platform policy, localization, accessibility | Not started | [Phase 11 runbook](phase_11_platform_localization_accessibility_plan.md) |
 
 ## Completed Work
@@ -184,11 +184,15 @@ Commits containing accepted earlier work:
 Phase 8 and Phase 9 have been reviewed, committed, and pushed. Phase 9 did not
 write to production Supabase or Sentry.
 
-Phase 10 preflight has started. The working tree was confirmed clean first, and
-the staging Supabase migration promotion path is documented without linking,
-pushing, or writing to any remote project. Actual staging promotion is blocked
-until the staging project/DB URL, staging define file, and explicit staging
-write approval are supplied.
+Phase 10 local release-engineering guardrails are implemented. CI now validates
+release metadata, constructs the local Supabase database for pgTAP contracts,
+and builds development/staging debug Android artifacts with non-secret define
+files. The release workflow is fail-closed: it requires external production
+defines and signing secrets, checks tag/version alignment, verifies the AAB, and
+retains checksum/provenance artifacts. The staging Supabase migration promotion
+path is documented without linking, pushing, or writing to any remote project.
+Actual staging promotion remains blocked until the staging project/DB URL,
+staging define file, and explicit staging write approval are supplied.
 
 ## Environment and Production State
 

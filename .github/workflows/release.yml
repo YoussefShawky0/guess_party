@@ -26,6 +26,11 @@ jobs:
       ANDROID_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref }}
+
+      - name: Verify clean checkout
+        run: git diff --quiet && git diff --cached --quiet
 
       - uses: subosito/flutter-action@v2
         with:
@@ -107,11 +112,44 @@ jobs:
       - name: Build production AAB
         run: flutter build appbundle --flavor production --release --dart-define-from-file="$PRODUCTION_DEFINE_FILE"
 
-      - name: Verify release artifact
+      - name: Verify release artifact and generate provenance
         shell: bash
         run: |
-          test -f build/app/outputs/bundle/productionRelease/app-production-release.aab
-          sha256sum build/app/outputs/bundle/productionRelease/app-production-release.aab > build/app/outputs/bundle/productionRelease/app-production-release.aab.sha256
+          artifact_dir="build/app/outputs/bundle/productionRelease"
+          artifact="$artifact_dir/app-production-release.aab"
+          test -f "$artifact"
+          jarsigner -verify -strict "$artifact"
+          sha256sum "$artifact" > "$artifact.sha256"
+          release_tag="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            release_tag="${{ inputs.release_tag }}"
+          fi
+          version="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+          commit_sha="$(git rev-parse HEAD)"
+          cat > "$artifact_dir/app-production-release.provenance.json" <<JSON
+          {
+            "application": "Guess Party",
+            "artifact": "app-production-release.aab",
+            "version": "$version",
+            "tag": "$release_tag",
+            "commit": "$commit_sha",
+            "workflow": "$GITHUB_WORKFLOW",
+            "run_id": "$GITHUB_RUN_ID",
+            "run_attempt": "$GITHUB_RUN_ATTEMPT",
+            "generated_at_utc": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          }
+          JSON
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: guess-party-android-production-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+          retention-days: 90
+          if-no-files-found: error
+          path: |
+            build/app/outputs/bundle/productionRelease/app-production-release.aab
+            build/app/outputs/bundle/productionRelease/app-production-release.aab.sha256
+            build/app/outputs/bundle/productionRelease/app-production-release.provenance.json
 
       - name: Cleanup signing files
         if: always()
