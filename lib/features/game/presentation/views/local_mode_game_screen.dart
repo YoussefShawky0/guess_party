@@ -410,7 +410,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${resolvedVoter.username}, who do you suspect?',
+                    context.l10n.whoDoYouSuspect(resolvedVoter.username),
                     style: TextStyle(color: theme.textPrimary),
                   ),
                   const SizedBox(height: 4),
@@ -486,7 +486,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   child: Text(
-                    'Cancel',
+                    context.l10n.cancel,
                     style: TextStyle(color: theme.textMuted),
                   ),
                 ),

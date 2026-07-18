@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class WelcomeSection extends StatelessWidget {
   final String username;
@@ -81,7 +82,7 @@ class WelcomeSection extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 20 : 16),
           Text(
-            'Welcome, $username!',
+            context.l10n.welcomeUser(username),
             style: TextStyle(
               fontSize: isTablet ? 28 : 24,
               fontWeight: FontWeight.w900,
@@ -101,7 +102,7 @@ class WelcomeSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              'Ready to find the Imposter?',
+              context.l10n.readyToFindImposter,
               style: TextStyle(
                 fontSize: isTablet ? 16 : 14,
                 fontWeight: FontWeight.w600,

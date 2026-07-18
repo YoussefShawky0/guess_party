@@ -177,6 +177,9 @@
   "useLegacyAccount": "Use a legacy username account",
   "sessionEnded": "Your session ended. Please sign in again.",
   "findTheImposter": "Find the Imposter",
+  "welcomeUser": "Welcome, {username}!",
+  "@welcomeUser": {"placeholders": {"username": {"type": "String"}}},
+  "readyToFindImposter": "Ready to find the Imposter?",
   "startPlaying": "Start Playing",
   "enterUsername": "Enter your username",
   "enterNewPassword": "Enter a new password for your verified account.",
@@ -334,5 +337,13 @@
   "vote": "Vote",
   "creatingRound": "Creating Round...",
   "startNextRound": "Start Next Round",
-  "viewFinalLeaderboard": "View Final Leaderboard"
+  "viewFinalLeaderboard": "View Final Leaderboard",
+  "imposterCaughtTitle": "Imposter Caught",
+  "imposterEscapedTitle": "Imposter Escaped",
+  "groupFoundHiddenPlayer": "The group found the hidden player.",
+  "imposterAvoidedVote": "The imposter avoided the vote.",
+  "imposterWas": "The Imposter was:",
+  "votingResults": "Voting Results",
+  "mostVoted": "Most voted: {name} ({count} votes)",
+  "@mostVoted": {"placeholders": {"name": {"type": "String"}, "count": {"type": "int"}}}
 }

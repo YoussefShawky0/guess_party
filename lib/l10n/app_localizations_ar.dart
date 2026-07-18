@@ -9,10 +9,10 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'جيس بارتي';
+  String get appName => 'Guess Party';
 
   @override
-  String get bootstrapErrorTitle => 'تعذر تشغيل جيس بارتي';
+  String get bootstrapErrorTitle => 'تعذر تشغيل Guess Party';
 
   @override
   String get settings => 'الإعدادات';
@@ -543,6 +543,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get findTheImposter => 'اكتشف المحتال';
 
   @override
+  String welcomeUser(String username) {
+    return 'مرحبًا، $username!';
+  }
+
+  @override
+  String get readyToFindImposter => 'هل أنت مستعد لاكتشاف المحتال؟';
+
+  @override
   String get startPlaying => 'ابدأ اللعب';
 
   @override
@@ -1012,4 +1020,27 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get creatingRound => 'جارٍ إنشاء الجولة...';
+
+  @override
+  String get imposterCaughtTitle => 'تم اكتشاف المحتال';
+
+  @override
+  String get imposterEscapedTitle => 'نجا المحتال';
+
+  @override
+  String get groupFoundHiddenPlayer => 'تمكن الفريق من اكتشاف اللاعب المختبئ.';
+
+  @override
+  String get imposterAvoidedVote => 'تمكن المحتال من تجنب التصويت.';
+
+  @override
+  String get imposterWas => 'المحتال هو:';
+
+  @override
+  String get votingResults => 'نتائج التصويت';
+
+  @override
+  String mostVoted(String name, int count) {
+    return 'الأكثر تصويتًا: $name ($count صوتًا)';
+  }
 }

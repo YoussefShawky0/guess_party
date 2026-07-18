@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class LeaderboardListWidget extends StatelessWidget {
   /// Players ranked 4th and below, sorted by score descending.
@@ -99,7 +100,7 @@ class LeaderboardListWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '$score points',
+                      context.l10n.scorePoints(score),
                       style: TextStyle(
                         color: AppColors.of(context).textMuted,
                         fontSize: 13,

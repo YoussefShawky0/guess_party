@@ -544,6 +544,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get findTheImposter => 'Find the Imposter';
 
   @override
+  String welcomeUser(String username) {
+    return 'Welcome, $username!';
+  }
+
+  @override
+  String get readyToFindImposter => 'Ready to find the Imposter?';
+
+  @override
   String get startPlaying => 'Start Playing';
 
   @override
@@ -1027,4 +1035,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get creatingRound => 'Creating Round...';
+
+  @override
+  String get imposterCaughtTitle => 'Imposter Caught';
+
+  @override
+  String get imposterEscapedTitle => 'Imposter Escaped';
+
+  @override
+  String get groupFoundHiddenPlayer => 'The group found the hidden player.';
+
+  @override
+  String get imposterAvoidedVote => 'The imposter avoided the vote.';
+
+  @override
+  String get imposterWas => 'The Imposter was:';
+
+  @override
+  String get votingResults => 'Voting Results';
+
+  @override
+  String mostVoted(String name, int count) {
+    return 'Most voted: $name ($count votes)';
+  }
 }

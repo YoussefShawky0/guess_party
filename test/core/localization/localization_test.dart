@@ -30,6 +30,12 @@ void main() {
 
     expect(find.text('جهاز مشترك'), findsOneWidget);
     expect(find.text('بدء اللعبة'), findsOneWidget);
+    expect(find.text('Guess Party'), findsOneWidget);
+    expect(find.text('مرحبًا، زياد!'), findsOneWidget);
+    expect(find.text('هل أنت مستعد لاكتشاف المحتال؟'), findsOneWidget);
+    expect(find.text('تم اكتشاف المحتال'), findsOneWidget);
+    expect(find.text('نتائج التصويت'), findsOneWidget);
+    expect(find.text('الأكثر تصويتًا: زياد (2 صوتًا)'), findsOneWidget);
     final direction = tester.widget<Directionality>(
       find.byType(Directionality).first,
     );
@@ -74,15 +80,23 @@ class _LocalizedHarness extends StatelessWidget {
         ),
       ),
       home: Builder(
-        builder: (context) => Column(
-          children: [
-            Text(AppLocalizations.of(context).sharedDeviceMode),
-            Semantics(
-              button: true,
-              label: AppLocalizations.of(context).startGame,
-              child: Text(AppLocalizations.of(context).startGame),
-            ),
-          ],
+        builder: (context) => SingleChildScrollView(
+          child: Column(
+            children: [
+              Text(AppLocalizations.of(context).appName),
+              Text(AppLocalizations.of(context).sharedDeviceMode),
+              Text(AppLocalizations.of(context).welcomeUser('زياد')),
+              Text(AppLocalizations.of(context).readyToFindImposter),
+              Text(AppLocalizations.of(context).imposterCaughtTitle),
+              Text(AppLocalizations.of(context).votingResults),
+              Text(AppLocalizations.of(context).mostVoted('زياد', 2)),
+              Semantics(
+                button: true,
+                label: AppLocalizations.of(context).startGame,
+                child: Text(AppLocalizations.of(context).startGame),
+              ),
+            ],
+          ),
         ),
       ),
     );

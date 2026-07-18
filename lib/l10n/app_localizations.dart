@@ -1100,6 +1100,18 @@ abstract class AppLocalizations {
   /// **'Find the Imposter'**
   String get findTheImposter;
 
+  /// No description provided for @welcomeUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome, {username}!'**
+  String welcomeUser(String username);
+
+  /// No description provided for @readyToFindImposter.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to find the Imposter?'**
+  String get readyToFindImposter;
+
   /// No description provided for @startPlaying.
   ///
   /// In en, this message translates to:
@@ -1951,6 +1963,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Creating Round...'**
   String get creatingRound;
+
+  /// No description provided for @imposterCaughtTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Imposter Caught'**
+  String get imposterCaughtTitle;
+
+  /// No description provided for @imposterEscapedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Imposter Escaped'**
+  String get imposterEscapedTitle;
+
+  /// No description provided for @groupFoundHiddenPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'The group found the hidden player.'**
+  String get groupFoundHiddenPlayer;
+
+  /// No description provided for @imposterAvoidedVote.
+  ///
+  /// In en, this message translates to:
+  /// **'The imposter avoided the vote.'**
+  String get imposterAvoidedVote;
+
+  /// No description provided for @imposterWas.
+  ///
+  /// In en, this message translates to:
+  /// **'The Imposter was:'**
+  String get imposterWas;
+
+  /// No description provided for @votingResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Voting Results'**
+  String get votingResults;
+
+  /// No description provided for @mostVoted.
+  ///
+  /// In en, this message translates to:
+  /// **'Most voted: {name} ({count} votes)'**
+  String mostVoted(String name, int count);
 }
 
 class _AppLocalizationsDelegate

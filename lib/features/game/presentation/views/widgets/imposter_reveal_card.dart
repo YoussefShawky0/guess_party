@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class ImposterRevealCard extends StatelessWidget {
   final Player imposter;
@@ -17,10 +18,12 @@ class ImposterRevealCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
     final accent = imposterCaught ? AppColors.success : AppColors.error;
-    final title = imposterCaught ? 'Imposter Caught' : 'Imposter Escaped';
+    final title = imposterCaught
+        ? context.l10n.imposterCaughtTitle
+        : context.l10n.imposterEscapedTitle;
     final subtitle = imposterCaught
-        ? 'The group found the hidden player.'
-        : 'The imposter avoided the vote.';
+        ? context.l10n.groupFoundHiddenPlayer
+        : context.l10n.imposterAvoidedVote;
 
     return Container(
       decoration: BoxDecoration(
@@ -92,7 +95,7 @@ class ImposterRevealCard extends StatelessWidget {
               child: Column(
                 children: [
                   Text(
-                    'The Imposter was:',
+                    context.l10n.imposterWas,
                     style: TextStyle(
                       fontSize: isTablet ? 20 : 16,
                       color: AppColors.of(context).textSecondary,

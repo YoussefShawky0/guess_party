@@ -1,0 +1,26 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Guess Party (online development)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "program": "lib/main.dart",
+            "toolArgs": [
+                "--dart-define-from-file=config/development.online.local.json"
+            ]
+        },
+        {
+            "name": "Guess Party (online production, profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "program": "lib/main.dart",
+            "toolArgs": [
+                "--flavor=production",
+                "--dart-define-from-file=config/production.local.json"
+            ]
+        }
+    ]
+}

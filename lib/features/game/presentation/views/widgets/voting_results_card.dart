@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class VotingResultsCard extends StatelessWidget {
   final Map<String, int> voteCounts;
@@ -38,7 +39,7 @@ class VotingResultsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Voting Results',
+              context.l10n.votingResults,
               style: TextStyle(
                 fontSize: isTablet ? 24 : 20,
                 fontWeight: FontWeight.w600,
@@ -55,7 +56,7 @@ class VotingResultsCard extends StatelessWidget {
                 border: Border.all(color: AppColors.info, width: 1),
               ),
               child: Text(
-                'Most voted: ${mostVotedPlayer!.username} ($maxVotes votes)',
+                context.l10n.mostVoted(mostVotedPlayer!.username, maxVotes),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: isTablet ? 18 : 16,
@@ -155,7 +156,7 @@ class _VoteResultRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            '$voteCount votes',
+            context.l10n.voteCountPlural(voteCount),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: isTablet ? 16 : 14,
