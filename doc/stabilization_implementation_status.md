@@ -204,11 +204,18 @@ pgTAP validation passed before production application; production read-only
 verification confirmed the new migration ledger entry, expected policies,
 tables, functions, grants, and RLS state.
 
+Production migration `20260716183110_fix_vote_write_rls.sql` was subsequently
+applied after a device test exposed an RLS regression in both Online and
+Shared-Device voting. Active raw rounds remain redacted, while the vote
+INSERT/UPDATE policies now use a private mode-aware authorization predicate.
+The focused authenticated upsert contracts increased the database suite to 112
+tests; the Flutter suite contains 75 passing tests.
+
 ## Environment and Production State
 
 - No Phase 1–9 task wrote to the production Supabase project.
-- Phase 10 applied one approved production-compatible backend delta migration
-  to `bkpignyvtkqlicirpmmp`.
+- Phase 10 applied two approved production-compatible backend delta migrations
+  to `bkpignyvtkqlicirpmmp`: the policy/chat delta and vote-write RLS repair.
 - The canonical baseline migrations remain the local/staging deployment
   authority; production has an older migration ledger plus the approved delta.
 - Local Auth uses test configuration; it is not production authorization.
