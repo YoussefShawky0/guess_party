@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class CharacterCard extends StatelessWidget {
   final Character? character;
@@ -77,7 +78,7 @@ class CharacterCard extends StatelessWidget {
             ),
             SizedBox(height: isTablet ? 16 : 12),
             Text(
-              'Character',
+              context.l10n.character,
               style: TextStyle(
                 color: AppColors.of(context).characterCardSubtext,
                 fontSize: isTablet ? 20 : 18,
@@ -135,8 +136,8 @@ class CharacterCard extends StatelessWidget {
       context,
       isTablet,
       icon: Icons.sync_rounded,
-      title: 'Syncing your role...',
-      subtitle: 'Your private round information is still loading.',
+      title: context.l10n.syncingRole,
+      subtitle: context.l10n.privateRoundLoading,
     );
   }
 
@@ -145,8 +146,8 @@ class CharacterCard extends StatelessWidget {
       context,
       isTablet,
       icon: Icons.lock_outline_rounded,
-      title: 'Roles are private',
-      subtitle: 'Use what you saw during the pass-device reveal.',
+      title: context.l10n.rolesArePrivate,
+      subtitle: context.l10n.useRevealMemory,
     );
   }
 
@@ -228,7 +229,7 @@ class CharacterCard extends StatelessWidget {
             ),
             SizedBox(height: isTablet ? 16 : 12),
             Text(
-              'You are the Imposter',
+              context.l10n.youAreImposter,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.of(context).textPrimary,
@@ -238,7 +239,7 @@ class CharacterCard extends StatelessWidget {
             ),
             SizedBox(height: isTablet ? 12 : 8),
             Text(
-              "You don't know the character. Read the chat, blend in, and infer the answer.",
+              context.l10n.imposterHelp,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
@@ -257,7 +258,7 @@ class CharacterCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'Stay convincing',
+                context.l10n.stayConvincing,
                 style: TextStyle(
                   color: AppColors.errorLight,
                   fontWeight: FontWeight.w600,

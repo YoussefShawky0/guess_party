@@ -9,6 +9,7 @@ import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
 import 'package:guess_party/features/game/presentation/cubit/local_role_reveal_cubit.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 /// Shared-Device screen where each player sees their role one by one.
 /// before the game starts. This ensures privacy on a shared device.
@@ -76,11 +77,11 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
               borderRadius: BorderRadius.circular(16),
             ),
             title: Text(
-              'Exit Role Reveal?',
+              context.l10n.exitRoleReveal,
               style: TextStyle(color: AppColors.of(context).textPrimary),
             ),
             content: Text(
-              'Are you sure you want to exit? The game will be cancelled.',
+              context.l10n.exitRoleRevealMessage,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: 16,
@@ -90,7 +91,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: Text(
-                  'Stay',
+                  context.l10n.stay,
                   style: TextStyle(color: AppColors.of(context).textMuted),
                 ),
               ),
@@ -99,7 +100,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,
                 ),
-                child: const Text('Exit'),
+                child: Text(context.l10n.exit),
               ),
             ],
           ),
@@ -154,7 +155,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                     CircularProgressIndicator(color: AppColors.primary),
                     const SizedBox(height: 24),
                     Text(
-                      'Loading shared-device session...',
+                      context.l10n.loadingSharedSession,
                       style: TextStyle(
                         color: AppColors.of(context).textSecondary,
                         fontSize: isTablet ? 20 : 16,
@@ -171,7 +172,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                 _character == null ||
                 _imposterPlayerId == null) {
               return ErrorScreen(
-                message: 'Unable to load player information',
+                message: context.l10n.unableToLoadPlayerInfo,
                 onGoBack: () => Navigator.of(context).pop(),
               );
             }
@@ -213,7 +214,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
     return Column(
       children: [
         Text(
-          'Player ${_currentPlayerIndex + 1} of ${_players.length}',
+          context.l10n.playerProgress(_currentPlayerIndex + 1, _players.length),
           style: TextStyle(
             color: AppColors.of(context).textSecondary,
             fontSize: isTablet ? 18 : 14,
@@ -252,7 +253,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           ),
           SizedBox(height: isTablet ? 32 : 24),
           Text(
-            'Pass the phone to',
+            context.l10n.passPhoneTo,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 22 : 18,
@@ -284,7 +285,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Make sure others can\'t see!',
+                  context.l10n.protectRole,
                   style: TextStyle(
                     color: AppColors.warning,
                     fontSize: isTablet ? 16 : 14,
@@ -339,7 +340,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
 
           // "You are the" text
           Text(
-            'You are the',
+            context.l10n.youAreThe,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 18 : 16,
@@ -349,7 +350,9 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
 
           // Role name
           Text(
-            isImposter ? 'IMPOSTER!' : 'INNOCENT!',
+            isImposter
+                ? context.l10n.imposterUpper
+                : context.l10n.innocentUpper,
             style: TextStyle(
               color: accent,
               fontSize: isTablet ? 36 : 32,
@@ -398,7 +401,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                   const SizedBox(width: 10),
                   Flexible(
                     child: Text(
-                      'Blend in! Don\'t get caught!',
+                      context.l10n.blendIn,
                       style: TextStyle(
                         color: accent,
                         fontSize: isTablet ? 16 : 14,
@@ -446,8 +449,10 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
             const SizedBox(width: 12),
             Text(
               _isRoleRevealed
-                  ? (isLastPlayer ? 'Start Game!' : 'Next Player')
-                  : 'Reveal My Role',
+                  ? (isLastPlayer
+                        ? context.l10n.startGameExclamation
+                        : context.l10n.nextPlayer)
+                  : context.l10n.revealMyRole,
               style: TextStyle(
                 fontSize: isTablet ? 20 : 18,
                 fontWeight: FontWeight.bold,
@@ -487,9 +492,7 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
           if (!extended) {
             if (!mounted) return;
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Could not start safely. Please try again.'),
-              ),
+              SnackBar(content: Text(context.l10n.couldNotStartSafely)),
             );
             return;
           }

@@ -4,6 +4,7 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'phase_timer_widget.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class RoundHeaderWidget extends StatelessWidget {
   final RoundInfo round;
@@ -34,14 +35,14 @@ class RoundHeaderWidget extends StatelessWidget {
     }
   }
 
-  String get _phaseText {
+  String _phaseText(BuildContext context) {
     switch (round.phase) {
       case GamePhase.hints:
-        return 'Hints Phase';
+        return context.l10n.hintsPhaseTitle;
       case GamePhase.voting:
-        return 'Voting Phase';
+        return context.l10n.votingPhaseTitle;
       case GamePhase.results:
-        return 'Results';
+        return context.l10n.resultsTitle;
     }
   }
 
@@ -89,7 +90,7 @@ class RoundHeaderWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        'Round ${round.roundNumber}',
+                        context.l10n.roundTitle(round.roundNumber),
                         style: TextStyle(
                           fontSize: isTablet ? 28 : 24,
                           fontWeight: FontWeight.bold,
@@ -98,7 +99,7 @@ class RoundHeaderWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'of $totalRounds',
+                        context.l10n.ofTotalRounds(totalRounds),
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
                           color: AppColors.of(context).textSecondary,
@@ -117,7 +118,7 @@ class RoundHeaderWidget extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Round ${round.roundNumber}',
+                        context.l10n.roundTitle(round.roundNumber),
                         style: TextStyle(
                           fontSize: isTablet ? 28 : 24,
                           fontWeight: FontWeight.bold,
@@ -126,7 +127,7 @@ class RoundHeaderWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'of $totalRounds',
+                        context.l10n.ofTotalRounds(totalRounds),
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
                           color: AppColors.of(context).textSecondary,
@@ -161,7 +162,7 @@ class RoundHeaderWidget extends StatelessWidget {
                   ),
                   SizedBox(width: isTablet ? 12 : 8),
                   Text(
-                    _phaseText,
+                    _phaseText(context),
                     style: TextStyle(
                       fontSize: isTablet ? 18 : 16,
                       fontWeight: FontWeight.w600,

@@ -5,6 +5,7 @@ import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/imposter_reveal_card.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/voting_results_card.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/current_scores_card.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class ResultsPhaseContent extends StatelessWidget {
   final RoundInfo roundInfo;
@@ -118,7 +119,7 @@ class ResultsPhaseContent extends StatelessWidget {
               ),
               icon: Icon(Icons.leaderboard_rounded, size: isTablet ? 24 : 20),
               label: Text(
-                'View Final Leaderboard',
+                context.l10n.viewFinalLeaderboard,
                 style: TextStyle(
                   fontSize: isTablet ? 20 : 18,
                   fontWeight: FontWeight.bold,
@@ -128,7 +129,7 @@ class ResultsPhaseContent extends StatelessWidget {
           else if (isLastRound && !isHost)
             _buildWaitingMessage(
               context,
-              'Waiting for host to show leaderboard...',
+              context.l10n.waitingForHostLeaderboard,
               AppColors.goldMedal,
               AppColors.goldMedal.withValues(alpha: 0.4),
               isTablet,
@@ -146,7 +147,7 @@ class ResultsPhaseContent extends StatelessWidget {
                 ),
               ),
               child: Text(
-                'Start Next Round',
+                context.l10n.startNextRound,
                 style: TextStyle(
                   fontSize: isTablet ? 20 : 18,
                   fontWeight: FontWeight.bold,
@@ -156,7 +157,7 @@ class ResultsPhaseContent extends StatelessWidget {
           else if (!isLastRound && !isHost)
             _buildWaitingMessage(
               context,
-              'Waiting for host to start next round...',
+              context.l10n.waitingForHostNextRound,
               AppColors.primary,
               AppColors.of(context).cardBorder,
               isTablet,

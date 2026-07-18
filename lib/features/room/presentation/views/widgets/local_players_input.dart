@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class LocalPlayersInput extends StatefulWidget {
   final int maxPlayers;
@@ -131,7 +132,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Enter Player Names',
+                  context.l10n.enterPlayerNames,
                   style: TextStyle(
                     color: AppColors.of(context).textPrimary,
                     fontWeight: FontWeight.bold,
@@ -143,7 +144,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Enter names for players who will play on this device',
+            context.l10n.enterPlayerNamesHelp,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 16 : 14,
@@ -157,11 +158,11 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
               child: TextField(
                 controller: _controllers[index],
                 decoration: InputDecoration(
-                  labelText: 'Player ${index + 1}',
+                  labelText: context.l10n.playerNumber(index + 1),
                   labelStyle: TextStyle(
                     color: AppColors.of(context).textSecondary,
                   ),
-                  hintText: 'Enter name...',
+                  hintText: context.l10n.enterName,
                   hintStyle: TextStyle(
                     color: AppColors.of(
                       context,
@@ -222,7 +223,7 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'At least 2 players required to start the game',
+                    context.l10n.minimumPlayersHelp,
                     style: TextStyle(
                       color: AppColors.of(context).textSecondary,
                       fontSize: isTablet ? 14 : 12,

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class GuestButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -38,7 +39,7 @@ class GuestButton extends StatelessWidget {
                 Icon(Icons.rocket_launch_rounded, size: isTablet ? 28 : 24),
                 SizedBox(width: isTablet ? 12 : 8),
                 Text(
-                  'Start Playing',
+                  context.l10n.startPlaying,
                   style: TextStyle(
                     fontSize: isTablet ? 20 : 18,
                     fontWeight: FontWeight.bold,

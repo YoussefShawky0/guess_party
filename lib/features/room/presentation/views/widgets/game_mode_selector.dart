@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class GameModeSelector extends StatelessWidget {
   final String selectedMode;
@@ -17,12 +18,15 @@ class GameModeSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
+    final animationDuration = MediaQuery.of(context).disableAnimations
+        ? Duration.zero
+        : const Duration(milliseconds: 200);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Game Mode',
+          context.l10n.gameMode,
           style: TextStyle(
             fontSize: isTablet ? 18 : 16,
             fontWeight: FontWeight.bold,
@@ -36,11 +40,12 @@ class GameModeSelector extends StatelessWidget {
               child: _buildModeCard(
                 context: context,
                 mode: GameConstants.gameModeOnline,
-                title: 'Online',
-                subtitle: 'Each player joins from their own device',
+                title: context.l10n.online,
+                subtitle: context.l10n.onlineModeDescription,
                 icon: FontAwesomeIcons.towerBroadcast,
                 isSelected: selectedMode == GameConstants.gameModeOnline,
                 isTablet: isTablet,
+                animationDuration: animationDuration,
               ),
             ),
             const SizedBox(width: 12),
@@ -48,11 +53,12 @@ class GameModeSelector extends StatelessWidget {
               child: _buildModeCard(
                 context: context,
                 mode: GameConstants.gameModeLocal,
-                title: 'Shared Device',
-                subtitle: 'Pass & play on one connected device',
+                title: context.l10n.sharedDeviceMode,
+                subtitle: context.l10n.sharedDeviceDescription,
                 icon: FontAwesomeIcons.mobile,
                 isSelected: selectedMode == GameConstants.gameModeLocal,
                 isTablet: isTablet,
+                animationDuration: animationDuration,
               ),
             ),
           ],
@@ -69,11 +75,12 @@ class GameModeSelector extends StatelessWidget {
     required FaIconData icon,
     required bool isSelected,
     required bool isTablet,
+    required Duration animationDuration,
   }) {
     return GestureDetector(
       onTap: () => onModeChanged(mode),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: animationDuration,
         decoration: BoxDecoration(
           color: isSelected
               ? AppColors.primary.withValues(alpha: 0.1)
@@ -160,7 +167,7 @@ class SharedDeviceConnectivityNotice extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Shared-Device Mode requires an internet connection and an active signed-in session. Players still pass this device between turns.',
+              context.l10n.sharedDeviceSetupNotice,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: isTablet ? 14 : 12,

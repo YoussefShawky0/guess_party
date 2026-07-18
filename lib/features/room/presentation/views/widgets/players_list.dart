@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class PlayersList extends StatelessWidget {
   final String roomId;
@@ -28,7 +29,7 @@ class PlayersList extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'Players',
+                  context.l10n.players,
                   style: TextStyle(
                     fontSize: isTablet ? 24 : 20,
                     fontWeight: FontWeight.bold,
@@ -73,7 +74,7 @@ class PlayersList extends StatelessWidget {
                     : players.isEmpty
                     ? Center(
                         child: Text(
-                          'No players yet',
+                          context.l10n.noPlayersYet,
                           style: TextStyle(
                             color: AppColors.of(context).textSecondary,
                           ),
@@ -142,14 +143,23 @@ class PlayersList extends StatelessWidget {
                                               .withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
-                                  child: Text(
-                                    player.isOnline ? 'Online' : 'Offline',
-                                    style: TextStyle(
-                                      fontSize: isTablet ? 14 : 12,
-                                      color: player.isOnline
-                                          ? AppColors.success
-                                          : AppColors.of(context).textSecondary,
-                                      fontWeight: FontWeight.w600,
+                                  child: Semantics(
+                                    label: player.isOnline
+                                        ? context.l10n.online
+                                        : context.l10n.offline,
+                                    child: Text(
+                                      player.isOnline
+                                          ? context.l10n.online
+                                          : context.l10n.offline,
+                                      style: TextStyle(
+                                        fontSize: isTablet ? 14 : 12,
+                                        color: player.isOnline
+                                            ? AppColors.success
+                                            : AppColors.of(
+                                                context,
+                                              ).textSecondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),

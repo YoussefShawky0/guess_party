@@ -1,0 +1,9 @@
+Guess Party is a connected social-deduction party game for friends.
+
+Play synchronized Online Mode on separate devices or pass one connected device
+around in Shared-Device Mode. Both modes require internet access and an
+authenticated session. Create rooms, exchange clues, vote, and score multiple
+rounds. English and Arabic are supported.
+
+Privacy policy: https://youssefshawky0.github.io/guess-party-privacy/
+Support: youssefshawky.work@gmail.com

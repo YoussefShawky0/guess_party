@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class RoundDurationSelector extends StatelessWidget {
   final int selectedDuration;
@@ -26,7 +27,7 @@ class RoundDurationSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Round Duration',
+          context.l10n.roundDuration,
           style: TextStyle(
             fontSize: isTablet ? 20 : 18,
             fontWeight: FontWeight.bold,
@@ -40,8 +41,8 @@ class RoundDurationSelector extends StatelessWidget {
           children: durationOptions.map((duration) {
             final isSelected = selectedDuration == duration;
             final displayText = duration < 60
-                ? '${duration}s'
-                : '${(duration / 60).toStringAsFixed(duration % 60 == 0 ? 0 : 1)} min';
+                ? context.l10n.seconds(duration)
+                : context.l10n.minuteCount(duration ~/ 60);
 
             return ChoiceChip(
               label: Text(

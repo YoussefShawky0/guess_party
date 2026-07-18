@@ -5,6 +5,7 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class WaitingRoomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? currentPlayerId;
@@ -38,7 +39,7 @@ class WaitingRoomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: AppColors.of(context).surface,
-      title: const AppBarTitle(title: 'Waiting Room'),
+      title: AppBarTitle(title: context.l10n.waitingRoom),
       centerTitle: true,
       leading: IconButton(
         icon: FaIcon(

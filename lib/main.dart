@@ -7,11 +7,14 @@ import 'package:guess_party/core/observability/telemetry_scrubber.dart';
 import 'package:guess_party/core/router/app_router.dart';
 import 'package:guess_party/core/theme/app_theme.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
+import 'package:guess_party/l10n/app_localizations.dart';
+import 'package:guess_party/l10n/l10n.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/app_config.dart';
 import 'core/di/injection_container.dart' as di;
+import 'core/localization/locale_cubit.dart';
 import 'core/router/app_routes.dart';
 import 'core/services/auth_navigation_coordinator.dart';
 import 'core/services/auth_session_service.dart';
@@ -32,7 +35,7 @@ void main() async {
     publishableKey: config.supabasePublishableKey,
   );
 
-  await di.init();
+  await di.init(config: config);
 
   final sentryDsn = config.sentryDsn;
   const telemetryScrubber = TelemetryScrubber();
@@ -85,6 +88,8 @@ class BootstrapErrorApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: SafeArea(
           child: Center(
@@ -95,8 +100,8 @@ class BootstrapErrorApp extends StatelessWidget {
                 children: [
                   const Icon(Icons.settings_suggest_outlined, size: 56),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Guess Party could not start',
+                  Text(
+                    context.l10n.bootstrapErrorTitle,
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
@@ -152,13 +157,19 @@ class _GuessPartyState extends State<GuessParty> {
       value: di.sl<ThemeCubit>(),
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) {
-          return MaterialApp.router(
-            title: 'Guess Party',
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeMode,
-            routerConfig: AppRouter.router,
-            debugShowCheckedModeBanner: false,
+          return BlocBuilder<LocaleCubit, Locale?>(
+            bloc: di.sl<LocaleCubit>(),
+            builder: (context, locale) => MaterialApp.router(
+              locale: locale,
+              onGenerateTitle: (context) => context.l10n.appName,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              routerConfig: AppRouter.router,
+              debugShowCheckedModeBanner: false,
+            ),
           );
         },
       ),

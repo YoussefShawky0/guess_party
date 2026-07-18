@@ -7,6 +7,7 @@ import 'package:guess_party/features/game/presentation/views/widgets/hints_phase
 import 'package:guess_party/features/game/presentation/views/widgets/results_phase_content.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/round_header_widget.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/voting_phase_content.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class LocalModeGameContent extends StatelessWidget {
   final GameLoaded state;
@@ -40,7 +41,7 @@ class LocalModeGameContent extends StatelessWidget {
     if (players.isEmpty) {
       return Center(
         child: Text(
-          'Waiting for players...',
+          context.l10n.waitingForPlayers,
           style: TextStyle(color: AppColors.of(context).textSecondary),
         ),
       );
@@ -99,26 +100,32 @@ class LocalModeGameContent extends StatelessWidget {
   }
 
   Widget _buildSkipButton(BuildContext context, GamePhase phase) {
-    final skipTarget = phase == GamePhase.hints ? 'voting' : 'results';
+    final skipTarget = phase == GamePhase.hints
+        ? context.l10n.votingPhase
+        : context.l10n.resultsPhase;
     final skipLabel = phase == GamePhase.hints
-        ? 'Skip to Voting'
-        : 'Skip to Results';
+        ? context.l10n.skipToVoting
+        : context.l10n.skipToResults;
 
     return ElevatedButton.icon(
       onPressed: () async {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: Text('Skip ${phase.name}?'),
-            content: Text('Are you sure you want to skip to $skipTarget?'),
+            title: Text(
+              phase == GamePhase.hints
+                  ? context.l10n.skipHints
+                  : context.l10n.skipVoting,
+            ),
+            content: Text(context.l10n.skipPhaseConfirmation(skipTarget)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('Skip'),
+                child: Text(context.l10n.skip),
               ),
             ],
           ),
@@ -164,7 +171,7 @@ class _LocalSharedCharacterCard extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 12 : 10),
           Text(
-            'Shared game screen',
+            context.l10n.sharedGameScreen,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
@@ -174,7 +181,7 @@ class _LocalSharedCharacterCard extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 8 : 6),
           Text(
-            'Continue the round on the shared device.',
+            context.l10n.sharedGameScreenHelp,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,

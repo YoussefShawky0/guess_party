@@ -20,19 +20,34 @@ Declare the supported production platforms, provide complete English/Arabic
 localization with RTL behavior, and make core gameplay usable with large text,
 screen readers, keyboard/focus navigation, and reduced motion.
 
+## Implementation Status (2026-07-18)
+
+- Localization infrastructure is implemented with generated English and Arabic
+  ARB resources; English is the fallback locale and Arabic is RTL-capable.
+- Shared-Device copy explicitly states that internet access and an authenticated
+  session are required. The persisted database value `local` is unchanged.
+- Android Play update checks are gated by Android platform, production
+  environment, and `play` distribution.
+- Core room, reveal, voting, chat, timer, score, and navigation controls now
+  expose localized labels or semantics without including unrevealed secrets.
+- Store metadata is under `store_metadata/` and links to the externally managed
+  privacy policy only: https://youssefshawky0.github.io/guess-party-privacy/
+- The obsolete local privacy draft was deleted; no policy content is duplicated
+  in this repository.
+
 ## Starting State and Gate
 
 Phase 10 must be accepted and committed. The signed Android release smoke gate
 must pass, or Phase 10 must explicitly document why signing remains externally
 blocked while non-release accessibility work is authorized.
 
-Current facts:
+Verified starting facts (before this phase):
 
-- Player-facing strings are hard-coded across the UI in English with some
+- Player-facing strings were hard-coded across the UI in English with some
   Arabic error text.
-- `flutter_localizations`, generated ARB resources, and `l10n.yaml` are absent.
-- Android update calls are platform-gated but not Play-distribution-gated.
-- There is no systematic semantics, contrast, text-scale, focus-order,
+- `flutter_localizations`, generated ARB resources, and `l10n.yaml` were absent.
+- Android update calls were platform-gated but not Play-distribution-gated.
+- There was no systematic semantics, contrast, text-scale, focus-order,
   reduced-motion, or screen-reader test suite.
 
 ## Locked Product Policy

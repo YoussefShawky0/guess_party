@@ -4,6 +4,7 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import 'current_scores_card.dart';
 import 'imposter_reveal_card.dart';
@@ -34,7 +35,7 @@ class SharedDeviceIntroCard extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 12 : 10),
           Text(
-            'Shared game screen',
+            context.l10n.sharedGameScreen,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
@@ -44,7 +45,7 @@ class SharedDeviceIntroCard extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 8 : 6),
           Text(
-            'Continue the round on the shared device.',
+            context.l10n.sharedGameScreenHelp,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
@@ -84,7 +85,7 @@ class SharedDeviceHintsContent extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 16 : 12),
           Text(
-            'Discuss and give hints verbally!',
+            context.l10n.discussHints,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: AppColors.of(context).textPrimary,
@@ -93,7 +94,7 @@ class SharedDeviceHintsContent extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 12 : 8),
           Text(
-            'Talk about the character without revealing yourself. The timer will move to voting automatically.',
+            context.l10n.discussHintsHelp,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
@@ -137,7 +138,7 @@ class SharedDeviceVotingContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Voting Phase',
+          context.l10n.votingPhase,
           style: TextStyle(
             fontSize: isTablet ? 24 : 20,
             fontWeight: FontWeight.w600,
@@ -146,7 +147,7 @@ class SharedDeviceVotingContent extends StatelessWidget {
         ),
         SizedBox(height: isTablet ? 12 : 8),
         Text(
-          'Find the Impostor! Each player taps their own name, then picks who they suspect.',
+          context.l10n.localVotingHelp,
           style: TextStyle(
             color: AppColors.of(context).textSecondary,
             fontSize: isTablet ? 16 : 14,
@@ -164,7 +165,7 @@ class SharedDeviceVotingContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tap your name to vote ↓',
+                context.l10n.tapOwnNameToVote,
                 style: TextStyle(
                   color: AppColors.of(context).textPrimary,
                   fontWeight: FontWeight.w500,
@@ -198,7 +199,10 @@ class SharedDeviceVotingContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Votes (${round.submittedVoteCount}/${round.requiredVoteCount})',
+                context.l10n.votesProgress(
+                  round.submittedVoteCount,
+                  round.requiredVoteCount,
+                ),
                 style: TextStyle(
                   color: AppColors.of(context).textPrimary,
                   fontWeight: FontWeight.w500,
@@ -226,7 +230,9 @@ class SharedDeviceVotingContent extends StatelessWidget {
             onPressed: isFinalizing ? null : onShowResults,
             icon: const Icon(Icons.check_circle_outline),
             label: Text(
-              isFinalizing ? 'Finalizing Results...' : 'Show Results Now →',
+              isFinalizing
+                  ? context.l10n.finalizingResults
+                  : context.l10n.showResultsNow,
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
@@ -317,10 +323,10 @@ class SharedDeviceResultsContent extends StatelessWidget {
           ),
           label: Text(
             gameState.isLastRound
-                ? 'View Final Leaderboard'
+                ? context.l10n.viewFinalLeaderboard
                 : (isStartingNextRound
-                      ? 'Creating Round...'
-                      : 'Start Next Round'),
+                      ? context.l10n.creatingRound
+                      : context.l10n.startNextRound),
           ),
         ),
       ],
@@ -420,7 +426,9 @@ class SharedDeviceVotePlayerTile extends StatelessWidget {
             ),
             subtitle: voteCount > 0
                 ? Text(
-                    voteCount == 1 ? '1 vote' : '$voteCount votes',
+                    voteCount == 1
+                        ? context.l10n.voteCountSingular
+                        : context.l10n.voteCountPlural(voteCount),
                     style: TextStyle(
                       color: AppColors.error,
                       fontSize: isTablet ? 13 : 11,
@@ -448,7 +456,7 @@ class SharedDeviceVotePlayerTile extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Vote',
+                      context.l10n.vote,
                       style: TextStyle(
                         fontSize: isTablet ? 16 : 14,
                         fontWeight: FontWeight.bold,

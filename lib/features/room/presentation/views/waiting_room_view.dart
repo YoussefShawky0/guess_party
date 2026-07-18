@@ -8,6 +8,7 @@ import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import 'widgets/room_lifecycle_manager.dart';
 import 'widgets/waiting_room_app_bar.dart';
@@ -104,7 +105,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
 
     messenger.showSnackBar(
       SnackBar(
-        content: const Text('Host has closed the room. Returning to home.'),
+        content: Text(context.l10n.hostClosedRoom),
         backgroundColor: AppColors.error,
       ),
     );
@@ -219,7 +220,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
             );
           }
 
-          return const Center(child: Text('Something went wrong'));
+          return Center(child: Text(context.l10n.somethingWentWrong));
         },
       ),
     );

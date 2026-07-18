@@ -148,7 +148,7 @@ guess_party/
 ├── test/                            # Eight model/Cubit/widget tests
 ├── doc/
 │   ├── schemas/                     # Baseline and incremental Supabase SQL
-│   ├── privacy&policy/              # Privacy policy source
+│   ├── External privacy policy     # Authoritative policy: https://youssefshawky0.github.io/guess-party-privacy/
 │   └── *.md                         # Security, debugging and refactoring notes
 ├── specs/                           # Spec Kit feature specifications/plans
 ├── android/, ios/, web/, windows/  # Flutter platform runners and assets

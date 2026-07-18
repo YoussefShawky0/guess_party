@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class CurrentScoresCard extends StatelessWidget {
   final List<Player> players;
@@ -50,7 +51,7 @@ class CurrentScoresCard extends StatelessWidget {
                 ),
                 SizedBox(width: isTablet ? 12 : 8),
                 Text(
-                  'Current Scores',
+                  context.l10n.currentScores,
                   style: TextStyle(
                     fontSize: isTablet ? 24 : 20,
                     fontWeight: FontWeight.w600,
@@ -187,7 +188,7 @@ class _ScoreRow extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
-            '$score pts',
+            context.l10n.scorePoints(score),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: isTablet ? 18 : 16,

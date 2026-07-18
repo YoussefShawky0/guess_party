@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class PassDeviceScreen extends StatefulWidget {
   final String playerName;
@@ -95,7 +96,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                 ),
                 const SizedBox(height: 40),
                 Text(
-                  'Pass device to',
+                  context.l10n.passDeviceTo,
                   style: TextStyle(
                     color: AppColors.of(context).textSecondary,
                     fontSize: isTablet ? 28 : 22,
@@ -119,7 +120,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Tap to see your role',
+                  context.l10n.tapToSeeRole,
                   style: TextStyle(
                     color: AppColors.secondary,
                     fontSize: isTablet ? 24 : 20,
@@ -149,7 +150,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                       const SizedBox(width: 12),
                       Flexible(
                         child: Text(
-                          "Don't let others see!",
+                          context.l10n.doNotLetOthersSee,
                           style: TextStyle(
                             color: AppColors.error,
                             fontWeight: FontWeight.w600,
@@ -161,24 +162,28 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                   ),
                 ),
                 const Spacer(),
-                ElevatedButton(
-                  onPressed: _revealCharacter,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isTablet ? 60 : 48,
-                      vertical: isTablet ? 24 : 20,
+                Semantics(
+                  button: true,
+                  label: context.l10n.revealRoleAction,
+                  child: ElevatedButton(
+                    onPressed: _revealCharacter,
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isTablet ? 60 : 48,
+                        vertical: isTablet ? 24 : 20,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.of(context).textPrimary,
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.of(context).textPrimary,
-                  ),
-                  child: Text(
-                    'Reveal Role',
-                    style: TextStyle(
-                      fontSize: isTablet ? 20 : 18,
-                      fontWeight: FontWeight.bold,
+                    child: Text(
+                      context.l10n.revealRoleAction,
+                      style: TextStyle(
+                        fontSize: isTablet ? 20 : 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -192,7 +197,9 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
 
   Widget _buildRevealedView(Size size, bool isTablet) {
     final roleColor = widget.isImpostor ? AppColors.error : AppColors.primary;
-    final roleText = widget.isImpostor ? 'IMPOSTER' : 'CHARACTER';
+    final roleText = widget.isImpostor
+        ? context.l10n.imposterUpper
+        : context.l10n.character.toUpperCase();
 
     return Scaffold(
       body: Container(
@@ -234,7 +241,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                   ),
                   const SizedBox(height: 52),
                   Text(
-                    'You are',
+                    context.l10n.youAreThe,
                     style: TextStyle(
                       color: AppColors.of(context).textSecondary,
                       fontSize: isTablet ? 28 : 22,
@@ -263,7 +270,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                   const SizedBox(height: 20),
                   Text(
                     widget.isImpostor
-                        ? 'The Imposter'
+                        ? context.l10n.imposter
                         : widget.characterName ?? '',
                     style: TextStyle(
                       color: roleColor,
@@ -284,8 +291,8 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                     ),
                     child: Text(
                       widget.isImpostor
-                          ? 'Pretend to know the character and blend in with the others!'
-                          : 'Give hints about your character without revealing too much!',
+                          ? context.l10n.imposterRevealHelp
+                          : context.l10n.innocentRevealHelp,
                       style: TextStyle(
                         color: AppColors.of(context).textPrimary,
                         fontSize: isTablet ? 18 : 16,
@@ -309,7 +316,7 @@ class _PassDeviceScreenState extends State<PassDeviceScreen>
                       foregroundColor: AppColors.of(context).textPrimary,
                     ),
                     child: Text(
-                      'Continue',
+                      context.l10n.continueAction,
                       style: TextStyle(
                         fontSize: isTablet ? 20 : 18,
                         fontWeight: FontWeight.bold,

@@ -32,6 +32,7 @@ import 'package:guess_party/features/home/data/repositories/home_repository_impl
 import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
 import 'package:guess_party/features/home/domain/usecases/get_current_user.dart';
 import 'package:guess_party/features/home/domain/usecases/sign_out.dart';
+import 'package:guess_party/features/home/domain/usecases/delete_account.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
 import 'package:guess_party/features/room/data/repositories/room_repository_impl.dart';
@@ -49,6 +50,7 @@ import 'package:guess_party/features/room/domain/usecases/watch_room_details.dar
 import 'package:guess_party/features/room/domain/usecases/watch_room_players.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
+import 'package:guess_party/core/localization/locale_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/core/services/room_query_service.dart';
@@ -57,14 +59,20 @@ import 'package:guess_party/core/services/server_clock.dart';
 import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/chat/data/repositories/supabase_chat_repository.dart';
 import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
+import 'package:guess_party/core/config/app_config.dart';
 
 final sl = GetIt.instance;
 
-Future<void> init() async {
+Future<void> init({required AppConfig config}) async {
+  sl.registerSingleton<AppConfig>(config);
   // ============= Theme =============
   final themeCubit = ThemeCubit();
   await themeCubit.loadSavedTheme();
   sl.registerSingleton<ThemeCubit>(themeCubit);
+
+  final localeCubit = LocaleCubit();
+  await localeCubit.loadSavedLocale();
+  sl.registerSingleton<LocaleCubit>(localeCubit);
 
   // Supabase Client
   final supabase = Supabase.instance.client;
@@ -120,6 +128,7 @@ Future<void> init() async {
 
   sl.registerLazySingleton(() => GetCurrentUser(sl()));
   sl.registerLazySingleton(() => SignOut(sl()));
+  sl.registerLazySingleton(() => DeleteAccount(sl()));
 
   sl.registerLazySingleton<HomeRepository>(
     () => HomeRepositoryImpl(remoteDataSource: sl()),

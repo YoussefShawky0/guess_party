@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class RoomCodeCard extends StatelessWidget {
   final String roomCode;
@@ -31,7 +32,7 @@ class RoomCodeCard extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Room Code',
+            context.l10n.roomCode,
             style: TextStyle(
               fontSize: isTablet ? 22 : 18,
               color: AppColors.of(context).textSecondary,
@@ -40,22 +41,25 @@ class RoomCodeCard extends StatelessWidget {
           ),
           SizedBox(height: isTablet ? 20 : 16),
           // Room Code Display
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 32 : 24,
-              vertical: isTablet ? 20 : 16,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              roomCode,
-              style: TextStyle(
-                fontSize: isTablet ? 56 : 48,
-                fontWeight: FontWeight.bold,
-                letterSpacing: isTablet ? 12 : 8,
-                color: AppColors.primaryLight,
+          Semantics(
+            label: '${context.l10n.roomCode}: $roomCode',
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isTablet ? 32 : 24,
+                vertical: isTablet ? 20 : 16,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                roomCode,
+                style: TextStyle(
+                  fontSize: isTablet ? 56 : 48,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: isTablet ? 12 : 8,
+                  color: AppColors.primaryLight,
+                ),
               ),
             ),
           ),
@@ -69,7 +73,7 @@ class RoomCodeCard extends StatelessWidget {
               color: AppColors.primary,
             ),
             label: Text(
-              'Copy Code',
+              context.l10n.copyCode,
               style: TextStyle(color: AppColors.primary),
             ),
             style: TextButton.styleFrom(foregroundColor: AppColors.primary),

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class MaxPlayersSelector extends StatelessWidget {
   final int selectedMaxPlayers;
@@ -21,7 +22,7 @@ class MaxPlayersSelector extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Max Players',
+          context.l10n.maxPlayers,
           style: TextStyle(
             fontSize: isTablet ? 20 : 18,
             fontWeight: FontWeight.bold,
@@ -36,7 +37,7 @@ class MaxPlayersSelector extends StatelessWidget {
             final isSelected = selectedMaxPlayers == players;
             return ChoiceChip(
               label: Text(
-                '$players Players',
+                context.l10n.playerCount(players),
                 style: TextStyle(
                   fontSize: isTablet ? 18 : 16,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

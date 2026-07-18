@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class JoinRoomHeader extends StatelessWidget {
   const JoinRoomHeader({super.key});
@@ -19,7 +20,7 @@ class JoinRoomHeader extends StatelessWidget {
         ),
         SizedBox(height: isTablet ? 40 : 32),
         Text(
-          'Enter Room Code',
+          context.l10n.enterRoomCode,
           style: TextStyle(
             fontSize: isTablet ? 32 : 28,
             fontWeight: FontWeight.bold,

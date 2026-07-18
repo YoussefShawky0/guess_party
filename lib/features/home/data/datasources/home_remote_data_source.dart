@@ -6,6 +6,7 @@ import '../../../../core/services/auth_session_service.dart';
 abstract class HomeRemoteDataSource {
   Future<UserInfo> getCurrentUser();
   Future<void> signOut();
+  Future<void> deleteAccount();
 }
 
 class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
@@ -52,6 +53,16 @@ class HomeRemoteDataSourceImpl implements HomeRemoteDataSource {
       await authSessionService.signOut();
     } catch (e) {
       throw Exception('Failed to sign out: $e');
+    }
+  }
+
+  @override
+  Future<void> deleteAccount() async {
+    try {
+      await supabaseClient.rpc('delete_current_account');
+      await authSessionService.signOut();
+    } catch (e) {
+      throw Exception('Failed to delete account: $e');
     }
   }
 }

@@ -12,6 +12,7 @@ import 'package:guess_party/core/services/room_query_service.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import 'widgets/category_selector.dart';
 import 'widgets/create_room_header.dart';
@@ -31,8 +32,8 @@ class CreateRoomScreen extends StatelessWidget {
 
     if (session.currentUserId == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Create Room')),
-        body: const Center(child: Text('User not authenticated')),
+        appBar: AppBar(title: Text(context.l10n.createRoom)),
+        body: Center(child: Text(context.l10n.userNotAuthenticated)),
       );
     }
 
@@ -89,11 +90,11 @@ class _CreateRoomViewState extends State<CreateRoomView> {
           SnackBar(
             content: Text(
               isNetworkError
-                  ? 'No internet connection. Check your network and try again.'
-                  : 'Failed to load categories. Please try again.',
+                  ? context.l10n.noInternet
+                  : context.l10n.categoriesLoadFailed,
             ),
             action: SnackBarAction(
-              label: 'Retry',
+              label: context.l10n.retry,
               onPressed: () {
                 setState(() => _isLoadingCategories = true);
                 _loadCategories();
@@ -145,7 +146,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         backgroundColor: AppColors.of(context).surface,
-        title: const AppBarTitle(title: 'Create Room'),
+        title: AppBarTitle(title: context.l10n.createRoom),
         centerTitle: true,
       ),
       body: BlocConsumer<RoomCubit, RoomState>(
@@ -268,7 +269,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
-                                  'Create Room',
+                                  context.l10n.createRoom,
                                   style: TextStyle(
                                     fontSize: isTablet ? 20 : 18,
                                     fontWeight: FontWeight.bold,

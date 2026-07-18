@@ -12,6 +12,7 @@ import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/round_header_widget.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/shared_device_phase_content.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class LocalModeGameScreen extends StatelessWidget {
   final String roomId;
@@ -69,13 +70,13 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Leave Game?',
+                  context.l10n.leaveGameTitle,
                   style: TextStyle(color: AppColors.of(context).textPrimary),
                 ),
               ],
             ),
             content: Text(
-              'Are you sure you want to leave? The game will end.',
+              context.l10n.leaveGameMessage,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: 16,
@@ -85,7 +86,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
                 child: Text(
-                  'Stay',
+                  context.l10n.stay,
                   style: TextStyle(color: AppColors.of(context).textMuted),
                 ),
               ),
@@ -94,7 +95,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,
                 ),
-                child: const Text('Leave'),
+                child: Text(context.l10n.leave),
               ),
             ],
           ),
@@ -158,7 +159,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
         appBar: AppBar(
-          title: const Text('Shared-Device Game'),
+          title: Text(context.l10n.sharedDeviceGame),
           backgroundColor: AppColors.of(context).surface,
           foregroundColor: AppColors.of(context).textPrimary,
           leading: IconButton(
@@ -227,7 +228,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                     CircularProgressIndicator(color: AppColors.primary),
                     const SizedBox(height: 16),
                     Text(
-                      'Loading game...',
+                      context.l10n.loadingGame,
                       style: TextStyle(
                         color: AppColors.of(context).textSecondary,
                       ),
@@ -255,7 +256,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
               return _buildGameContent(state);
             }
 
-            return const Center(child: Text('Preparing...'));
+            return Center(child: Text(context.l10n.preparing));
           },
         ),
       ),
@@ -271,7 +272,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
     if (players.isEmpty) {
       return Center(
         child: Text(
-          'Waiting for players...',
+          context.l10n.waitingForPlayers,
           style: TextStyle(color: AppColors.of(context).textSecondary),
         ),
       );
@@ -327,26 +328,32 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
   }
 
   Widget _buildSkipButton(GamePhase phase) {
-    final skipTarget = phase == GamePhase.hints ? 'voting' : 'results';
+    final skipTarget = phase == GamePhase.hints
+        ? context.l10n.votingPhase
+        : context.l10n.resultsPhase;
     final skipLabel = phase == GamePhase.hints
-        ? 'Skip to Voting'
-        : 'Skip to Results';
+        ? context.l10n.skipToVoting
+        : context.l10n.skipToResults;
 
     return ElevatedButton.icon(
       onPressed: () async {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: Text('Skip ${phase.name}?'),
-            content: Text('Are you sure you want to skip to $skipTarget?'),
+            title: Text(
+              phase == GamePhase.hints
+                  ? context.l10n.skipHints
+                  : context.l10n.skipVoting,
+            ),
+            content: Text(context.l10n.skipPhaseConfirmation(skipTarget)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('Skip'),
+                child: Text(context.l10n.skip),
               ),
             ],
           ),
@@ -408,7 +415,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Tap the player you think is the Impostor',
+                    context.l10n.voteForPlayerPrompt,
                     style: TextStyle(
                       color: theme.textSecondary,
                       fontSize: 13,
@@ -447,7 +454,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                       ),
                       subtitle: isVotingForSelf
                           ? Text(
-                              'Cannot vote for self',
+                              context.l10n.cannotVoteForSelf,
                               style: TextStyle(
                                 color: AppColors.error,
                                 fontSize: 12,
@@ -459,7 +466,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                           if (!context.mounted) return;
                           ErrorSnackBar.show(
                             context,
-                            'You cannot vote for yourself',
+                            context.l10n.cannotVoteSelf,
                           );
                           return;
                         }

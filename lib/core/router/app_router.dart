@@ -21,6 +21,7 @@ import 'package:guess_party/features/room/presentation/views/create_room_view.da
 import 'package:guess_party/features/room/presentation/views/join_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/waiting_room_view.dart';
 import 'package:guess_party/shared/presentation/views/splash_screen.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -31,16 +32,19 @@ class AppRouter {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                'Page Not Found',
+              Text(
+                context.l10n.pageNotFound,
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              Text('Route: ${state.uri}', style: const TextStyle(fontSize: 16)),
+              Text(
+                context.l10n.routeLabel(state.uri.toString()),
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => context.go(AppRoutes.home),
-                child: const Text('Go Home'),
+                child: Text(context.l10n.goHome),
               ),
             ],
           ),
@@ -175,14 +179,14 @@ class AppRouter {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Game data unavailable.',
+                    Text(
+                      context.l10n.gameDataUnavailable,
                       style: TextStyle(fontSize: 18),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => context.go(AppRoutes.home),
-                      child: const Text('Go Home'),
+                      child: Text(context.l10n.goHome),
                     ),
                   ],
                 ),

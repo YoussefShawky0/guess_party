@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class StartGameButton extends StatelessWidget {
   final String roomId;
@@ -26,40 +27,46 @@ class StartGameButton extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevatedButton(
-          onPressed: isEnabled && !needMorePlayers
-              ? () {
-                  onPressed();
-                  // Navigation is handled by the waiting-room Cubit status stream.
-                }
-              : null,
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 18),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.of(context).textPrimary,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FaIcon(FontAwesomeIcons.play, size: isTablet ? 24 : 20),
-              SizedBox(width: isTablet ? 12 : 8),
-              Text(
-                'Start Game',
-                style: TextStyle(
-                  fontSize: isTablet ? 22 : 20,
-                  fontWeight: FontWeight.bold,
-                ),
+        Semantics(
+          button: true,
+          enabled: isEnabled && !needMorePlayers,
+          label: context.l10n.startGame,
+          hint: context.l10n.startGameHint,
+          child: ElevatedButton(
+            onPressed: isEnabled && !needMorePlayers
+                ? () {
+                    onPressed();
+                    // Navigation is handled by the waiting-room Cubit status stream.
+                  }
+                : null,
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-            ],
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.of(context).textPrimary,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FaIcon(FontAwesomeIcons.play, size: isTablet ? 24 : 20),
+                SizedBox(width: isTablet ? 12 : 8),
+                Text(
+                  context.l10n.startGame,
+                  style: TextStyle(
+                    fontSize: isTablet ? 22 : 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (needMorePlayers) ...[
           const SizedBox(height: 8),
           Text(
-            'Need ${minPlayers - playerCount} more player${minPlayers - playerCount > 1 ? 's' : ''} to start',
+            context.l10n.playersNeededToStart(minPlayers - playerCount),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: isTablet ? 16 : 14,

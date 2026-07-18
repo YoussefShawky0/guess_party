@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/services/auth_session_service.dart';
@@ -55,7 +56,7 @@ class _AccountUpgradeViewState extends State<AccountUpgradeView> {
     final canUpgrade = session.isAnonymous || session.isLegacyAccount;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Secure your account'),
+        title: Text(context.l10n.secureYourAccount),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
@@ -81,16 +82,16 @@ class _AccountUpgradeViewState extends State<AccountUpgradeView> {
                 },
                 builder: (context, state) {
                   if (!canUpgrade && !_upgradeRequested) {
-                    return const Text(
-                      'This account already uses a real email.',
+                    return Text(
+                      context.l10n.accountAlreadySecured,
                       textAlign: TextAlign.center,
                     );
                   }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Link a real email to preserve this account and its user ID. Accounts are never merged automatically.',
+                      Text(
+                        context.l10n.accountUpgradeExplanation,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 24),
@@ -100,8 +101,8 @@ class _AccountUpgradeViewState extends State<AccountUpgradeView> {
                           children: [
                             TextFormField(
                               controller: _displayNameController,
-                              decoration: const InputDecoration(
-                                labelText: 'Display name',
+                              decoration: InputDecoration(
+                                labelText: context.l10n.displayName,
                               ),
                               validator: Validators.username,
                             ),
@@ -110,8 +111,8 @@ class _AccountUpgradeViewState extends State<AccountUpgradeView> {
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               autofillHints: const [AutofillHints.email],
-                              decoration: const InputDecoration(
-                                labelText: 'Real email',
+                              decoration: InputDecoration(
+                                labelText: context.l10n.realEmail,
                               ),
                               validator: Validators.email,
                             ),
@@ -130,21 +131,19 @@ class _AccountUpgradeViewState extends State<AccountUpgradeView> {
                                   );
                                 }
                               },
-                        child: const Text('Send verification email'),
+                        child: Text(context.l10n.sendVerificationEmail),
                       ),
                       if (_upgradeRequested) ...[
                         const SizedBox(height: 24),
-                        const Text(
-                          'Check your inbox and open the verification link. Return here afterward to set a password if needed.',
-                        ),
+                        Text(context.l10n.verificationEmailSentHelp),
                         const SizedBox(height: 16),
                         Form(
                           key: _passwordFormKey,
                           child: TextFormField(
                             controller: _passwordController,
                             obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Account password',
+                            decoration: InputDecoration(
+                              labelText: context.l10n.accountPassword,
                             ),
                             validator: Validators.password,
                           ),
@@ -163,7 +162,7 @@ class _AccountUpgradeViewState extends State<AccountUpgradeView> {
                                         );
                                   }
                                 },
-                          child: const Text('Complete verified upgrade'),
+                          child: Text(context.l10n.completeVerifiedUpgrade),
                         ),
                       ],
                     ],

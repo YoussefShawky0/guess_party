@@ -6,6 +6,7 @@ import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class HintsPhaseContent extends StatefulWidget {
   final RoundInfo round;
@@ -59,7 +60,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
 
   Widget _buildHeader(BuildContext context, bool isTablet) {
     return Text(
-      'Hints Phase',
+      context.l10n.hintsPhase,
       style: TextStyle(
         fontSize: isTablet ? 24 : 20,
         fontWeight: FontWeight.w600,
@@ -88,7 +89,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
           ),
           SizedBox(height: isTablet ? 16 : 12),
           Text(
-            'Discuss and give hints verbally!',
+            context.l10n.discussHints,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               color: AppColors.of(context).textPrimary,
@@ -97,7 +98,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
           ),
           SizedBox(height: isTablet ? 12 : 8),
           Text(
-            'Talk about the character without revealing yourself. The timer will move to voting automatically.',
+            context.l10n.discussHintsHelp,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
@@ -111,7 +112,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
 
   Widget _buildOnlineModeDescription(BuildContext context, bool isTablet) {
     return Text(
-      'Give a hint about the character without revealing yourself!',
+      context.l10n.onlineHintHelp,
       style: TextStyle(
         color: AppColors.of(context).textSecondary,
         fontSize: isTablet ? 16 : 14,
@@ -137,7 +138,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
               fontSize: isTablet ? 18 : 16,
             ),
             decoration: InputDecoration(
-              labelText: 'Write your hint here',
+              labelText: context.l10n.writeHint,
               labelStyle: TextStyle(color: AppColors.of(context).textMuted),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -160,7 +161,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
                   width: 2,
                 ),
               ),
-              hintText: 'مثال: يستخدم في المطبخ',
+              hintText: context.l10n.hintExample,
               hintStyle: TextStyle(color: AppColors.of(context).textMuted),
               filled: true,
               fillColor: AppColors.of(context).surface,
@@ -195,7 +196,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
             ),
             icon: Icon(Icons.send, size: isTablet ? 24 : 20),
             label: Text(
-              'Send Hint',
+              context.l10n.sendHint,
               style: TextStyle(
                 fontSize: isTablet ? 18 : 16,
                 fontWeight: FontWeight.bold,
@@ -212,15 +213,15 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
 
     // Validation
     if (hint.isEmpty) {
-      setState(() => _errorMessage = 'Please write a hint first');
+      setState(() => _errorMessage = context.l10n.hintRequired);
       return;
     }
     if (hint.length < 3) {
-      setState(() => _errorMessage = 'Hint must be at least 3 characters');
+      setState(() => _errorMessage = context.l10n.hintTooShort);
       return;
     }
     if (hint.length > 100) {
-      setState(() => _errorMessage = 'Hint is too long (max 100 characters)');
+      setState(() => _errorMessage = context.l10n.hintTooLong);
       return;
     }
 
@@ -238,7 +239,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
         }
       }
       if (currentPlayer == null) {
-        setState(() => _errorMessage = 'Syncing your player. Try again.');
+        setState(() => _errorMessage = context.l10n.syncingPlayer);
         return;
       }
 
@@ -261,7 +262,7 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
         ),
         padding: EdgeInsets.all(isTablet ? 20 : 16),
         child: Text(
-          'No hints yet...',
+          context.l10n.noHintsYet,
           style: TextStyle(
             color: AppColors.of(context).textMuted,
             fontSize: isTablet ? 16 : 14,
@@ -281,7 +282,10 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Hints Submitted (${widget.round.playerHints.length}/${widget.round.playerIds.length})',
+            context.l10n.hintsSubmitted(
+              widget.round.playerHints.length,
+              widget.round.playerIds.length,
+            ),
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,
@@ -302,8 +306,8 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
             }
 
             return _HintItem(
-              playerName: player?.username ?? 'Syncing player',
-              hint: hint ?? 'Hidden hint',
+              playerName: player?.username ?? context.l10n.syncingPlayer,
+              hint: hint ?? context.l10n.hiddenHint,
               isTablet: isTablet,
             );
           }),

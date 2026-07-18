@@ -3,12 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/config/app_config.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/services/update_service.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
 import 'package:in_app_update/in_app_update.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import 'widgets/home_action_buttons.dart';
 import 'widgets/welcome_section.dart';
@@ -44,7 +46,7 @@ class _HomeContentState extends State<HomeContent> {
     // Wait a bit for the UI to settle
     await Future.delayed(const Duration(seconds: 2));
 
-    final updateInfo = await UpdateService.checkForUpdate();
+    final updateInfo = await UpdateService.checkForUpdate(di.sl<AppConfig>());
 
     if (!mounted) return;
 
@@ -68,13 +70,13 @@ class _HomeContentState extends State<HomeContent> {
             Icon(Icons.system_update, color: AppColors.primary, size: 28),
             const SizedBox(width: 12),
             Text(
-              'Update Available',
+              context.l10n.updateAvailable,
               style: TextStyle(color: AppColors.of(context).textPrimary),
             ),
           ],
         ),
         content: Text(
-          'A new version of Guess Party is available. Would you like to update now?',
+          context.l10n.updateAvailableMessage,
           style: TextStyle(
             color: AppColors.of(context).textSecondary,
             fontSize: 16,
@@ -84,17 +86,17 @@ class _HomeContentState extends State<HomeContent> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'Later',
+              context.l10n.later,
               style: TextStyle(color: AppColors.of(context).textMuted),
             ),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              UpdateService.startFlexibleUpdate();
+              UpdateService.startFlexibleUpdate(di.sl<AppConfig>());
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Update'),
+            child: Text(context.l10n.update),
           ),
         ],
       ),
@@ -152,7 +154,7 @@ class _HomeContentState extends State<HomeContent> {
                   // Title
                   Expanded(
                     child: Text(
-                      'Guess Party',
+                      context.l10n.appName,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -164,7 +166,7 @@ class _HomeContentState extends State<HomeContent> {
                   IconButton(
                     icon: const FaIcon(FontAwesomeIcons.gear, size: 18),
                     color: AppColors.of(context).textPrimary,
-                    tooltip: 'Settings',
+                    tooltip: context.l10n.settings,
                     onPressed: () {
                       context.push(AppRoutes.settings);
                     },
@@ -176,7 +178,7 @@ class _HomeContentState extends State<HomeContent> {
                       size: 18,
                     ),
                     color: AppColors.error,
-                    tooltip: 'Logout',
+                    tooltip: context.l10n.logout,
                     onPressed: () {
                       context.read<HomeCubit>().signOutUser();
                     },
@@ -199,7 +201,7 @@ class _HomeContentState extends State<HomeContent> {
                   if (state is HomeError) {
                     return Center(
                       child: Text(
-                        'Error: ${state.message}',
+                        context.l10n.errorWithMessage(state.message),
                         style: TextStyle(color: AppColors.error),
                       ),
                     );
@@ -234,8 +236,8 @@ class _HomeContentState extends State<HomeContent> {
                                   ),
                                   label: Text(
                                     state.userInfo.isAnonymous
-                                        ? 'Secure this guest account'
-                                        : 'Link a real recovery email',
+                                        ? context.l10n.secureGuestAccount
+                                        : context.l10n.linkRecoveryEmail,
                                   ),
                                 ),
                               ],

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class CreateRoomHeader extends StatelessWidget {
   const CreateRoomHeader({super.key});
@@ -26,7 +27,7 @@ class CreateRoomHeader extends StatelessWidget {
         ),
         SizedBox(height: isTablet ? 24 : 20),
         Text(
-          'Create New Room',
+          context.l10n.createNewRoom,
           style: TextStyle(
             fontSize: isTablet ? 32 : 28,
             fontWeight: FontWeight.bold,
@@ -36,7 +37,7 @@ class CreateRoomHeader extends StatelessWidget {
         ),
         SizedBox(height: isTablet ? 12 : 8),
         Text(
-          'Choose category and rounds to start the game',
+          context.l10n.createRoomDescription,
           style: TextStyle(
             fontSize: isTablet ? 16 : 14,
             color: AppColors.of(context).textSecondary,

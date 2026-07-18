@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/utils/validators.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class UsernameField extends StatelessWidget {
   final TextEditingController controller;
@@ -27,7 +28,7 @@ class UsernameField extends StatelessWidget {
         color: AppColors.of(context).textPrimary,
       ),
       decoration: InputDecoration(
-        hintText: 'Enter your username',
+        hintText: context.l10n.enterUsername,
         hintStyle: TextStyle(
           fontSize: isTablet ? 18 : 16,
           color: AppColors.of(context).textMuted,

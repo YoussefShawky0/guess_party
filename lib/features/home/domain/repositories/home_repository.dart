@@ -5,4 +5,5 @@ import 'package:guess_party/features/home/domain/entities/user_info.dart';
 abstract class HomeRepository {
   Future<Either<Failure, UserInfo>> getCurrentUser();
   Future<Either<Failure, void>> signOut();
+  Future<Either<Failure, void>> deleteAccount();
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart' as di;
@@ -69,17 +70,17 @@ class _LoginViewState extends State<LoginView> {
     final email = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Reset password'),
+        title: Text(dialogContext.l10n.resetPassword),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.emailAddress,
           autofillHints: const [AutofillHints.email],
-          decoration: const InputDecoration(labelText: 'Email'),
+          decoration: InputDecoration(labelText: dialogContext.l10n.email),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
+            child: Text(dialogContext.l10n.cancel),
           ),
           FilledButton(
             onPressed: () {
@@ -88,7 +89,7 @@ class _LoginViewState extends State<LoginView> {
                 Navigator.of(dialogContext).pop(value);
               }
             },
-            child: const Text('Send link'),
+            child: Text(dialogContext.l10n.sendLink),
           ),
         ],
       ),
@@ -145,10 +146,10 @@ class _LoginViewState extends State<LoginView> {
                     const SizedBox(height: 16),
                     Text(
                       isSignUp
-                          ? 'Create Account'
+                          ? context.l10n.createAccount
                           : isLegacy
-                          ? 'Legacy Account'
-                          : 'Welcome Back',
+                          ? context.l10n.legacyAccount
+                          : context.l10n.welcomeBack,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: isTablet ? 36 : 32,
@@ -159,7 +160,7 @@ class _LoginViewState extends State<LoginView> {
                     if (isLegacy) ...[
                       const SizedBox(height: 8),
                       Text(
-                        'Use this only for an existing username account. After signing in, link a real email from Home.',
+                        context.l10n.legacyAccountHelp,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.of(context).textSecondary,
@@ -170,7 +171,7 @@ class _LoginViewState extends State<LoginView> {
                     if (isSignUp) ...[
                       _AuthTextField(
                         controller: _displayNameController,
-                        label: 'Display name',
+                        label: context.l10n.displayName,
                         icon: Icons.badge_outlined,
                         validator: Validators.username,
                       ),
@@ -178,7 +179,9 @@ class _LoginViewState extends State<LoginView> {
                     ],
                     _AuthTextField(
                       controller: _emailOrUsernameController,
-                      label: isLegacy ? 'Legacy username' : 'Email',
+                      label: isLegacy
+                          ? context.l10n.legacyUsername
+                          : context.l10n.email,
                       icon: isLegacy
                           ? Icons.person_outline
                           : Icons.email_outlined,
@@ -195,7 +198,7 @@ class _LoginViewState extends State<LoginView> {
                     const SizedBox(height: 16),
                     _AuthTextField(
                       controller: _passwordController,
-                      label: 'Password',
+                      label: context.l10n.password,
                       icon: Icons.lock_outline,
                       obscureText: true,
                       autofillHints: [
@@ -212,7 +215,7 @@ class _LoginViewState extends State<LoginView> {
                           onPressed: state is AuthLoading
                               ? null
                               : _showPasswordResetDialog,
-                          child: const Text('Forgot password?'),
+                          child: Text(context.l10n.forgotPassword),
                         ),
                       ),
                     const SizedBox(height: 16),
@@ -225,10 +228,10 @@ class _LoginViewState extends State<LoginView> {
                             )
                           : Text(
                               isSignUp
-                                  ? 'Create account'
+                                  ? context.l10n.createAccount
                                   : isLegacy
-                                  ? 'Legacy login'
-                                  : 'Login',
+                                  ? context.l10n.legacyLogin
+                                  : context.l10n.login,
                             ),
                     ),
                     const SizedBox(height: 12),
@@ -242,8 +245,8 @@ class _LoginViewState extends State<LoginView> {
                             ),
                       child: Text(
                         isSignUp
-                            ? 'Already have an account? Login'
-                            : 'Create a verified-email account',
+                            ? context.l10n.alreadyHaveAccount
+                            : context.l10n.createVerifiedAccount,
                       ),
                     ),
                     TextButton(
@@ -256,8 +259,8 @@ class _LoginViewState extends State<LoginView> {
                             ),
                       child: Text(
                         isLegacy
-                            ? 'Back to email login'
-                            : 'Use a legacy username account',
+                            ? context.l10n.backToEmailLogin
+                            : context.l10n.useLegacyAccount,
                       ),
                     ),
                   ],

@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class AuthHeader extends StatelessWidget {
   const AuthHeader({super.key});
@@ -19,7 +20,7 @@ class AuthHeader extends StatelessWidget {
         ),
         SizedBox(height: isTablet ? 24 : 20),
         Text(
-          'Guess Party',
+          context.l10n.appName,
           style: TextStyle(
             fontSize: isTablet ? 48 : 40,
             fontWeight: FontWeight.bold,
@@ -28,7 +29,7 @@ class AuthHeader extends StatelessWidget {
         ),
         SizedBox(height: isTablet ? 8 : 6),
         Text(
-          'Find the Imposter',
+          context.l10n.findTheImposter,
           style: TextStyle(
             fontSize: isTablet ? 18 : 16,
             color: AppColors.of(context).textSecondary,

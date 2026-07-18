@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../shared/widgets/error_snackbar.dart';
@@ -96,8 +97,8 @@ class _AuthViewState extends State<AuthView> {
                               color: AppColors.error.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              'Your session ended. Please sign in again.',
+                            child: Text(
+                              context.l10n.sessionEnded,
                               textAlign: TextAlign.center,
                             ),
                           ),
@@ -120,7 +121,7 @@ class _AuthViewState extends State<AuthView> {
                             context.push(AppRoutes.login);
                           },
                           child: Text(
-                            'Already have an account? Login',
+                            context.l10n.alreadyHaveAccount,
                             style: TextStyle(
                               color: AppColors.primaryLight,
                               fontSize: isTablet ? 16 : 14,

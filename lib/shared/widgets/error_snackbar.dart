@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class ErrorSnackBar {
   static void show(BuildContext context, String message) {
@@ -33,7 +34,7 @@ class ErrorSnackBar {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         duration: const Duration(seconds: 4),
         action: SnackBarAction(
-          label: 'OK',
+          label: context.l10n.ok,
           textColor: AppColors.of(context).textPrimary,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -75,7 +76,7 @@ class ErrorSnackBar {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Room not found',
+                    context.l10n.roomNotFound,
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
@@ -84,7 +85,7 @@ class ErrorSnackBar {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Room not found. Please check the code and try again.',
+                    context.l10n.roomNotFoundHelp,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
@@ -105,7 +106,7 @@ class ErrorSnackBar {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         duration: const Duration(seconds: 5),
         action: SnackBarAction(
-          label: 'Retry',
+          label: context.l10n.retry,
           textColor: AppColors.of(context).textPrimary,
           onPressed: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();

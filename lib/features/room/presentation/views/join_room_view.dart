@@ -11,6 +11,7 @@ import 'package:guess_party/features/room/presentation/views/widgets/join_room_h
 import 'package:guess_party/features/room/presentation/views/widgets/room_code_input.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class JoinRoomView extends StatelessWidget {
   const JoinRoomView({super.key});
@@ -69,7 +70,7 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         backgroundColor: AppColors.of(context).surface,
-        title: const AppBarTitle(title: 'Join Room'),
+        title: AppBarTitle(title: context.l10n.joinRoom),
         centerTitle: true,
       ),
       body: BlocConsumer<RoomCubit, RoomState>(
@@ -163,7 +164,7 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Room not found',
+                  context.l10n.roomNotFound,
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.error,
@@ -172,7 +173,7 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
                 ),
                 SizedBox(height: isTablet ? 4 : 3),
                 Text(
-                  'Room not found. Please check the code and try again.',
+                  context.l10n.roomNotFoundHelp,
                   style: TextStyle(
                     color: AppColors.errorLight,
                     fontSize: isTablet ? 14 : 13,

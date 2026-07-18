@@ -5,6 +5,7 @@ import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/shared/widgets/chat_widget.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import 'character_card.dart';
 import 'results_phase_content.dart';
@@ -43,7 +44,7 @@ class OnlineGameContent extends StatelessWidget {
     if (players.isEmpty) {
       return Center(
         child: Text(
-          'Waiting for players...',
+          context.l10n.waitingForPlayers,
           style: TextStyle(color: AppColors.of(context).textSecondary),
         ),
       );
@@ -146,7 +147,7 @@ class OnlineRoleSyncCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Syncing your role...',
+            context.l10n.syncingRole,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
               fontSize: 16,
@@ -185,20 +186,22 @@ class OnlineHostControls extends StatelessWidget {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: Text(isHints ? 'Skip hints?' : 'Skip voting?'),
+            title: Text(
+              isHints ? context.l10n.skipHints : context.l10n.skipVoting,
+            ),
             content: Text(
               isHints
-                  ? 'Are you sure you want to skip to voting?'
-                  : 'Are you sure you want to skip to results?',
+                  ? context.l10n.skipHintsConfirmation
+                  : context.l10n.skipVotingConfirmation,
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.cancel),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('Skip'),
+                child: Text(context.l10n.skip),
               ),
             ],
           ),
@@ -211,7 +214,9 @@ class OnlineHostControls extends StatelessWidget {
         }
       },
       icon: const Icon(Icons.skip_next),
-      label: Text(isHints ? 'Skip to Voting' : 'Skip to Results'),
+      label: Text(
+        isHints ? context.l10n.skipToVoting : context.l10n.skipToResults,
+      ),
     );
   }
 }

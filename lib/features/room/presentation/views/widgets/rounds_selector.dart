@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class RoundsSelector extends StatelessWidget {
   final int selectedRounds;
@@ -44,7 +45,7 @@ class RoundsSelector extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'Number of Rounds',
+                    context.l10n.numberOfRounds,
                     style: TextStyle(
                       fontSize: isTablet ? 20 : 18,
                       fontWeight: FontWeight.bold,
@@ -90,7 +91,7 @@ class RoundsSelector extends StatelessWidget {
               min: 3,
               max: 10,
               divisions: 7,
-              label: '$selectedRounds rounds',
+              label: context.l10n.roundCount(selectedRounds),
               onChanged: enabled ? (value) => onChanged(value.toInt()) : null,
             ),
           ),
@@ -100,14 +101,14 @@ class RoundsSelector extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '3 rounds',
+                  context.l10n.roundCount(3),
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 12,
                     color: AppColors.of(context).textSecondary,
                   ),
                 ),
                 Text(
-                  '10 rounds',
+                  context.l10n.roundCount(10),
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 12,
                     color: AppColors.of(context).textSecondary,

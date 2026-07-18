@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class PhaseTimerWidget extends StatefulWidget {
   final DateTime phaseEndTime;
@@ -106,76 +107,87 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
   }
 
   Widget _buildCompactTimer(Color color, String timeText) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.of(context).timerBg,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color, width: 2),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FaIcon(FontAwesomeIcons.hourglassHalf, color: color, size: 16),
-          const SizedBox(width: 6),
-          Text(
-            timeText,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: color,
+    return Semantics(
+      label: context.l10n.timeRemaining(_remainingSeconds),
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.of(context).timerBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FaIcon(FontAwesomeIcons.hourglassHalf, color: color, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              timeText,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            's',
-            style: TextStyle(fontSize: 14, color: color.withValues(alpha: 0.7)),
-          ),
-        ],
+            const SizedBox(width: 4),
+            Text(
+              context.l10n.secondsShort,
+              style: TextStyle(
+                fontSize: 14,
+                color: color.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildLargeTimer(Color color, String timeText) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).timerBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color, width: 3),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FaIcon(FontAwesomeIcons.hourglassHalf, color: color, size: 40),
-            const SizedBox(height: 12),
-            Text(
-              'Time Remaining',
-              style: TextStyle(
-                fontSize: 14,
-                color: color.withValues(alpha: 0.8),
-                fontWeight: FontWeight.w500,
+    return Semantics(
+      label: context.l10n.timeRemaining(_remainingSeconds),
+      liveRegion: true,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.of(context).timerBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color, width: 3),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FaIcon(FontAwesomeIcons.hourglassHalf, color: color, size: 40),
+              const SizedBox(height: 12),
+              Text(
+                context.l10n.timeRemainingLabel,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: color.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              timeText,
-              style: TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.bold,
-                color: color,
-                letterSpacing: 2,
+              const SizedBox(height: 8),
+              Text(
+                timeText,
+                style: TextStyle(
+                  fontSize: 56,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  letterSpacing: 2,
+                ),
               ),
-            ),
-            Text(
-              'seconds',
-              style: TextStyle(
-                fontSize: 16,
-                color: color.withValues(alpha: 0.7),
+              Text(
+                context.l10n.secondsLabel,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: color.withValues(alpha: 0.7),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,12 +1,16 @@
 import 'package:in_app_update/in_app_update.dart';
 import 'package:flutter/foundation.dart';
+import 'package:guess_party/core/config/app_config.dart';
 
 class UpdateService {
-  static bool get isSupported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  static bool isSupported(AppConfig config) =>
+      !kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.android &&
+      config.environment == AppEnvironment.production &&
+      config.distribution == AppDistribution.play;
 
-  static Future<AppUpdateInfo?> checkForUpdate() async {
-    if (!isSupported) return null;
+  static Future<AppUpdateInfo?> checkForUpdate(AppConfig config) async {
+    if (!isSupported(config)) return null;
     try {
       return await InAppUpdate.checkForUpdate();
     } catch (e) {
@@ -14,8 +18,8 @@ class UpdateService {
     }
   }
 
-  static Future<void> performImmediateUpdate() async {
-    if (!isSupported) return;
+  static Future<void> performImmediateUpdate(AppConfig config) async {
+    if (!isSupported(config)) return;
     try {
       await InAppUpdate.performImmediateUpdate();
     } catch (e) {
@@ -23,8 +27,8 @@ class UpdateService {
     }
   }
 
-  static Future<void> startFlexibleUpdate() async {
-    if (!isSupported) return;
+  static Future<void> startFlexibleUpdate(AppConfig config) async {
+    if (!isSupported(config)) return;
     try {
       await InAppUpdate.startFlexibleUpdate();
       await InAppUpdate.completeFlexibleUpdate();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/router/app_routes.dart';
@@ -45,7 +46,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
         .sl<AuthSessionService>()
         .hasPasswordRecoverySession;
     return Scaffold(
-      appBar: AppBar(title: const Text('Choose a new password')),
+      appBar: AppBar(title: Text(context.l10n.chooseNewPassword)),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -67,8 +68,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Enter a new password for your verified account.',
+                            Text(
+                              context.l10n.enterNewPassword,
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 24),
@@ -76,8 +77,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                               controller: _passwordController,
                               obscureText: true,
                               autofillHints: const [AutofillHints.newPassword],
-                              decoration: const InputDecoration(
-                                labelText: 'New password',
+                              decoration: InputDecoration(
+                                labelText: context.l10n.newPassword,
                               ),
                               validator: Validators.password,
                             ),
@@ -85,12 +86,12 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                             TextFormField(
                               controller: _confirmationController,
                               obscureText: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Confirm password',
+                              decoration: InputDecoration(
+                                labelText: context.l10n.confirmPassword,
                               ),
                               validator: (value) =>
                                   value != _passwordController.text
-                                  ? 'Passwords do not match'
+                                  ? context.l10n.passwordsDoNotMatch
                                   : null,
                             ),
                             const SizedBox(height: 24),
@@ -108,7 +109,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                                     },
                               child: state is AuthLoading
                                   ? const CircularProgressIndicator()
-                                  : const Text('Update password'),
+                                  : Text(context.l10n.updatePassword),
                             ),
                           ],
                         ),
@@ -119,14 +120,14 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                       children: [
                         const Icon(Icons.link_off, size: 48),
                         const SizedBox(height: 16),
-                        const Text(
-                          'This password recovery link is no longer valid.',
+                        Text(
+                          context.l10n.recoveryLinkExpired,
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
                         FilledButton(
                           onPressed: () => context.go(AppRoutes.login),
-                          child: const Text('Return to login'),
+                          child: Text(context.l10n.returnToLogin),
                         ),
                       ],
                     ),

@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'widgets/leaderboard_list_widget.dart';
 import 'widgets/podium_widget.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class GameOverView extends StatelessWidget {
   final List<Player> players;
@@ -47,7 +48,7 @@ class GameOverView extends StatelessWidget {
                       Text('🏆', style: const TextStyle(fontSize: 48)),
                       const SizedBox(height: 8),
                       Text(
-                        'Game Over!',
+                        context.l10n.gameOver,
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
                               color: AppColors.of(context).textPrimary,
@@ -56,7 +57,7 @@ class GameOverView extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Final Leaderboard',
+                        context.l10n.finalLeaderboard,
                         style: TextStyle(
                           color: AppColors.of(context).textMuted,
                           fontSize: 16,
@@ -104,8 +105,8 @@ class GameOverView extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: () => context.go(AppRoutes.home),
                         icon: const Icon(Icons.home_rounded),
-                        label: const Text(
-                          'Back to Home',
+                        label: Text(
+                          context.l10n.backToHome,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

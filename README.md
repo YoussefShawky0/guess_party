@@ -27,3 +27,11 @@ flutter run --flavor development --dart-define-from-file=config/development.loca
 Only publishable client configuration belongs in Dart define files. Never add a
 Supabase service-role/secret key, database password, auth token, signing secret,
 or SMTP credential to application configuration.
+
+## Support and privacy
+
+- Support: [youssefshawky.work@gmail.com](mailto:youssefshawky.work@gmail.com)
+- Privacy policy: <https://youssefshawky0.github.io/guess-party-privacy/>
+
+The linked external page is the sole authoritative privacy policy. This
+repository intentionally does not duplicate its content.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class ErrorScreen extends StatelessWidget {
   final String message;
@@ -56,7 +57,7 @@ class ErrorScreen extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Retry',
+                    context.l10n.retry,
                     style: TextStyle(
                       fontSize: isTablet ? 18 : 16,
                       fontWeight: FontWeight.bold,
@@ -75,7 +76,7 @@ class ErrorScreen extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Go Back',
+                    context.l10n.goBack,
                     style: TextStyle(
                       fontSize: isTablet ? 18 : 16,
                       color: AppColors.of(context).textSecondary,

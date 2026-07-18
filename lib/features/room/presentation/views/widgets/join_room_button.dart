@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class JoinRoomButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -34,7 +35,7 @@ class JoinRoomButton extends StatelessWidget {
               ),
             )
           : Text(
-              'Join Room',
+              context.l10n.joinRoom,
               style: TextStyle(
                 fontSize: isTablet ? 22 : 20,
                 fontWeight: FontWeight.bold,

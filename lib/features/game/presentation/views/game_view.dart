@@ -19,6 +19,7 @@ import 'widgets/online_game_content.dart';
 import 'widgets/game_lifecycle_manager.dart';
 import 'widgets/game_end_navigation_listener.dart';
 import 'widgets/game_connection_feedback.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class GameView extends StatelessWidget {
   final String roomId;
@@ -169,13 +170,13 @@ class _GameViewContentState extends State<GameViewContent> {
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'Leave Game?',
+                  context.l10n.leaveGameTitle,
                   style: TextStyle(color: AppColors.of(context).textPrimary),
                 ),
               ],
             ),
             content: Text(
-              'Are you sure you want to leave? This will affect the current game.',
+              context.l10n.leaveGameMessage,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: 16,
@@ -185,7 +186,7 @@ class _GameViewContentState extends State<GameViewContent> {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
                 child: Text(
-                  'Stay',
+                  context.l10n.stay,
                   style: TextStyle(color: AppColors.of(context).textMuted),
                 ),
               ),
@@ -195,7 +196,7 @@ class _GameViewContentState extends State<GameViewContent> {
                   backgroundColor: AppColors.error,
                   foregroundColor: AppColors.of(context).textPrimary,
                 ),
-                child: const Text('Leave'),
+                child: Text(context.l10n.leave),
               ),
             ],
           ),
@@ -222,7 +223,7 @@ class _GameViewContentState extends State<GameViewContent> {
       final currentPlayer = _resolveCurrentRoomPlayer(gameState.gameState);
       if (currentPlayer == null) {
         if (context.mounted) {
-          ErrorSnackBar.show(context, 'Syncing your player. Try again.');
+          ErrorSnackBar.show(context, context.l10n.syncingPlayer);
         }
         return;
       }
@@ -253,7 +254,7 @@ class _GameViewContentState extends State<GameViewContent> {
         child: Scaffold(
           backgroundColor: AppColors.of(context).background,
           appBar: AppBar(
-            title: const Text('Game'),
+            title: Text(context.l10n.game),
             backgroundColor: AppColors.of(context).surface,
             foregroundColor: AppColors.of(context).textPrimary,
             leading: IconButton(
@@ -388,7 +389,7 @@ class _GameViewContentState extends State<GameViewContent> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Back online. Game synced.',
+                            context.l10n.backOnlineSynced,
                             style: TextStyle(
                               color: AppColors.of(context).textPrimary,
                             ),
@@ -415,7 +416,7 @@ class _GameViewContentState extends State<GameViewContent> {
                       CircularProgressIndicator(color: AppColors.primary),
                       const SizedBox(height: 16),
                       Text(
-                        'Loading game...',
+                        context.l10n.loadingGame,
                         style: TextStyle(
                           color: AppColors.of(context).textSecondary,
                         ),
@@ -447,7 +448,7 @@ class _GameViewContentState extends State<GameViewContent> {
                 );
               }
 
-              return const Center(child: Text('Preparing...'));
+              return Center(child: Text(context.l10n.preparing));
             },
           ),
         ),

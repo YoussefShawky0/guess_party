@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class GameConnectionFeedback extends StatelessWidget {
   final bool isReconnecting;
@@ -41,7 +42,7 @@ class GameConnectionFeedback extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Reconnecting to game...',
+                      context.l10n.reconnectingToGame,
                       style: TextStyle(
                         color: AppColors.of(context).textPrimary,
                         fontWeight: FontWeight.w600,

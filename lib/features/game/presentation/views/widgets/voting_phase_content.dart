@@ -7,6 +7,7 @@ import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class VotingPhaseContent extends StatelessWidget {
   final RoundInfo round;
@@ -84,7 +85,7 @@ class VotingPhaseContent extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context, bool isTablet) {
     return Text(
-      'Voting Phase',
+      context.l10n.votingPhase,
       style: TextStyle(
         fontSize: isTablet ? 24 : 20,
         fontWeight: FontWeight.w600,
@@ -96,8 +97,8 @@ class VotingPhaseContent extends StatelessWidget {
   Widget _buildDescription(BuildContext context, bool isTablet) {
     return Text(
       gameMode == GameConstants.gameModeLocal
-          ? 'Find the Impostor! Each player taps their own name, then picks who they suspect.'
-          : 'Vote for who you think is the Impostor!',
+          ? context.l10n.localVotingHelp
+          : context.l10n.onlineVotingHelp,
       style: TextStyle(
         color: AppColors.of(context).textSecondary,
         fontSize: isTablet ? 16 : 14,
@@ -126,8 +127,8 @@ class VotingPhaseContent extends StatelessWidget {
         children: [
           Text(
             gameMode == GameConstants.gameModeLocal
-                ? 'Tap your name to vote ↓'
-                : 'Choose a suspect:',
+                ? context.l10n.tapOwnNameToVote
+                : context.l10n.chooseSuspect,
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,
@@ -193,7 +194,7 @@ class VotingPhaseContent extends StatelessWidget {
     bool iVotedForThis,
   ) {
     if (votedPlayer.id == currentPlayer.id) {
-      ErrorSnackBar.show(context, 'You cannot vote for yourself');
+      ErrorSnackBar.show(context, context.l10n.cannotVoteSelf);
       return;
     }
 
@@ -207,18 +208,18 @@ class VotingPhaseContent extends StatelessWidget {
         builder: (dialogContext) => AlertDialog(
           backgroundColor: AppColors.of(context).surface,
           title: Text(
-            'Change Vote?',
+            context.l10n.changeVote,
             style: TextStyle(color: AppColors.of(context).textPrimary),
           ),
           content: Text(
-            'Change your vote to ${votedPlayer.username}?',
+            context.l10n.changeVoteTo(votedPlayer.username),
             style: TextStyle(color: AppColors.of(context).textSecondary),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
-                'Cancel',
+                context.l10n.cancel,
                 style: TextStyle(color: AppColors.of(context).textMuted),
               ),
             ),
@@ -234,7 +235,7 @@ class VotingPhaseContent extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.buttonPrimary,
               ),
-              child: const Text('Confirm'),
+              child: Text(context.l10n.confirm),
             ),
           ],
         ),
@@ -275,12 +276,12 @@ class VotingPhaseContent extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '${resolvedVoter.username}, who do you suspect?',
+                    context.l10n.whoDoYouSuspect(resolvedVoter.username),
                     style: TextStyle(color: theme.textPrimary),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Tap the player you think is the Impostor',
+                    context.l10n.tapPlayerToSuspect,
                     style: TextStyle(
                       color: theme.textSecondary,
                       fontSize: 13,
@@ -295,54 +296,62 @@ class VotingPhaseContent extends StatelessWidget {
                   children: players.map((player) {
                     final isVotingForSelf = player.id == voterId;
 
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isVotingForSelf
-                            ? theme.surfaceLight
-                            : AppColors.primary,
-                        child: Text(
-                          player.username[0].toUpperCase(),
+                    return Semantics(
+                      button: true,
+                      enabled: !isVotingForSelf,
+                      label: player.username,
+                      hint: isVotingForSelf
+                          ? context.l10n.cannotVoteForSelf
+                          : context.l10n.tapPlayerToSuspect,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isVotingForSelf
+                              ? theme.surfaceLight
+                              : AppColors.primary,
+                          child: Text(
+                            player.username[0].toUpperCase(),
+                            style: TextStyle(
+                              color: isVotingForSelf
+                                  ? theme.textMuted
+                                  : theme.textPrimary,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          player.username,
                           style: TextStyle(
                             color: isVotingForSelf
                                 ? theme.textMuted
                                 : theme.textPrimary,
                           ),
                         ),
-                      ),
-                      title: Text(
-                        player.username,
-                        style: TextStyle(
-                          color: isVotingForSelf
-                              ? theme.textMuted
-                              : theme.textPrimary,
-                        ),
-                      ),
-                      subtitle: isVotingForSelf
-                          ? Text(
-                              'Cannot vote for self',
-                              style: TextStyle(
-                                color: AppColors.error,
-                                fontSize: 12,
-                              ),
-                            )
-                          : null,
-                      onTap: () async {
-                        if (isVotingForSelf) {
-                          if (!context.mounted) return;
-                          ErrorSnackBar.show(
-                            context,
-                            'You cannot vote for yourself',
-                          );
-                          return;
-                        }
+                        subtitle: isVotingForSelf
+                            ? Text(
+                                context.l10n.cannotVoteForSelf,
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 12,
+                                ),
+                              )
+                            : null,
+                        onTap: () async {
+                          if (isVotingForSelf) {
+                            if (!context.mounted) return;
+                            ErrorSnackBar.show(
+                              context,
+                              context.l10n.cannotVoteSelf,
+                            );
+                            return;
+                          }
 
-                        Navigator.of(dialogContext).pop();
-                        gameCubit.sendVote(
-                          roundId: round.id,
-                          voterId: voterId,
-                          votedPlayerId: player.id,
-                        );
-                      },
+                          Navigator.of(dialogContext).pop();
+                          gameCubit.sendVote(
+                            roundId: round.id,
+                            voterId: voterId,
+                            votedPlayerId: player.id,
+                          );
+                        },
+                      ),
                     );
                   }).toList(),
                 ),
@@ -351,7 +360,7 @@ class VotingPhaseContent extends StatelessWidget {
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
                   child: Text(
-                    'Cancel',
+                    context.l10n.cancel,
                     style: TextStyle(color: theme.textMuted),
                   ),
                 ),
@@ -381,7 +390,7 @@ class VotingPhaseContent extends StatelessWidget {
           SizedBox(width: isTablet ? 16 : 12),
           Expanded(
             child: Text(
-              'Vote submitted! Waiting for results...',
+              context.l10n.voteSubmittedWaiting,
               style: TextStyle(
                 color: AppColors.of(context).textPrimary,
                 fontSize: isTablet ? 16 : 14,
@@ -411,7 +420,7 @@ class VotingPhaseContent extends StatelessWidget {
           SizedBox(width: isTablet ? 16 : 12),
           Expanded(
             child: Text(
-              'Syncing player info... Please wait.',
+              context.l10n.syncingPlayerInfoHelp,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: isTablet ? 14 : 12,
@@ -429,7 +438,9 @@ class VotingPhaseContent extends StatelessWidget {
         onPressed: isFinalizingVoting ? null : onShowResults,
         icon: const Icon(Icons.check_circle_outline),
         label: Text(
-          isFinalizingVoting ? 'Finalizing Results...' : 'Show Results Now →',
+          isFinalizingVoting
+              ? context.l10n.finalizingResults
+              : context.l10n.showResultsNow,
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.success,
@@ -460,7 +471,7 @@ class VotingPhaseContent extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            'All votes in! Waiting for host...',
+            context.l10n.allVotesWaitingHost,
             style: TextStyle(
               color: AppColors.of(context).textSecondary,
               fontSize: isTablet ? 16 : 14,
@@ -489,7 +500,10 @@ class VotingPhaseContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Votes (${round.submittedVoteCount}/${round.requiredVoteCount})',
+            context.l10n.votesProgress(
+              round.submittedVoteCount,
+              round.requiredVoteCount,
+            ),
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
               fontWeight: FontWeight.w500,
@@ -634,7 +648,7 @@ class _VotePlayerTile extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Vote',
+                    context.l10n.vote,
                     style: TextStyle(
                       fontSize: isTablet ? 16 : 14,
                       fontWeight: FontWeight.bold,

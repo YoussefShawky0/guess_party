@@ -3,12 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/config/app_config.dart';
 import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/localization/locale_cubit.dart';
 import 'package:guess_party/core/services/update_service.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
+import 'package:guess_party/features/home/domain/usecases/delete_account.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -36,7 +40,7 @@ class _SettingsViewState extends State<SettingsView> {
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(context.l10n.settings),
         backgroundColor: AppColors.of(context).surface,
         foregroundColor: AppColors.of(context).textPrimary,
         leading: IconButton(
@@ -50,13 +54,13 @@ class _SettingsViewState extends State<SettingsView> {
           // How to Play Section
           _SettingsSection(
             icon: FontAwesomeIcons.circleQuestion,
-            title: 'How to Play',
+            title: context.l10n.howToPlay,
             isTablet: isTablet,
             children: [
               _SettingsTile(
                 icon: FontAwesomeIcons.gamepad,
-                title: 'Game Rules',
-                subtitle: 'Learn how to play Guess Party',
+                title: context.l10n.gameRules,
+                subtitle: context.l10n.learnHowToPlay,
                 isTablet: isTablet,
                 onTap: () {
                   _showHowToPlayDialog(context, isTablet);
@@ -70,15 +74,19 @@ class _SettingsViewState extends State<SettingsView> {
           BlocBuilder<ThemeCubit, ThemeMode>(
             bloc: sl<ThemeCubit>(),
             builder: (context, themeMode) {
-              final themeName = sl<ThemeCubit>().currentThemeName;
+              final themeName = switch (themeMode) {
+                ThemeMode.dark => context.l10n.dark,
+                ThemeMode.light => context.l10n.light,
+                ThemeMode.system => context.l10n.systemDefault,
+              };
               return _SettingsSection(
                 icon: FontAwesomeIcons.paintbrush,
-                title: 'Appearance',
+                title: context.l10n.appearance,
                 isTablet: isTablet,
                 children: [
                   _SettingsTile(
                     icon: FontAwesomeIcons.palette,
-                    title: 'Theme',
+                    title: context.l10n.theme,
                     subtitle: themeName,
                     isTablet: isTablet,
                     onTap: () => _showThemePicker(context, themeMode, isTablet),
@@ -89,22 +97,67 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           SizedBox(height: isTablet ? 24 : 16),
 
+          // Language Section
+          BlocBuilder<LocaleCubit, Locale?>(
+            bloc: sl<LocaleCubit>(),
+            builder: (context, locale) {
+              final languageName = switch (locale?.languageCode) {
+                'en' => context.l10n.english,
+                'ar' => context.l10n.arabic,
+                _ => context.l10n.systemDefaultLanguage,
+              };
+              return _SettingsSection(
+                icon: FontAwesomeIcons.language,
+                title: context.l10n.language,
+                isTablet: isTablet,
+                children: [
+                  _SettingsTile(
+                    key: const Key('settings-language'),
+                    icon: FontAwesomeIcons.language,
+                    title: context.l10n.language,
+                    subtitle: languageName,
+                    isTablet: isTablet,
+                    onTap: () => _showLanguagePicker(context, locale, isTablet),
+                  ),
+                ],
+              );
+            },
+          ),
+          SizedBox(height: isTablet ? 24 : 16),
+
+          _SettingsSection(
+            icon: FontAwesomeIcons.userShield,
+            title: context.l10n.account,
+            isTablet: isTablet,
+            children: [
+              _SettingsTile(
+                key: const Key('settings-delete-account'),
+                icon: FontAwesomeIcons.trashCan,
+                title: context.l10n.deleteAccount,
+                subtitle: context.l10n.deleteAccountSubtitle,
+                isTablet: isTablet,
+                onTap: () => _confirmDeleteAccount(context),
+              ),
+            ],
+          ),
+          SizedBox(height: isTablet ? 24 : 16),
+
           // About Section
           _SettingsSection(
             icon: FontAwesomeIcons.circleInfo,
-            title: 'About',
+            title: context.l10n.about,
             isTablet: isTablet,
             children: [
               _SettingsTile(
                 icon: FontAwesomeIcons.mobileScreen,
-                title: 'App Version',
+                title: context.l10n.appVersion,
                 subtitle: _appVersion,
                 isTablet: isTablet,
                 onTap: null,
               ),
               _SettingsTile(
                 icon: FontAwesomeIcons.code,
-                title: 'Developer',
+                title: context.l10n.developer,
                 subtitle: 'Youssef Shawky',
                 isTablet: isTablet,
                 onTap: () => launchUrl(
@@ -112,21 +165,11 @@ class _SettingsViewState extends State<SettingsView> {
                   mode: LaunchMode.externalApplication,
                 ),
               ),
-              _SettingsTile(
-                icon: FontAwesomeIcons.github,
-                title: 'View on GitHub',
-                subtitle: 'Check out the source code',
-                isTablet: isTablet,
-                onTap: () => launchUrl(
-                  Uri.parse('https://github.com/YoussefShawky0/guess_party'),
-                  mode: LaunchMode.externalApplication,
-                ),
-              ),
-              if (UpdateService.isSupported)
+              if (UpdateService.isSupported(sl<AppConfig>()))
                 _SettingsTile(
                   icon: FontAwesomeIcons.download,
-                  title: 'Check for Updates',
-                  subtitle: 'Managed by Google Play',
+                  title: context.l10n.checkForUpdates,
+                  subtitle: context.l10n.managedByGooglePlay,
                   isTablet: isTablet,
                   onTap: () {
                     _checkForUpdates(context);
@@ -134,8 +177,8 @@ class _SettingsViewState extends State<SettingsView> {
                 ),
               _SettingsTile(
                 icon: FontAwesomeIcons.fileShield,
-                title: 'Privacy Policy',
-                subtitle: 'View our privacy policy',
+                title: context.l10n.privacyPolicy,
+                subtitle: context.l10n.viewPrivacyPolicy,
                 isTablet: isTablet,
                 onTap: () {
                   launchUrl(
@@ -152,15 +195,187 @@ class _SettingsViewState extends State<SettingsView> {
     );
   }
 
+  void _showLanguagePicker(
+    BuildContext context,
+    Locale? current,
+    bool isTablet,
+  ) {
+    final options = <({Locale? locale, String label})>[
+      (locale: null, label: context.l10n.systemDefaultLanguage),
+      (locale: const Locale('en'), label: context.l10n.english),
+      (locale: const Locale('ar'), label: context.l10n.arabic),
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.of(context).surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(isTablet ? 24 : 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  context.l10n.chooseLanguage,
+                  style: TextStyle(
+                    fontSize: isTablet ? 20 : 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.of(context).textPrimary,
+                  ),
+                ),
+              ),
+              ...options.map((option) {
+                final selected =
+                    option.locale?.languageCode == current?.languageCode ||
+                    (option.locale == null && current == null);
+                return InkWell(
+                  onTap: () {
+                    sl<LocaleCubit>().setLocale(option.locale);
+                    Navigator.of(sheetContext).pop();
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.all(isTablet ? 16 : 14),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? AppColors.primary.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.of(context).cardBorder,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        FaIcon(
+                          FontAwesomeIcons.language,
+                          size: isTablet ? 22 : 18,
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.of(context).textSecondary,
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          option.label,
+                          style: TextStyle(
+                            fontSize: isTablet ? 16 : 14,
+                            fontWeight: selected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: selected
+                                ? AppColors.of(context).textPrimary
+                                : AppColors.of(context).textSecondary,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (selected)
+                          FaIcon(
+                            FontAwesomeIcons.circleCheck,
+                            size: isTablet ? 20 : 16,
+                            color: AppColors.primary,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        title: Text(
+          context.l10n.deleteAccountTitle,
+          style: TextStyle(color: AppColors.of(context).textPrimary),
+        ),
+        content: Text(
+          context.l10n.deleteAccountMessage,
+          style: TextStyle(color: AppColors.of(context).textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(context.l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: Text(context.l10n.deleteAccount),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final result = await sl<DeleteAccount>()();
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
+
+    result.fold(
+      (failure) => _showDeleteError(context, failure.message),
+      (_) {},
+    );
+  }
+
+  void _showDeleteError(BuildContext context, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        title: Text(
+          context.l10n.deleteAccountFailed,
+          style: TextStyle(color: AppColors.of(context).textPrimary),
+        ),
+        content: Text(
+          context.l10n.errorWithMessage(message),
+          style: TextStyle(color: AppColors.of(context).textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(context.l10n.ok),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showThemePicker(
     BuildContext context,
     ThemeMode current,
     bool isTablet,
   ) {
     final options = [
-      (ThemeMode.dark, FontAwesomeIcons.moon, 'Dark'),
-      (ThemeMode.light, FontAwesomeIcons.sun, 'Light'),
-      (ThemeMode.system, FontAwesomeIcons.circleHalfStroke, 'System Default'),
+      (ThemeMode.dark, FontAwesomeIcons.moon, context.l10n.dark),
+      (ThemeMode.light, FontAwesomeIcons.sun, context.l10n.light),
+      (
+        ThemeMode.system,
+        FontAwesomeIcons.circleHalfStroke,
+        context.l10n.systemDefault,
+      ),
     ];
 
     showModalBottomSheet(
@@ -179,7 +394,7 @@ class _SettingsViewState extends State<SettingsView> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
-                  'Choose Theme',
+                  context.l10n.chooseTheme,
                   style: TextStyle(
                     fontSize: isTablet ? 20 : 18,
                     fontWeight: FontWeight.bold,
@@ -247,7 +462,7 @@ class _SettingsViewState extends State<SettingsView> {
                               ),
                             ),
                             child: Text(
-                              'Demo',
+                              context.l10n.demo,
                               style: TextStyle(
                                 fontSize: isTablet ? 12 : 11,
                                 fontWeight: FontWeight.bold,
@@ -283,7 +498,7 @@ class _SettingsViewState extends State<SettingsView> {
         backgroundColor: AppColors.of(context).surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Checking for updates...',
+          context.l10n.checkingForUpdates,
           style: TextStyle(color: AppColors.of(context).textPrimary),
         ),
         content: Row(
@@ -292,7 +507,7 @@ class _SettingsViewState extends State<SettingsView> {
             const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'Please wait a moment.',
+                context.l10n.pleaseWait,
                 style: TextStyle(color: AppColors.of(context).textSecondary),
               ),
             ),
@@ -301,7 +516,7 @@ class _SettingsViewState extends State<SettingsView> {
       ),
     );
 
-    final updateInfo = await UpdateService.checkForUpdate();
+    final updateInfo = await UpdateService.checkForUpdate(sl<AppConfig>());
 
     if (!context.mounted) return;
     Navigator.of(context).pop();
@@ -334,13 +549,13 @@ class _SettingsViewState extends State<SettingsView> {
             ),
             const SizedBox(width: 12),
             Text(
-              'Up to Date!',
+              context.l10n.upToDate,
               style: TextStyle(color: AppColors.of(context).textPrimary),
             ),
           ],
         ),
         content: Text(
-          'You are running the latest version of Guess Party ($_appVersion).',
+          context.l10n.latestVersionMessage(_appVersion),
           style: TextStyle(
             color: AppColors.of(context).textSecondary,
             fontSize: 16,
@@ -349,7 +564,10 @@ class _SettingsViewState extends State<SettingsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK', style: TextStyle(color: AppColors.primary)),
+            child: Text(
+              context.l10n.ok,
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),
@@ -379,13 +597,13 @@ class _SettingsViewState extends State<SettingsView> {
             Icon(Icons.system_update, color: AppColors.primary, size: 24),
             const SizedBox(width: 12),
             Text(
-              'Update Available',
+              context.l10n.updateAvailable,
               style: TextStyle(color: AppColors.of(context).textPrimary),
             ),
           ],
         ),
         content: Text(
-          'A newer version of Guess Party is available on the Play Store.',
+          context.l10n.playStoreUpdateMessage,
           style: TextStyle(
             color: AppColors.of(context).textSecondary,
             fontSize: 16,
@@ -395,7 +613,7 @@ class _SettingsViewState extends State<SettingsView> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
-              'Later',
+              context.l10n.later,
               style: TextStyle(color: AppColors.of(context).textMuted),
             ),
           ),
@@ -403,13 +621,15 @@ class _SettingsViewState extends State<SettingsView> {
             onPressed: () {
               Navigator.of(context).pop();
               if (canImmediate) {
-                UpdateService.performImmediateUpdate();
+                UpdateService.performImmediateUpdate(sl<AppConfig>());
               } else {
-                UpdateService.startFlexibleUpdate();
+                UpdateService.startFlexibleUpdate(sl<AppConfig>());
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: Text(canImmediate ? 'Update Now' : 'Update'),
+            child: Text(
+              canImmediate ? context.l10n.updateNow : context.l10n.update,
+            ),
           ),
         ],
       ),
@@ -431,13 +651,13 @@ class _SettingsViewState extends State<SettingsView> {
             ),
             const SizedBox(width: 12),
             Text(
-              'Update Check Failed',
+              context.l10n.updateCheckFailed,
               style: TextStyle(color: AppColors.of(context).textPrimary),
             ),
           ],
         ),
         content: Text(
-          'We could not check for updates right now. Please try again later.',
+          context.l10n.updateCheckFailedMessage,
           style: TextStyle(
             color: AppColors.of(context).textSecondary,
             fontSize: 16,
@@ -446,7 +666,10 @@ class _SettingsViewState extends State<SettingsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK', style: TextStyle(color: AppColors.primary)),
+            child: Text(
+              context.l10n.ok,
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),
@@ -468,7 +691,7 @@ class _SettingsViewState extends State<SettingsView> {
             ),
             const SizedBox(width: 12),
             Text(
-              'How to Play',
+              context.l10n.howToPlay,
               style: TextStyle(color: AppColors.of(context).textPrimary),
             ),
           ],
@@ -480,37 +703,32 @@ class _SettingsViewState extends State<SettingsView> {
             children: [
               _HowToPlayStep(
                 number: '1',
-                title: 'Choose a Mode',
-                description:
-                    'Online uses one device per player. Shared-Device Mode is pass-and-play on one device and still requires internet access and a signed-in session.',
+                title: context.l10n.chooseMode,
+                description: context.l10n.chooseModeDescription,
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(
                 number: '2',
-                title: 'Create or Join Room',
-                description:
-                    'Start a new game or join an existing Online room with friends.',
+                title: context.l10n.createOrJoinRoom,
+                description: context.l10n.createOrJoinRoomDescription,
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(
                 number: '3',
-                title: 'Get Your Role',
-                description:
-                    'You\'ll be assigned as either an Innocent player or the Imposter. In Shared-Device Mode, pass the device privately for each reveal.',
+                title: context.l10n.getYourRole,
+                description: context.l10n.getYourRoleDescription,
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(
                 number: '4',
-                title: 'Hints & Voting',
-                description:
-                    'Give hints, then vote for who you think is the Imposter.',
+                title: context.l10n.hintsAndVoting,
+                description: context.l10n.hintsAndVotingDescription,
               ),
               const SizedBox(height: 12),
               _HowToPlayStep(
                 number: '5',
-                title: 'Results & Scoring',
-                description:
-                    'If Imposter is caught: voters get +10 points.\nIf Imposter escapes: Imposter gets +20 points.',
+                title: context.l10n.resultsAndScoring,
+                description: context.l10n.resultsAndScoringDescription,
               ),
             ],
           ),
@@ -518,7 +736,10 @@ class _SettingsViewState extends State<SettingsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Got it!', style: TextStyle(color: AppColors.primary)),
+            child: Text(
+              context.l10n.gotIt,
+              style: TextStyle(color: AppColors.primary),
+            ),
           ),
         ],
       ),
@@ -585,6 +806,7 @@ class _SettingsTile extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _SettingsTile({
+    super.key,
     required this.icon,
     required this.title,
     required this.subtitle,

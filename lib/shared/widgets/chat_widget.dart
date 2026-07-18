@@ -7,6 +7,7 @@ import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
 import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
 import 'package:guess_party/features/chat/presentation/cubit/chat_cubit.dart';
 import 'package:guess_party/features/chat/presentation/cubit/chat_state.dart';
+import 'package:guess_party/l10n/l10n.dart';
 
 class ChatWidget extends StatelessWidget {
   final String roomId;
@@ -85,12 +86,12 @@ class _ChatPanelState extends State<_ChatPanel> {
             if (!isCurrentUser)
               ListTile(
                 leading: const Icon(Icons.volume_off),
-                title: const Text('Mute this player'),
+                title: Text(context.l10n.mutePlayer),
                 onTap: () => Navigator.of(sheetContext).pop('mute'),
               ),
             ListTile(
               leading: const Icon(Icons.flag_outlined),
-              title: const Text('Report message'),
+              title: Text(context.l10n.reportMessage),
               onTap: () => Navigator.of(sheetContext).pop('report'),
             ),
           ],
@@ -115,25 +116,25 @@ class _ChatPanelState extends State<_ChatPanel> {
       return showDialog<String>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('Report message'),
+          title: Text(context.l10n.reportMessage),
           content: TextField(
             controller: controller,
             autofocus: true,
             maxLength: 500,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'Tell us what happened',
+            decoration: InputDecoration(
+              hintText: dialogContext.l10n.reportReasonHint,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(dialogContext.l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(dialogContext).pop(controller.text),
-              child: const Text('Submit'),
+              child: Text(dialogContext.l10n.submit),
             ),
           ],
         ),
@@ -215,7 +216,7 @@ class _ChatPanelState extends State<_ChatPanel> {
     if (loaded.messages.isEmpty) {
       return Center(
         child: Text(
-          'No messages yet',
+          context.l10n.noMessages,
           style: TextStyle(color: AppColors.of(context).textSecondary),
         ),
       );
@@ -231,7 +232,9 @@ class _ChatPanelState extends State<_ChatPanel> {
             child: TextButton(
               onPressed: loaded.isLoadingOlder ? null : cubit.loadOlder,
               child: Text(
-                loaded.isLoadingOlder ? 'Loading...' : 'Load older messages',
+                loaded.isLoadingOlder
+                    ? context.l10n.loadingMessages
+                    : context.l10n.loadOlderMessages,
               ),
             ),
           );
@@ -273,7 +276,7 @@ class _ChatHeader extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            'Chat',
+            context.l10n.chat,
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: isTablet ? 18 : 16,
@@ -312,7 +315,7 @@ class _ChatInput extends StatelessWidget {
               controller: controller,
               style: TextStyle(color: AppColors.of(context).textPrimary),
               decoration: InputDecoration(
-                hintText: 'Type a message...',
+                hintText: context.l10n.typeMessage,
                 hintStyle: TextStyle(color: AppColors.of(context).textMuted),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -346,6 +349,7 @@ class _ChatInput extends StatelessWidget {
               foregroundColor: AppColors.of(context).textPrimary,
               padding: const EdgeInsets.all(12),
             ),
+            tooltip: context.l10n.sendMessage,
           ),
         ],
       ),
