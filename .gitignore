@@ -53,6 +53,7 @@ app.*.map.json
 # Sensitive configuration files
 *.keystore
 *.jks
+/android/key.properties
 google-services.json
 GoogleService-Info.plist
 firebase_options.dart

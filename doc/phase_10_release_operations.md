@@ -123,8 +123,10 @@ If a signing key is suspected compromised:
 
 ## Blocked Items
 
-- Permanent Android application ID is not supplied.
-- Android signing credentials are not supplied.
-- iOS bundle/team/signing inputs are not supplied.
+- Permanent Android and iOS identity is approved as
+  `com.youssefshawky.guessparty`.
+- The owner-backed Android upload keystore exists locally with two independently
+  verified backups; CI secret enrollment remains separately authorized.
+- Apple team/signing inputs are not supplied.
 - Store account access is not supplied.
 - Production/staging Supabase promotion remains separately gated.

@@ -20,7 +20,7 @@ val isProductionReleaseTask = gradle.startParameter.taskNames.any {
 }
 
 android {
-    namespace = "com.example.guess_party"
+    namespace = "com.youssefshawky.guessparty"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -34,8 +34,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.guess_party"
+        applicationId = "com.youssefshawky.guessparty"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

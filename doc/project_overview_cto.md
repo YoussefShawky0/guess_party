@@ -239,11 +239,12 @@ staging-style endpoints.
 
 ### Build Configuration
 
-- Package version is `1.0.0` with no explicit build number in `pubspec.yaml`.
-- Android namespace/application ID is still `com.example.guess_party`; Phase 9
-  adds development/staging/production flavors while Phase 10 still owns the
-  permanent organization ID.
-- Android release builds currently use the debug signing key.
+- Package version is `1.0.0+1` in `pubspec.yaml`.
+- Android and iOS use the approved permanent identity
+  `com.youssefshawky.guessparty`; Android development and staging builds retain
+  environment suffixes.
+- Android production release builds fail closed without the owner-backed upload
+  keystore and never fall back to debug signing.
 - Android requests internet access and supports HTTPS link handlers.
 - iOS identifiers inherit Xcode build settings; shared development/staging/
   production scheme names are present, while signing/team work remains Phase 10.
@@ -299,7 +300,7 @@ Key controls include server-side room capacity, unique per-round hint/vote const
 
 | Priority | Finding | Impact | Recommended action |
 |---|---|---|---|
-| Critical | Android release uses debug signing and example application ID. | Blocks trustworthy Play Store release and upgrade continuity. | Configure organization-owned ID, keystore, secure CI secrets, and signed release validation. |
+| Medium | Store accounts and CI signing-secret enrollment remain externally owned. | Blocks automated Play/App Store promotion, but not local signed validation. | Enroll the backed-up upload key and assign store rollout ownership through the release runbook. |
 | Resolved | Shared-device connectivity expectations were previously unclear. | Players could incorrectly expect offline play. | The approved product model is connected Shared-Device Mode; UI and governance now state the connectivity requirement. |
 | High | SQL is a set of manually applied baseline/fix scripts with no migration ledger. | Environments may drift; deployment/rollback is not reproducible. | Adopt Supabase CLI migrations, ordered seed data, staging promotion, and schema checks. |
 | High | Presentation and router layers directly query Supabase. | Violates architecture rules, duplicates subscriptions, and expands security/consistency risk. | Move all access behind repositories/use cases; centralize lifecycle/realtime coordination. |
