@@ -4,6 +4,7 @@ import 'package:guess_party/l10n/l10n.dart';
 
 class CustomPlayerCountOption extends StatefulWidget {
   static const fieldKey = Key('custom-player-count-field');
+  static const optionKey = Key('custom-player-count-option');
 
   const CustomPlayerCountOption({
     super.key,
@@ -82,13 +83,16 @@ class _CustomPlayerCountOptionState extends State<CustomPlayerCountOption> {
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.sizeOf(context).width > 600;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
     final colors = AppColors.of(context);
+    final optionWidth = (isTablet ? 215.0 : 116.0) * textScale.clamp(1.0, 1.35);
 
     return Semantics(
       textField: true,
       label: context.l10n.customPlayerCount,
       child: SizedBox(
-        width: isTablet ? 180 : 150,
+        key: CustomPlayerCountOption.optionKey,
+        width: optionWidth,
         child: TextField(
           key: CustomPlayerCountOption.fieldKey,
           controller: _controller,
@@ -114,14 +118,12 @@ class _CustomPlayerCountOptionState extends State<CustomPlayerCountOption> {
             filled: true,
             fillColor: widget.isSelected ? AppColors.primary : colors.surface,
             contentPadding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 18 : 14,
-              vertical: isTablet ? 14 : 11,
+              horizontal: isTablet ? 16 : 12,
+              vertical: isTablet ? 12 : 8,
             ),
             border: _border(AppColors.primary),
             enabledBorder: _border(
-              widget.isSelected
-                  ? AppColors.primary
-                  : colors.textSecondary.withValues(alpha: 0.35),
+              widget.isSelected ? AppColors.primary : colors.textSecondary,
             ),
             focusedBorder: _border(AppColors.primary, width: 2),
             errorBorder: _border(AppColors.error),
@@ -134,7 +136,7 @@ class _CustomPlayerCountOptionState extends State<CustomPlayerCountOption> {
 
   OutlineInputBorder _border(Color color, {double width = 1}) {
     return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(8),
       borderSide: BorderSide(color: color, width: width),
     );
   }

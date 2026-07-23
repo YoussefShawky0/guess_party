@@ -61,6 +61,30 @@ void main() {
     expect(find.text('4-10'), findsOneWidget);
   });
 
+  testWidgets('custom option matches the preset chip presentation', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpSelector(tester);
+
+    final customSize = tester.getSize(
+      find.byKey(CustomPlayerCountOption.optionKey),
+    );
+    final presetSize = tester.getSize(
+      find.widgetWithText(ChoiceChip, '10 players'),
+    );
+    final field = tester.widget<TextField>(
+      find.byKey(CustomPlayerCountOption.fieldKey),
+    );
+    final border = field.decoration?.enabledBorder as OutlineInputBorder;
+
+    expect(customSize.width, closeTo(presetSize.width, 12));
+    expect(customSize.height, closeTo(presetSize.height, 6));
+    expect(border.borderRadius, BorderRadius.circular(8));
+    expect(field.decoration?.filled, isTrue);
+  });
+
   for (final value in <String>['4', '5', '7', '9', '10']) {
     testWidgets('accepts custom player count $value', (tester) async {
       final changes = <int?>[];
