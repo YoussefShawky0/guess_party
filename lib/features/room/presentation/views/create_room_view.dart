@@ -18,7 +18,7 @@ import 'widgets/category_selector.dart';
 import 'widgets/create_room_header.dart';
 import 'widgets/game_mode_selector.dart';
 import 'widgets/local_players_input.dart';
-import 'widgets/max_players_selector.dart';
+import 'widgets/player_count_selector.dart';
 import 'widgets/round_duration_selector.dart';
 import 'widgets/rounds_selector.dart';
 
@@ -57,6 +57,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
   String? _selectedCategory;
   int _selectedRounds = GameConstants.defaultRounds;
   int _selectedMaxPlayers = 4;
+  bool _isPlayerCountValid = true;
   int _selectedRoundDuration = 300;
   String _selectedGameMode = GameConstants.gameModeOnline;
   List<String> _localPlayerNames = [];
@@ -111,6 +112,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
 
   bool _isCreateDisabled() {
     if (_selectedCategory == null || _isLoadingCategories) return true;
+    if (!_isPlayerCountValid) return true;
 
     if (_selectedGameMode == GameConstants.gameModeLocal) {
       // Require exactly maxPlayers valid names
@@ -214,10 +216,14 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                     ),
                     const SizedBox(height: 24),
 
-                    MaxPlayersSelector(
-                      selectedMaxPlayers: _selectedMaxPlayers,
-                      onMaxPlayersChanged: (value) =>
-                          setState(() => _selectedMaxPlayers = value),
+                    PlayerCountSelector(
+                      initialValue: _selectedMaxPlayers,
+                      onChanged: (value) {
+                        setState(() {
+                          _isPlayerCountValid = value != null;
+                          if (value != null) _selectedMaxPlayers = value;
+                        });
+                      },
                     ),
                     const SizedBox(height: 24),
 

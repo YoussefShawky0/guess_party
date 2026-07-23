@@ -221,6 +221,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get maxPlayers => 'Maximum Players';
 
   @override
+  String get customPlayerCount => 'Custom player count';
+
+  @override
+  String get customPlayerCountHint => '4-10';
+
+  @override
+  String get playerCountRequired => 'Enter a player count';
+
+  @override
+  String get playerCountWholeNumber => 'Enter a whole number';
+
+  @override
+  String get playerCountRangeError => 'Enter a number from 4 to 10';
+
+  @override
   String get rounds => 'Rounds';
 
   @override

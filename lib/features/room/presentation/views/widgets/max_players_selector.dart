@@ -3,13 +3,15 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
 class MaxPlayersSelector extends StatelessWidget {
-  final int selectedMaxPlayers;
-  final Function(int) onMaxPlayersChanged;
+  final int? selectedMaxPlayers;
+  final ValueChanged<int> onMaxPlayersChanged;
+  final Widget? trailingOption;
 
   const MaxPlayersSelector({
     super.key,
     required this.selectedMaxPlayers,
     required this.onMaxPlayersChanged,
+    this.trailingOption,
   });
 
   @override
@@ -33,32 +35,37 @@ class MaxPlayersSelector extends StatelessWidget {
         Wrap(
           spacing: isTablet ? 16 : 12,
           runSpacing: isTablet ? 16 : 12,
-          children: playerOptions.map((players) {
-            final isSelected = selectedMaxPlayers == players;
-            return ChoiceChip(
-              label: Text(
-                context.l10n.playerCount(players),
-                style: TextStyle(
-                  fontSize: isTablet ? 18 : 16,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          children: [
+            ...playerOptions.map((players) {
+              final isSelected = selectedMaxPlayers == players;
+              return ChoiceChip(
+                label: Text(
+                  context.l10n.playerCount(players),
+                  style: TextStyle(
+                    fontSize: isTablet ? 18 : 16,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? AppColors.of(context).textPrimary
+                        : AppColors.of(context).textSecondary,
+                  ),
+                ),
+                selected: isSelected,
+                onSelected: (selected) {
+                  if (selected) onMaxPlayersChanged(players);
+                },
+                selectedColor: AppColors.primary,
+                backgroundColor: AppColors.of(context).surface,
+                labelStyle: TextStyle(
                   color: isSelected
                       ? AppColors.of(context).textPrimary
                       : AppColors.of(context).textSecondary,
                 ),
-              ),
-              selected: isSelected,
-              onSelected: (selected) {
-                if (selected) onMaxPlayersChanged(players);
-              },
-              selectedColor: AppColors.primary,
-              backgroundColor: AppColors.of(context).surface,
-              labelStyle: TextStyle(
-                color: isSelected
-                    ? AppColors.of(context).textPrimary
-                    : AppColors.of(context).textSecondary,
-              ),
-            );
-          }).toList(),
+              );
+            }),
+            if (trailingOption != null) trailingOption!,
+          ],
         ),
       ],
     );

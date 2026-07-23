@@ -512,6 +512,36 @@ abstract class AppLocalizations {
   /// **'Maximum Players'**
   String get maxPlayers;
 
+  /// No description provided for @customPlayerCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom player count'**
+  String get customPlayerCount;
+
+  /// No description provided for @customPlayerCountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'4-10'**
+  String get customPlayerCountHint;
+
+  /// No description provided for @playerCountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a player count'**
+  String get playerCountRequired;
+
+  /// No description provided for @playerCountWholeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a whole number'**
+  String get playerCountWholeNumber;
+
+  /// No description provided for @playerCountRangeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a number from 4 to 10'**
+  String get playerCountRangeError;
+
   /// No description provided for @rounds.
   ///
   /// In en, this message translates to:

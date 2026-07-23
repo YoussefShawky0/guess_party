@@ -220,6 +220,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get maxPlayers => 'الحد الأقصى للاعبين';
 
   @override
+  String get customPlayerCount => 'عدد مخصص للاعبين';
+
+  @override
+  String get customPlayerCountHint => '4-10';
+
+  @override
+  String get playerCountRequired => 'أدخل عدد اللاعبين';
+
+  @override
+  String get playerCountWholeNumber => 'أدخل عددًا صحيحًا';
+
+  @override
+  String get playerCountRangeError => 'أدخل عددًا من 4 إلى 10';
+
+  @override
   String get rounds => 'الجولات';
 
   @override
