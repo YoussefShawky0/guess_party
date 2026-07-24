@@ -10,6 +10,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../../shared/widgets/error_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import 'widgets/login_header.dart';
 
 enum _AuthFormMode { signIn, signUp, legacy }
 
@@ -137,36 +138,16 @@ class _LoginViewState extends State<LoginView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Image.asset(
-                      'assets/images/Figures.png',
-                      width: isTablet ? 200 : 150,
-                      height: isTablet ? 140 : 100,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isSignUp
+                    LoginHeader(
+                      title: isSignUp
                           ? context.l10n.createAccount
                           : isLegacy
                           ? context.l10n.legacyAccount
                           : context.l10n.welcomeBack,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: isTablet ? 36 : 32,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.of(context).textPrimary,
-                      ),
+                      description: isLegacy
+                          ? context.l10n.legacyAccountHelp
+                          : null,
                     ),
-                    if (isLegacy) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        context.l10n.legacyAccountHelp,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.of(context).textSecondary,
-                        ),
-                      ),
-                    ],
                     SizedBox(height: isTablet ? 40 : 32),
                     if (isSignUp) ...[
                       _AuthTextField(

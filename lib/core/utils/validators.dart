@@ -19,10 +19,16 @@ class Validators {
       return 'Username must be less than 20 characters';
     }
 
-    // Check for special characters
-    final usernameRegex = RegExp(r'^[a-zA-Z0-9_]+$');
+    // Accept letters, combining marks, and numbers from every supported
+    // language while keeping the original underscore-only separator rule.
+    final usernameRegex = RegExp(r'^[\p{L}\p{M}\p{N}_]+$', unicode: true);
     if (!usernameRegex.hasMatch(trimmed)) {
       return 'Username can only contain letters, numbers and underscore';
+    }
+
+    final visibleUsernameRegex = RegExp(r'[\p{L}\p{N}]', unicode: true);
+    if (!visibleUsernameRegex.hasMatch(trimmed)) {
+      return 'Username must contain at least one letter or number';
     }
 
     // Check for profanity

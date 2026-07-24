@@ -543,6 +543,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get alreadyHaveAccount => 'لديك حساب بالفعل؟ سجّل الدخول';
 
   @override
+  String get alreadyHaveAccountPrompt => 'لديك حساب بالفعل؟';
+
+  @override
   String get createVerifiedAccount => 'إنشاء حساب ببريد إلكتروني موثّق';
 
   @override
@@ -556,6 +559,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get findTheImposter => 'اكتشف المحتال';
+
+  @override
+  String get findTheImposterOwnTheRoom => 'اكتشف المحتال وسيطر على اللعبة.';
+
+  @override
+  String get playAsGuest => 'العب كضيف';
+
+  @override
+  String get noAccountRequired => 'لا حاجة إلى حساب';
 
   @override
   String welcomeUser(String username) {

@@ -1,17 +1,14 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
-import 'package:guess_party/l10n/l10n.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../shared/widgets/error_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
-import 'widgets/auth_header.dart';
-import 'widgets/guest_button.dart';
-import 'widgets/username_field.dart';
+import 'widgets/auth_onboarding_content.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({this.sessionEnded = false, super.key});
@@ -54,14 +51,11 @@ class _AuthViewState extends State<AuthView> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
-
     return Scaffold(
+      backgroundColor: AppColors.of(context).background,
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            // Account created successfully
             final router = GoRouter.of(context);
             Future.delayed(const Duration(milliseconds: 500), () {
               if (!mounted) return;
@@ -72,68 +66,13 @@ class _AuthViewState extends State<AuthView> {
           }
         },
         builder: (context, state) {
-          return Scaffold(
-            backgroundColor: AppColors.of(context).background,
-            body: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isTablet ? size.width * 0.2 : 24,
-                    vertical: 24,
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const AuthHeader(),
-                        if (widget.sessionEnded) ...[
-                          const SizedBox(height: 20),
-                          Container(
-                            key: const Key('session-ended-message'),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              context.l10n.sessionEnded,
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                        SizedBox(height: isTablet ? 80 : 60),
-                        UsernameField(
-                          controller: _usernameController,
-                          enabled: state is! AuthLoading,
-                        ),
-                        const SizedBox(height: 32),
-                        GuestButton(
-                          onPressed: state is AuthLoading
-                              ? null
-                              : _handleGuestSignIn,
-                          isLoading: state is AuthLoading,
-                        ),
-                        const SizedBox(height: 24),
-                        TextButton(
-                          onPressed: () {
-                            context.push(AppRoutes.login);
-                          },
-                          child: Text(
-                            context.l10n.alreadyHaveAccount,
-                            style: TextStyle(
-                              color: AppColors.primaryLight,
-                              fontSize: isTablet ? 16 : 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          return AuthOnboardingContent(
+            formKey: _formKey,
+            usernameController: _usernameController,
+            isLoading: state is AuthLoading,
+            sessionEnded: widget.sessionEnded,
+            onStartPlaying: _handleGuestSignIn,
+            onLogin: () => context.push(AppRoutes.login),
           );
         },
       ),

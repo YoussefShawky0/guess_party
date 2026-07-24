@@ -1100,6 +1100,12 @@ abstract class AppLocalizations {
   /// **'Already have an account? Log in'**
   String get alreadyHaveAccount;
 
+  /// No description provided for @alreadyHaveAccountPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account?'**
+  String get alreadyHaveAccountPrompt;
+
   /// No description provided for @createVerifiedAccount.
   ///
   /// In en, this message translates to:
@@ -1129,6 +1135,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Find the Imposter'**
   String get findTheImposter;
+
+  /// No description provided for @findTheImposterOwnTheRoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Find the imposter. Own the room.'**
+  String get findTheImposterOwnTheRoom;
+
+  /// No description provided for @playAsGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Play as guest'**
+  String get playAsGuest;
+
+  /// No description provided for @noAccountRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'No account required'**
+  String get noAccountRequired;
 
   /// No description provided for @welcomeUser.
   ///

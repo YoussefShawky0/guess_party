@@ -11,9 +11,12 @@ class HomeCubit extends Cubit<HomeState> {
     : super(HomeInitial());
 
   Future<void> loadUserInfo() async {
+    if (isClosed) return;
     emit(HomeLoading());
 
     final result = await getCurrentUser();
+
+    if (isClosed) return;
 
     result.fold(
       (failure) => emit(HomeError(message: failure.message)),
@@ -22,7 +25,10 @@ class HomeCubit extends Cubit<HomeState> {
   }
 
   Future<void> signOutUser() async {
+    if (isClosed) return;
     final result = await signOut();
+
+    if (isClosed) return;
 
     result.fold(
       (failure) => emit(HomeError(message: failure.message)),

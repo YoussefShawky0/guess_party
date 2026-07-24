@@ -544,6 +544,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadyHaveAccount => 'Already have an account? Log in';
 
   @override
+  String get alreadyHaveAccountPrompt => 'Already have an account?';
+
+  @override
   String get createVerifiedAccount => 'Create a verified-email account';
 
   @override
@@ -557,6 +560,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get findTheImposter => 'Find the Imposter';
+
+  @override
+  String get findTheImposterOwnTheRoom => 'Find the imposter. Own the room.';
+
+  @override
+  String get playAsGuest => 'Play as guest';
+
+  @override
+  String get noAccountRequired => 'No account required';
 
   @override
   String welcomeUser(String username) {
