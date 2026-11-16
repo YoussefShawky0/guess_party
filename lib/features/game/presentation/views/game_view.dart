@@ -5,11 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
-import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
-import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/game/presentation/reconnect_notice_gate.dart';
@@ -19,6 +17,10 @@ import 'widgets/online_game_content.dart';
 import 'widgets/game_lifecycle_manager.dart';
 import 'widgets/game_end_navigation_listener.dart';
 import 'widgets/game_connection_feedback.dart';
+import 'widgets/game_view_rules.dart';
+import 'widgets/game_loading_indicator.dart';
+import 'widgets/game_snackbars.dart';
+import 'widgets/leave_game_dialog.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
 class GameView extends StatelessWidget {
@@ -94,68 +96,15 @@ class _GameViewContentState extends State<GameViewContent> {
   String?
   _isFinalizingVotingRoundId; // Track which round is currently finalizing
 
-  Player? _resolveCurrentRoomPlayer(GameStateEntity gameState) {
-    final currentPlayerIdentifier = gameState.currentPlayerId;
-    if (currentPlayerIdentifier.isEmpty) {
-      return null;
-    }
-
-    for (final player in gameState.players) {
-      if (player.id == currentPlayerIdentifier ||
-          player.userId == currentPlayerIdentifier) {
-        return player;
-      }
-    }
-
-    return null;
-  }
-
   bool _isCurrentRoomHost(GameStateEntity gameState) =>
-      _resolveCurrentRoomPlayer(gameState)?.isHost ?? false;
+      resolveCurrentRoomPlayer(gameState)?.isHost ?? false;
 
-  bool _shouldAutoFinalizeVoting(GameLoaded previous, GameLoaded current) {
-    final prevRound = previous.gameState.currentRound;
-    final currRound = current.gameState.currentRound;
-    final currGameState = current.gameState;
-
-    // Only for online mode
-    if (currGameState.gameMode != GameConstants.gameModeOnline) {
-      return false;
-    }
-
-    // Only if current phase is voting
-    if (currRound.phase != GamePhase.voting) {
-      return false;
-    }
-
-    // Only if current player is host
-    if (!_isCurrentRoomHost(currGameState)) {
-      return false;
-    }
-
-    // Only if not currently finalizing (manual button or timer race guard)
-    if (_isFinalizingVotingRoundId == currRound.id) {
-      return false;
-    }
-
-    final previousComplete = prevRound.allRequiredVotesSubmitted;
-    final currentComplete = currRound.allRequiredVotesSubmitted;
-    final onlinePlayerCount = current.gameState.players
-        .where((p) => p.isOnline)
-        .length;
-
-    // Safety: need at least 2 online players for meaningful voting
-    if (onlinePlayerCount < 2) return false;
-
-    final votesJustCompleted = !previousComplete && currentComplete;
-
-    if (!votesJustCompleted) {
-      return false;
-    }
-
-    // All conditions met
-    return true;
-  }
+  bool _shouldAutoFinalizeVoting(GameLoaded previous, GameLoaded current) =>
+      shouldAutoFinalizeVoting(
+        previous: previous,
+        current: current,
+        finalizingRoundId: _isFinalizingVotingRoundId,
+      );
 
   void _finalizeVotingAndProgress(
     BuildContext context,
@@ -172,57 +121,6 @@ class _GameViewContentState extends State<GameViewContent> {
     });
   }
 
-  Future<bool> _showLeaveConfirmation(BuildContext context) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: AppColors.of(context).surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: AppColors.warning,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  context.l10n.leaveGameTitle,
-                  style: TextStyle(color: AppColors.of(context).textPrimary),
-                ),
-              ],
-            ),
-            content: Text(
-              context.l10n.leaveGameMessage,
-              style: TextStyle(
-                color: AppColors.of(context).textSecondary,
-                fontSize: 16,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(
-                  context.l10n.stay,
-                  style: TextStyle(color: AppColors.of(context).textMuted),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                  foregroundColor: AppColors.of(context).textPrimary,
-                ),
-                child: Text(context.l10n.leave),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
   Future<void> _handleLeaveGame(BuildContext context) async {
     final gameCubit = context.read<GameCubit>();
     final currentGameState = gameCubit.state;
@@ -232,14 +130,17 @@ class _GameViewContentState extends State<GameViewContent> {
             currentGameState.gameState.currentRound.phase == GamePhase.voting);
 
     if (isActivePhase) {
-      final shouldLeave = await _showLeaveConfirmation(context);
+      final shouldLeave = await showLeaveGameDialog(
+        context,
+        leaveForeground: AppColors.of(context).textPrimary,
+      );
       if (!shouldLeave || !context.mounted) return;
     }
 
     // Get player info from game state
     final gameState = currentGameState;
     if (gameState is GameLoaded) {
-      final currentPlayer = _resolveCurrentRoomPlayer(gameState.gameState);
+      final currentPlayer = resolveCurrentRoomPlayer(gameState.gameState);
       if (currentPlayer == null) {
         if (context.mounted) {
           ErrorSnackBar.show(context, context.l10n.syncingPlayer);
@@ -282,204 +183,102 @@ class _GameViewContentState extends State<GameViewContent> {
             ),
           ),
           body: BlocConsumer<GameCubit, GameState>(
-            listenWhen: (previous, current) {
-              if (previous is GameLoaded && current is GameLoaded) {
-                final hasNewInlineMessage =
-                    current.nonFatalError != null &&
-                    current.nonFatalMessageId != previous.nonFatalMessageId;
-                if (hasNewInlineMessage) return true;
-
-                final reconnectStarted =
-                    !previous.isReconnecting && current.isReconnecting;
-                if (reconnectStarted) {
-                  _reconnectNoticeGate.startCycle(DateTime.now());
-                  return false;
-                }
-
-                final reconnectEnded =
-                    previous.isReconnecting && !current.isReconnecting;
-                if (reconnectEnded) return true;
-
-                // Check for auto-finalize voting condition
-                final shouldAutoFinalizeVoting = _shouldAutoFinalizeVoting(
-                  previous,
-                  current,
-                );
-                if (shouldAutoFinalizeVoting) return true;
-
-                return false;
-              }
-              return current is GameError ||
-                  (current is GameLoaded && current.nonFatalError != null);
-            },
-            listener: (context, state) {
-              // Auto-finalize voting: trigger score calculation and phase advance
-              if (state is GameLoaded &&
-                  state.gameState.currentRound.phase == GamePhase.voting &&
-                  state.gameState.currentRound.allRequiredVotesSubmitted &&
-                  _isCurrentRoomHost(state.gameState) &&
-                  _isFinalizingVotingRoundId == null) {
-                final round = state.gameState.currentRound;
-                _isFinalizingVotingRoundId = round.id;
-                context
-                    .read<GameCubit>()
-                    .finalizeVoting(round.id, 'all_votes')
-                    .whenComplete(() {
-                      if (mounted) _isFinalizingVotingRoundId = null;
-                    });
-              }
-
-              // Show error messages with better styling
-              if (state is GameError) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: AppColors.of(context).textPrimary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            localizedErrorMessage(context.l10n, state.code),
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppColors.of(context).textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    backgroundColor: AppColors.error,
-                    duration: const Duration(seconds: 4),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              } else if (state is GameLoaded && state.nonFatalError != null) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.of(context).textPrimary,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            localizedErrorMessage(
-                              context.l10n,
-                              state.nonFatalError!,
-                            ),
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppColors.of(context).textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    backgroundColor: AppColors.warning,
-                    duration: const Duration(seconds: 3),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              } else if (state is GameLoaded && !state.isReconnecting) {
-                if (!context.mounted) return;
-                final now = DateTime.now();
-                if (!_reconnectNoticeGate.shouldShowBackOnline(now)) {
-                  return;
-                }
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(
-                          Icons.wifi,
-                          color: AppColors.of(context).textPrimary,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            context.l10n.backOnlineSynced,
-                            style: TextStyle(
-                              color: AppColors.of(context).textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    backgroundColor: AppColors.success,
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              }
-            },
-            builder: (context, state) {
-              if (state is GameLoading) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(color: AppColors.primary),
-                      const SizedBox(height: 16),
-                      Text(
-                        context.l10n.loadingGame,
-                        style: TextStyle(
-                          color: AppColors.of(context).textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              if (state is GameError) {
-                return ErrorScreen(
-                  message: localizedErrorMessage(context.l10n, state.code),
-                  onRetry: () {
-                    context.read<GameCubit>().loadGameState(
-                      roomId: widget.roomId,
-                      currentPlayerId: context
-                          .read<GameCubit>()
-                          .currentPlayerId,
-                    );
-                  },
-                  onGoBack: () => context.go(AppRoutes.home),
-                );
-              }
-
-              if (state is GameLoaded) {
-                return GameConnectionFeedback(
-                  isReconnecting: state.isReconnecting,
-                  child: _buildGameContent(context, state),
-                );
-              }
-
-              return Center(child: Text(context.l10n.preparing));
-            },
+            listenWhen: _shouldListen,
+            listener: _onStateChanged,
+            builder: _buildForState,
           ),
         ),
       ),
     );
   }
 
+  bool _shouldListen(GameState previous, GameState current) {
+    if (previous is GameLoaded && current is GameLoaded) {
+      final hasNewInlineMessage =
+          current.nonFatalError != null &&
+          current.nonFatalMessageId != previous.nonFatalMessageId;
+      if (hasNewInlineMessage) return true;
+
+      final reconnectStarted =
+          !previous.isReconnecting && current.isReconnecting;
+      if (reconnectStarted) {
+        _reconnectNoticeGate.startCycle(DateTime.now());
+        return false;
+      }
+
+      final reconnectEnded = previous.isReconnecting && !current.isReconnecting;
+      if (reconnectEnded) return true;
+
+      // Check for auto-finalize voting condition
+      return _shouldAutoFinalizeVoting(previous, current);
+    }
+    return current is GameError ||
+        (current is GameLoaded && current.nonFatalError != null);
+  }
+
+  void _onStateChanged(BuildContext context, GameState state) {
+    // Auto-finalize voting: trigger score calculation and phase advance
+    if (state is GameLoaded &&
+        state.gameState.currentRound.phase == GamePhase.voting &&
+        state.gameState.currentRound.allRequiredVotesSubmitted &&
+        _isCurrentRoomHost(state.gameState) &&
+        _isFinalizingVotingRoundId == null) {
+      final round = state.gameState.currentRound;
+      _isFinalizingVotingRoundId = round.id;
+      context
+          .read<GameCubit>()
+          .finalizeVoting(round.id, 'all_votes')
+          .whenComplete(() {
+            if (mounted) _isFinalizingVotingRoundId = null;
+          });
+    }
+
+    // Show error messages with better styling
+    if (state is GameError) {
+      if (!context.mounted) return;
+      showGameErrorSnackBar(context, state.code);
+    } else if (state is GameLoaded && state.nonFatalError != null) {
+      if (!context.mounted) return;
+      showGameWarningSnackBar(context, state.nonFatalError!);
+    } else if (state is GameLoaded && !state.isReconnecting) {
+      if (!context.mounted) return;
+      if (!_reconnectNoticeGate.shouldShowBackOnline(DateTime.now())) {
+        return;
+      }
+      showBackOnlineSnackBar(context);
+    }
+  }
+
+  Widget _buildForState(BuildContext context, GameState state) {
+    if (state is GameLoading) {
+      return const GameLoadingIndicator();
+    }
+
+    if (state is GameError) {
+      return ErrorScreen(
+        message: localizedErrorMessage(context.l10n, state.code),
+        onRetry: () {
+          context.read<GameCubit>().loadGameState(
+            roomId: widget.roomId,
+            currentPlayerId: context.read<GameCubit>().currentPlayerId,
+          );
+        },
+        onGoBack: () => context.go(AppRoutes.home),
+      );
+    }
+
+    if (state is GameLoaded) {
+      return GameConnectionFeedback(
+        isReconnecting: state.isReconnecting,
+        child: _buildGameContent(context, state),
+      );
+    }
+
+    return Center(child: Text(context.l10n.preparing));
+  }
+
   Widget _buildGameContent(BuildContext context, GameLoaded state) {
-    final currentPlayer = _resolveCurrentRoomPlayer(state.gameState);
+    final currentPlayer = resolveCurrentRoomPlayer(state.gameState);
     final round = state.gameState.currentRound;
 
     return OnlineGameContent(

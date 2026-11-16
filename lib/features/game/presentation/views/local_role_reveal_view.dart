@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
@@ -9,6 +8,12 @@ import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
 import 'package:guess_party/features/game/presentation/cubit/local_role_reveal_cubit.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/local_role_reveal/exit_role_reveal_dialog.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/local_role_reveal/pass_phone_card.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/local_role_reveal/role_reveal_action_button.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/local_role_reveal/role_reveal_card.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/local_role_reveal/role_reveal_loading.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/local_role_reveal/role_reveal_progress.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
 /// Shared-Device screen where each player sees their role one by one.
@@ -39,50 +44,14 @@ class _LocalRoleRevealScreenState extends State<LocalRoleRevealScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
+    final isTablet = MediaQuery.of(context).size.width > 600;
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        final shouldExit = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            backgroundColor: AppColors.of(context).surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Text(
-              context.l10n.exitRoleReveal,
-              style: TextStyle(color: AppColors.of(context).textPrimary),
-            ),
-            content: Text(
-              context.l10n.exitRoleRevealMessage,
-              style: TextStyle(
-                color: AppColors.of(context).textSecondary,
-                fontSize: 16,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(
-                  context.l10n.stay,
-                  style: TextStyle(color: AppColors.of(context).textMuted),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                ),
-                child: Text(context.l10n.exit),
-              ),
-            ],
-          ),
-        );
+        final shouldExit = await showExitRoleRevealDialog(context);
 
         if (shouldExit == true && context.mounted) {
           context.read<LocalRoleRevealCubit>().clearSecrets();
@@ -93,354 +62,95 @@ class _LocalRoleRevealScreenState extends State<LocalRoleRevealScreen> {
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
         body: BlocConsumer<LocalRoleRevealCubit, LocalRoleRevealState>(
-          listener: (context, state) {
-            if (state is LocalRoleRevealLoaded) {
-              setState(() {
-                _players = state.data.players;
-                _roundId = state.data.roundId;
-                _imposterPlayerId = state.data.imposterPlayerId;
-                _character = state.data.character;
-                _isLoading = false;
-                _roleRevealStartTime ??= DateTime.now();
-              });
-            } else if (state is LocalRoleRevealFailure) {
-              setState(() {
-                _isLoading = false;
-                _clearSecretFields();
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    localizedErrorMessage(context.l10n, state.code),
-                  ),
-                ),
-              );
-            }
-          },
-          builder: (context, state) {
-            if (state is LocalRoleRevealFailure) {
-              return ErrorScreen(
-                message: localizedErrorMessage(context.l10n, state.code),
-                onGoBack: () =>
-                    context.read<LocalRoleRevealCubit>().load(widget.roomId),
-              );
-            }
-            if (_isLoading ||
-                _players.isEmpty ||
-                _roundId == null ||
-                _character == null ||
-                _imposterPlayerId == null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    const SizedBox(height: 24),
-                    Text(
-                      context.l10n.loadingSharedSession,
-                      style: TextStyle(
-                        color: AppColors.of(context).textSecondary,
-                        fontSize: isTablet ? 20 : 16,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            // Validate player list
-            if (_players.isEmpty ||
-                _roundId == null ||
-                _character == null ||
-                _imposterPlayerId == null) {
-              return ErrorScreen(
-                message: context.l10n.unableToLoadPlayerInfo,
-                onGoBack: () => Navigator.of(context).pop(),
-              );
-            }
-
-            final currentPlayer = _players[_currentPlayerIndex];
-            final isImposter = _imposterPlayerId == currentPlayer.id;
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.all(isTablet ? 48 : 24),
-                child: Column(
-                  children: [
-                    // Progress indicator
-                    _buildProgressIndicator(isTablet),
-                    const Spacer(),
-
-                    // Main content
-                    if (!_isRoleRevealed)
-                      _buildPlayerNameCard(currentPlayer, isTablet)
-                    else
-                      _buildRoleRevealCard(currentPlayer, isImposter, isTablet),
-
-                    const Spacer(),
-
-                    // Action button
-                    _buildActionButton(isTablet),
-                    SizedBox(height: isTablet ? 32 : 24),
-                  ],
-                ),
-              ),
-            );
-          },
+          listener: _onStateChanged,
+          builder: (context, state) => _buildForState(context, state, isTablet),
         ),
       ),
     );
   }
 
-  Widget _buildProgressIndicator(bool isTablet) {
-    return Column(
-      children: [
-        Text(
-          context.l10n.playerProgress(_currentPlayerIndex + 1, _players.length),
-          style: TextStyle(
-            color: AppColors.of(context).textSecondary,
-            fontSize: isTablet ? 18 : 14,
-          ),
+  void _onStateChanged(BuildContext context, LocalRoleRevealState state) {
+    if (state is LocalRoleRevealLoaded) {
+      setState(() {
+        _players = state.data.players;
+        _roundId = state.data.roundId;
+        _imposterPlayerId = state.data.imposterPlayerId;
+        _character = state.data.character;
+        _isLoading = false;
+        _roleRevealStartTime ??= DateTime.now();
+      });
+    } else if (state is LocalRoleRevealFailure) {
+      setState(() {
+        _isLoading = false;
+        _clearSecretFields();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(localizedErrorMessage(context.l10n, state.code)),
         ),
-        const SizedBox(height: 12),
-        LinearProgressIndicator(
-          value: (_currentPlayerIndex + 1) / _players.length,
-          backgroundColor: AppColors.of(context).surface,
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-          minHeight: isTablet ? 8 : 6,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ],
-    );
+      );
+    }
   }
 
-  Widget _buildPlayerNameCard(Player player, bool isTablet) {
-    return Container(
-      padding: EdgeInsets.all(isTablet ? 48 : 32),
-      decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FaIcon(
-            FontAwesomeIcons.handPointRight,
-            color: AppColors.primary,
-            size: isTablet ? 64 : 48,
-          ),
-          SizedBox(height: isTablet ? 32 : 24),
-          Text(
-            context.l10n.passPhoneTo,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: isTablet ? 22 : 18,
-            ),
-          ),
-          SizedBox(height: isTablet ? 16 : 12),
-          Text(
-            player.username,
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: isTablet ? 42 : 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: isTablet ? 32 : 24),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FaIcon(
-                  FontAwesomeIcons.eyeSlash,
-                  color: AppColors.warning,
-                  size: isTablet ? 20 : 16,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  context.l10n.protectRole,
-                  style: TextStyle(
-                    color: AppColors.warning,
-                    fontSize: isTablet ? 16 : 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  bool get _hasRevealData =>
+      !_isLoading &&
+      _players.isNotEmpty &&
+      _roundId != null &&
+      _character != null &&
+      _imposterPlayerId != null;
 
-  Widget _buildRoleRevealCard(Player player, bool isImposter, bool isTablet) {
-    final accent = isImposter ? AppColors.error : AppColors.success;
-    final roleIcon = isImposter
-        ? FontAwesomeIcons.userSecret
-        : FontAwesomeIcons.userCheck;
+  Widget _buildForState(
+    BuildContext context,
+    LocalRoleRevealState state,
+    bool isTablet,
+  ) {
+    if (state is LocalRoleRevealFailure) {
+      return ErrorScreen(
+        message: localizedErrorMessage(context.l10n, state.code),
+        onGoBack: () =>
+            context.read<LocalRoleRevealCubit>().load(widget.roomId),
+      );
+    }
+    if (!_hasRevealData) {
+      return RoleRevealLoading(isTablet: isTablet);
+    }
 
-    return Container(
-      padding: EdgeInsets.all(isTablet ? 40 : 32),
-      decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accent.withValues(alpha: 0.6), width: 2),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Player name
-          Text(
-            player.username,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: isTablet ? 20 : 18,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          SizedBox(height: isTablet ? 24 : 20),
-
-          // Role icon in circle
-          Container(
-            padding: EdgeInsets.all(isTablet ? 28 : 24),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
-            ),
-            child: FaIcon(roleIcon, color: accent, size: isTablet ? 56 : 48),
-          ),
-          SizedBox(height: isTablet ? 24 : 20),
-
-          // "You are the" text
-          Text(
-            context.l10n.youAreThe,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: isTablet ? 18 : 16,
-            ),
-          ),
-          const SizedBox(height: 8),
-
-          // Role name
-          Text(
-            isImposter
-                ? context.l10n.imposterUpper
-                : context.l10n.innocentUpper,
-            style: TextStyle(
-              color: accent,
-              fontSize: isTablet ? 36 : 32,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
-          ),
-          SizedBox(height: isTablet ? 24 : 20),
-
-          // Bottom hint box
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: isTablet ? 20 : 16,
-              vertical: isTablet ? 14 : 12,
-            ),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (!isImposter) ...[
-                  Text(
-                    _character!.emoji,
-                    style: TextStyle(fontSize: isTablet ? 24 : 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      _character!.name,
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: isTablet ? 18 : 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ] else ...[
-                  FaIcon(
-                    FontAwesomeIcons.circleExclamation,
-                    color: accent,
-                    size: isTablet ? 20 : 18,
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      context.l10n.blendIn,
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: isTablet ? 16 : 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton(bool isTablet) {
+    final currentPlayer = _players[_currentPlayerIndex];
+    final isImposter = _imposterPlayerId == currentPlayer.id;
     final isLastPlayer = _currentPlayerIndex == _players.length - 1;
 
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _handleAction,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _isRoleRevealed
-              ? (isLastPlayer ? AppColors.success : AppColors.primary)
-              : AppColors.primary,
-          padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.all(isTablet ? 48 : 24),
+        child: Column(
           children: [
-            FaIcon(
-              _isRoleRevealed
-                  ? (isLastPlayer
-                        ? FontAwesomeIcons.play
-                        : FontAwesomeIcons.arrowRight)
-                  : FontAwesomeIcons.eye,
-              size: isTablet ? 24 : 20,
-              color: AppColors.of(context).textPrimary,
+            RoleRevealProgress(
+              currentIndex: _currentPlayerIndex,
+              total: _players.length,
+              isTablet: isTablet,
             ),
-            const SizedBox(width: 12),
-            Text(
-              _isRoleRevealed
-                  ? (isLastPlayer
-                        ? context.l10n.startGameExclamation
-                        : context.l10n.nextPlayer)
-                  : context.l10n.revealMyRole,
-              style: TextStyle(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.of(context).textPrimary,
+            const Spacer(),
+
+            // Pass-the-phone step, then the role reveal step
+            if (!_isRoleRevealed)
+              PassPhoneCard(player: currentPlayer, isTablet: isTablet)
+            else
+              RoleRevealCard(
+                player: currentPlayer,
+                isImposter: isImposter,
+                character: _character!,
+                isTablet: isTablet,
               ),
+
+            const Spacer(),
+
+            RoleRevealActionButton(
+              isRoleRevealed: _isRoleRevealed,
+              isLastPlayer: isLastPlayer,
+              isTablet: isTablet,
+              onPressed: _handleAction,
             ),
+            SizedBox(height: isTablet ? 32 : 24),
           ],
         ),
       ),

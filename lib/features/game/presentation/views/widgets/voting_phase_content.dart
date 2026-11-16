@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
-import 'package:guess_party/features/game/domain/entities/round_info.dart';
-import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
-import 'package:guess_party/shared/widgets/error_snackbar.dart';
+import 'package:guess_party/features/game/domain/entities/round_info.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/voting/local_vote_list.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/voting/online_vote_list.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/voting/voting_show_results_section.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/voting/voting_status_cards.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
 class VotingPhaseContent extends StatelessWidget {
@@ -29,6 +29,8 @@ class VotingPhaseContent extends StatelessWidget {
     this.onShowResults,
   });
 
+  bool get _isLocal => gameMode == GameConstants.gameModeLocal;
+
   Player? _resolveCurrentPlayer() {
     if (currentUserId.isEmpty) {
       return null;
@@ -43,620 +45,83 @@ class VotingPhaseContent extends StatelessWidget {
     return null;
   }
 
+  /// Local mode: ALL current players have voted.
+  /// Online mode: the current player has voted.
+  bool _hasVoted(Player? currentPlayer) => _isLocal
+      ? players.every((p) => round.playerVotes.containsKey(p.id))
+      : currentPlayer != null
+      ? round.playerVotes.containsKey(currentPlayer.id)
+      : false;
+
+  /// Casting a vote / vote submitted / syncing-player section.
+  Widget _buildVoteSection(
+    bool isTablet,
+    Player? currentPlayer,
+    bool hasVoted,
+  ) {
+    if (!_isLocal && hasVoted) {
+      return VoteSubmittedCard(isTablet: isTablet);
+    }
+    if (currentPlayer == null) {
+      return VotingPlayerNotFoundCard(isTablet: isTablet);
+    }
+    if (_isLocal) {
+      return LocalVoteList(round: round, players: players, isTablet: isTablet);
+    }
+    return OnlineVoteList(
+      round: round,
+      players: players,
+      currentPlayer: currentPlayer,
+      currentUserId: currentUserId,
+      hasVoted: hasVoted,
+      isTablet: isTablet,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     // Safely resolve current player (returns null if not found)
     final currentPlayer = _resolveCurrentPlayer();
-
-    // In local mode, check if ALL current players have voted
-    // In online mode, check if current player has voted
-    final hasVoted = gameMode == GameConstants.gameModeLocal
-        ? players.every((p) => round.playerVotes.containsKey(p.id))
-        : currentPlayer != null
-        ? round.playerVotes.containsKey(currentPlayer.id)
-        : false;
-
+    final hasVoted = _hasVoted(currentPlayer);
     final allVoted = round.allRequiredVotesSubmitted;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildHeader(context, isTablet),
+        Text(
+          context.l10n.votingPhase,
+          style: TextStyle(
+            fontSize: isTablet ? 24 : 20,
+            fontWeight: FontWeight.w600,
+            color: AppColors.of(context).textPrimary,
+          ),
+        ),
         SizedBox(height: isTablet ? 12 : 8),
-        _buildDescription(context, isTablet),
+        Text(
+          _isLocal
+              ? context.l10n.localVotingHelp
+              : context.l10n.onlineVotingHelp,
+          style: TextStyle(
+            color: AppColors.of(context).textSecondary,
+            fontSize: isTablet ? 16 : 14,
+          ),
+        ),
         SizedBox(height: isTablet ? 20 : 16),
-        if (gameMode == GameConstants.gameModeLocal || !hasVoted)
-          currentPlayer != null
-              ? _buildVotingList(context, isTablet, currentPlayer, hasVoted)
-              : _buildPlayerNotFoundCard(context, isTablet)
-        else
-          _buildVoteSubmittedCard(context, isTablet),
+        _buildVoteSection(isTablet, currentPlayer, hasVoted),
         SizedBox(height: isTablet ? 20 : 16),
-        _buildVotingProgress(context, isTablet),
+        VotingProgressCard(round: round, isTablet: isTablet),
         if (allVoted) ...[
           SizedBox(height: isTablet ? 16 : 12),
-          _buildShowResultsSection(context, isTablet),
+          VotingShowResultsSection(
+            isHost: isHost,
+            isFinalizingVoting: isFinalizingVoting,
+            onShowResults: onShowResults,
+            isTablet: isTablet,
+          ),
         ],
       ],
-    );
-  }
-
-  Widget _buildHeader(BuildContext context, bool isTablet) {
-    return Text(
-      context.l10n.votingPhase,
-      style: TextStyle(
-        fontSize: isTablet ? 24 : 20,
-        fontWeight: FontWeight.w600,
-        color: AppColors.of(context).textPrimary,
-      ),
-    );
-  }
-
-  Widget _buildDescription(BuildContext context, bool isTablet) {
-    return Text(
-      gameMode == GameConstants.gameModeLocal
-          ? context.l10n.localVotingHelp
-          : context.l10n.onlineVotingHelp,
-      style: TextStyle(
-        color: AppColors.of(context).textSecondary,
-        fontSize: isTablet ? 16 : 14,
-      ),
-    );
-  }
-
-  Widget _buildVotingList(
-    BuildContext context,
-    bool isTablet,
-    Player currentPlayer,
-    bool hasVoted,
-  ) {
-    // Build vote count map: votedPlayerId -> count
-    final voteCountMap = round.voteCounts;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
-      ),
-      padding: EdgeInsets.all(isTablet ? 20 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            gameMode == GameConstants.gameModeLocal
-                ? context.l10n.tapOwnNameToVote
-                : context.l10n.chooseSuspect,
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontWeight: FontWeight.w500,
-              fontSize: isTablet ? 18 : 16,
-            ),
-          ),
-          SizedBox(height: isTablet ? 16 : 12),
-          ...players.map((player) {
-            // In online mode: hide self from list
-            if (gameMode == GameConstants.gameModeOnline &&
-                player.userId == currentUserId) {
-              return const SizedBox.shrink();
-            }
-
-            final voteCount = gameMode == GameConstants.gameModeLocal
-                ? voteCountMap[player.id] ?? 0
-                : 0;
-
-            if (gameMode == GameConstants.gameModeLocal) {
-              // LOCAL MODE: each tile = the VOTER (not the target)
-              // Vote button means: "I (this player) want to cast my vote"
-              final hasThisPlayerVoted = round.playerVotes.containsKey(
-                player.id,
-              );
-              return _VotePlayerTile(
-                player: player,
-                voteCount: voteCount,
-                iVotedForThis: false,
-                hasAlreadyVotedAsVoter: hasThisPlayerVoted,
-                isTablet: isTablet,
-                onVote: () => _showTargetSelectionDialog(context, player.id),
-              );
-            } else {
-              // ONLINE MODE: each tile = the TARGET (unchanged)
-              final myVotedId = round.playerVotes[currentPlayer.id];
-              final iVotedForThis = myVotedId == player.id;
-              return _VotePlayerTile(
-                player: player,
-                voteCount: voteCount,
-                iVotedForThis: iVotedForThis,
-                hasAlreadyVotedAsVoter: false,
-                isTablet: isTablet,
-                onVote: () => _handleOnlineVote(
-                  context,
-                  player,
-                  currentPlayer,
-                  hasVoted,
-                  iVotedForThis,
-                ),
-              );
-            }
-          }),
-        ],
-      ),
-    );
-  }
-
-  void _handleOnlineVote(
-    BuildContext context,
-    Player votedPlayer,
-    Player currentPlayer,
-    bool hasVoted,
-    bool iVotedForThis,
-  ) {
-    if (votedPlayer.id == currentPlayer.id) {
-      ErrorSnackBar.show(context, context.l10n.cannotVoteSelf);
-      return;
-    }
-
-    final cubit = context.read<GameCubit>();
-    if (cubit.state is! GameLoaded) return;
-
-    if (hasVoted && !iVotedForThis) {
-      // Already voted for someone else → ask to change
-      showDialog(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          backgroundColor: AppColors.of(context).surface,
-          title: Text(
-            context.l10n.changeVote,
-            style: TextStyle(color: AppColors.of(context).textPrimary),
-          ),
-          content: Text(
-            context.l10n.changeVoteTo(votedPlayer.username),
-            style: TextStyle(color: AppColors.of(context).textSecondary),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                context.l10n.cancel,
-                style: TextStyle(color: AppColors.of(context).textMuted),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                cubit.sendVote(
-                  roundId: round.id,
-                  voterId: currentPlayer.id,
-                  votedPlayerId: votedPlayer.id,
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.buttonPrimary,
-              ),
-              child: Text(context.l10n.confirm),
-            ),
-          ],
-        ),
-      );
-    } else {
-      cubit.sendVote(
-        roundId: round.id,
-        voterId: currentPlayer.id,
-        votedPlayerId: votedPlayer.id,
-      );
-    }
-  }
-
-  // LOCAL MODE: voter presses their own tile, then picks who to vote for
-  void _showTargetSelectionDialog(BuildContext context, String voterId) {
-    final gameCubit = context.read<GameCubit>();
-    Player? voter;
-    for (final player in players) {
-      if (player.id == voterId) {
-        voter = player;
-        break;
-      }
-    }
-    if (voter == null) return;
-    final resolvedVoter = voter;
-    final theme = AppColors.of(context);
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return BlocBuilder<GameCubit, GameState>(
-          bloc: gameCubit,
-          builder: (_, state) {
-            return AlertDialog(
-              backgroundColor: theme.surface,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.l10n.whoDoYouSuspect(resolvedVoter.username),
-                    style: TextStyle(color: theme.textPrimary),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    context.l10n.tapPlayerToSuspect,
-                    style: TextStyle(
-                      color: theme.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: players.map((player) {
-                    final isVotingForSelf = player.id == voterId;
-
-                    return Semantics(
-                      button: true,
-                      enabled: !isVotingForSelf,
-                      label: player.username,
-                      hint: isVotingForSelf
-                          ? context.l10n.cannotVoteForSelf
-                          : context.l10n.tapPlayerToSuspect,
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isVotingForSelf
-                              ? theme.surfaceLight
-                              : AppColors.primary,
-                          child: Text(
-                            player.username[0].toUpperCase(),
-                            style: TextStyle(
-                              color: isVotingForSelf
-                                  ? theme.textMuted
-                                  : theme.textPrimary,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          player.username,
-                          style: TextStyle(
-                            color: isVotingForSelf
-                                ? theme.textMuted
-                                : theme.textPrimary,
-                          ),
-                        ),
-                        subtitle: isVotingForSelf
-                            ? Text(
-                                context.l10n.cannotVoteForSelf,
-                                style: TextStyle(
-                                  color: AppColors.error,
-                                  fontSize: 12,
-                                ),
-                              )
-                            : null,
-                        onTap: () async {
-                          if (isVotingForSelf) {
-                            if (!context.mounted) return;
-                            ErrorSnackBar.show(
-                              context,
-                              context.l10n.cannotVoteSelf,
-                            );
-                            return;
-                          }
-
-                          Navigator.of(dialogContext).pop();
-                          gameCubit.sendVote(
-                            roundId: round.id,
-                            voterId: voterId,
-                            votedPlayerId: player.id,
-                          );
-                        },
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(
-                    context.l10n.cancel,
-                    style: TextStyle(color: theme.textMuted),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildVoteSubmittedCard(BuildContext context, bool isTablet) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.voteSelectedBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.success, width: 2),
-      ),
-      padding: EdgeInsets.all(isTablet ? 20 : 16),
-      child: Row(
-        children: [
-          FaIcon(
-            FontAwesomeIcons.circleCheck,
-            color: AppColors.success,
-            size: isTablet ? 28 : 20,
-          ),
-          SizedBox(width: isTablet ? 16 : 12),
-          Expanded(
-            child: Text(
-              context.l10n.voteSubmittedWaiting,
-              style: TextStyle(
-                color: AppColors.of(context).textPrimary,
-                fontSize: isTablet ? 16 : 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlayerNotFoundCard(BuildContext context, bool isTablet) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
-      ),
-      padding: EdgeInsets.all(isTablet ? 20 : 16),
-      child: Row(
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: AppColors.warning,
-            size: isTablet ? 28 : 24,
-          ),
-          SizedBox(width: isTablet ? 16 : 12),
-          Expanded(
-            child: Text(
-              context.l10n.syncingPlayerInfoHelp,
-              style: TextStyle(
-                color: AppColors.of(context).textSecondary,
-                fontSize: isTablet ? 14 : 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShowResultsSection(BuildContext context, bool isTablet) {
-    if (isHost) {
-      return ElevatedButton.icon(
-        onPressed: isFinalizingVoting ? null : onShowResults,
-        icon: const Icon(Icons.check_circle_outline),
-        label: Text(
-          isFinalizingVoting
-              ? context.l10n.finalizingResults
-              : context.l10n.showResultsNow,
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.success,
-          foregroundColor: AppColors.of(context).textPrimary,
-          minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    }
-    return Container(
-      padding: EdgeInsets.all(isTablet ? 16 : 12),
-      decoration: BoxDecoration(
-        color: AppColors.of(context).surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            context.l10n.allVotesWaitingHost,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: isTablet ? 16 : 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVotingProgress(BuildContext context, bool isTablet) {
-    final progress = round.requiredVoteCount <= 0
-        ? 0.0
-        : (round.submittedVoteCount / round.requiredVoteCount)
-              .clamp(0.0, 1.0)
-              .toDouble();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.of(context).cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.of(context).cardBorder, width: 1),
-      ),
-      padding: EdgeInsets.all(isTablet ? 20 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.votesProgress(
-              round.submittedVoteCount,
-              round.requiredVoteCount,
-            ),
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontWeight: FontWeight.w500,
-              fontSize: isTablet ? 18 : 16,
-            ),
-          ),
-          SizedBox(height: isTablet ? 12 : 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: isTablet ? 12 : 8,
-              backgroundColor: AppColors.of(context).surfaceLight,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                progress >= 1.0 ? AppColors.success : AppColors.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _VotePlayerTile extends StatelessWidget {
-  final Player player;
-  final int voteCount;
-  final bool iVotedForThis; // online mode: I voted for this player
-  final bool
-  hasAlreadyVotedAsVoter; // local mode: this player already cast their vote
-  final bool isTablet;
-  final VoidCallback onVote;
-
-  const _VotePlayerTile({
-    required this.player,
-    required this.voteCount,
-    required this.iVotedForThis,
-    required this.hasAlreadyVotedAsVoter,
-    required this.isTablet,
-    required this.onVote,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: isTablet ? 12 : 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: (iVotedForThis || hasAlreadyVotedAsVoter)
-              ? AppColors.voteSelectedBg
-              : AppColors.of(context).voteUnselectedBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: (iVotedForThis || hasAlreadyVotedAsVoter)
-                ? AppColors.success
-                : AppColors.of(context).cardBorder,
-            width: (iVotedForThis || hasAlreadyVotedAsVoter) ? 2 : 1,
-          ),
-        ),
-        child: ListTile(
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: isTablet ? 20 : 16,
-            vertical: isTablet ? 8 : 4,
-          ),
-          leading: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              CircleAvatar(
-                radius: isTablet ? 24 : 20,
-                backgroundColor: AppColors.primary,
-                child: Text(
-                  player.username[0].toUpperCase(),
-                  style: TextStyle(
-                    color: AppColors.of(context).textPrimary,
-                    fontSize: isTablet ? 20 : 16,
-                  ),
-                ),
-              ),
-              // Vote count badge
-              if (voteCount > 0)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    width: isTablet ? 22 : 18,
-                    height: isTablet ? 22 : 18,
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.of(context).surface,
-                        width: 1.5,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '$voteCount',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isTablet ? 12 : 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          title: Text(
-            player.username,
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontSize: isTablet ? 18 : 16,
-            ),
-          ),
-          subtitle: voteCount > 0
-              ? Text(
-                  voteCount == 1 ? '1 vote' : '$voteCount votes',
-                  style: TextStyle(
-                    color: AppColors.error,
-                    fontSize: isTablet ? 13 : 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                )
-              : null,
-          trailing: (iVotedForThis || hasAlreadyVotedAsVoter)
-              ? FaIcon(
-                  FontAwesomeIcons.circleCheck,
-                  color: AppColors.success,
-                  size: isTablet ? 28 : 22,
-                )
-              : ElevatedButton(
-                  onPressed: onVote,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
-                    foregroundColor: AppColors.of(context).textPrimary,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isTablet ? 24 : 16,
-                      vertical: isTablet ? 12 : 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    context.l10n.vote,
-                    style: TextStyle(
-                      fontSize: isTablet ? 16 : 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-        ),
-      ),
     );
   }
 }

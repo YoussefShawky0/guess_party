@@ -111,8 +111,8 @@ username, and all hints of all rooms. Scope to room members
 > `AppErrorCode` → localized messages (en/ar). Verified locally: analyze
 > clean, `flutter test` 148 pass, `supabase test db` 200 pass. The
 > member-stale-cleanup migration is deployed to the live project (via
-> `apply_migration`, name `member_stale_cleanup`). Still open:
-> moving the countdown polling out of `countdown_view.dart` (#11), P2/P3.
+> `apply_migration`, name `member_stale_cleanup`). #11 countdown polling
+> moved to `CountdownCubit` (see P2/P3 status below).
 
 ### 6. Host crash ⇒ no host migration, room never cleaned up (§VI)
 `mark_stale_players_offline(p_room_id, …)` raises `HOST_REQUIRED` unless the
@@ -219,6 +219,50 @@ suite — green CI does not mean these paths are safe.
 - Live Supabase project is paused; restore before running `get_advisors`
   (security + performance) to confirm the live DB matches the migration chain
   (the `production_policy_and_chat_delta` migration suggests drift existed).
+
+## P2/P3 status (2026-11-16, branch `fix/p0-privilege-hardening`)
+
+Done (commits `1f075c6`, `bd2be05`, `665cded`, and the widget-split commit):
+
+| Finding | Result |
+|---|---|
+| #11 countdown polling in widget | `CountdownCubit`; "no round" and failed room lookup are retryable states (never guesses Online vs Shared-Device) |
+| Two "watch room players" impls | `lib/core/data/room_players_watcher.dart`, ordered `created_at, id` = server's host pick |
+| Presence logic in widget | `PresenceCoordinator` (plain Dart, typed notices); heartbeat only for online rooms |
+| `sl<>` in views | Removed; router is the composition root. Only DI, router, `main.dart` use `sl` |
+| Shallow use-cases | 30 pass-throughs deleted; `SubmitHint`/`SubmitVote` kept (own validation). `GameCubit` 10 → 2 deps |
+| Large widgets | Split by phase/state: voting 662→127, game_view 535→356, local game 500→222, role reveal 510→221 |
+| `try/rethrow` no-ops | Removed from `room_remote_data_source.dart` |
+| Mixed timestamp types | Migration `20261116000300_timestamptz_columns.sql` + pgTAP; models parse offset-less as UTC |
+| Legacy `doc/schemas` | Moved to `doc/schemas/legacy/` with a never-apply README |
+| `supabase/.temp` tracked | Untracked + gitignored |
+
+Verified locally: `flutter analyze` clean, `flutter test` 183 pass,
+`supabase test db` 10 files / 212 pass.
+
+### Remaining (on hold until a device test)
+
+1. **Device test (owner).** Nothing above has run on a phone. Test online
+   (2+ devices: create/join, hints, votes, results, host leaves mid-round,
+   app background/resume) and Shared-Device (role reveal, voting, next round).
+2. **Apply `timestamptz_columns` to live — NOT applied yet.** Apply in a quiet
+   window via MCP `apply_migration` (never `db push`: ledger drift). Takes
+   brief ACCESS EXCLUSIVE locks (15s `lock_timeout`, rolls back on timeout).
+   Ship the app build with the new model parsing together with it.
+3. **Ship a new app build** — host self-heal, inline errors, countdown retry
+   and presence changes are client-side.
+4. **Leaked Password Protection** — advisor still reported it disabled on
+   2026-11-16 after the owner enabled it; re-check in the Auth dashboard
+   (Settings → Password security) that it is saved.
+5. Small follow-ups found during the refactor:
+   - Role reveal: a successful load with an empty player list shows the
+     loading spinner forever (pre-existing). Should become an error state.
+   - Countdown "GO!" text is hardcoded (not localized).
+   - `game_view_rules.dart` pure helpers have no unit tests yet.
+   - `RoomRepository.getRoomByCode` is now unused by any cubit.
+   - `message_reports` has RLS with no policies (INFO advisor; fine while
+     only the definer RPC writes it).
+6. Push the branch and open a PR to `master` (not done; waiting for owner).
 
 ## Suggested order of work
 
