@@ -26,8 +26,9 @@ class RoomModel extends Room {
     final timeStart = value.indexOf(RegExp(r'[T ]'));
     final hasOffset =
         timeStart >= 0 &&
-        RegExp(r'(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$')
-            .hasMatch(value.substring(timeStart));
+        RegExp(
+          r'(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$',
+        ).hasMatch(value.substring(timeStart));
     final parsed = DateTime.tryParse(hasOffset ? value : '${value}Z');
     return parsed?.toUtc();
   }

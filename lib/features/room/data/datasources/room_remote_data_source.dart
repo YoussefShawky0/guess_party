@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:guess_party/core/data/room_players_watcher.dart';
 import 'package:guess_party/features/auth/data/models/player_model.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/data/models/room_model.dart';
@@ -191,26 +192,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
 
   @override
   Stream<List<Player>> watchRoomPlayers({required String roomId}) {
-    return client
-        .from('players')
-        .stream(primaryKey: ['id'])
-        .eq('room_id', roomId)
-        .map((rows) {
-          final players = rows
-              .where((row) => row['is_online'] == true)
-              .map(PlayerModel.fromJson)
-              .toList(growable: false);
-          players.sort((a, b) {
-            final aTime = a.createdAt;
-            final bTime = b.createdAt;
-            if (aTime == null && bTime == null) return a.id.compareTo(b.id);
-            if (aTime == null) return -1;
-            if (bTime == null) return 1;
-            final compared = aTime.compareTo(bTime);
-            return compared == 0 ? a.id.compareTo(b.id) : compared;
-          });
-          return players;
-        });
+    return watchRoomPlayersStream(client, roomId: roomId, onlineOnly: true);
   }
 
   @override
