@@ -36,7 +36,11 @@ presence cleanup**.
 > in the hints phase were denied (same bug votes had, fixed in
 > `20260716183110`). Verified locally: migration applied with
 > `supabase migration up --local`, `supabase test db` → 8 files, 189 tests,
-> all pass. Not yet deployed to the live project (paused).
+> all pass. Deployed to the live project on 2026-11-16 via Supabase MCP
+> `apply_migration` (name `p0_privilege_hardening`; the live ledger uses its
+> own timestamp, not `20261116000100`). Post-deploy checks: dropped policies
+> gone, anon has no SELECT on per-room tables, authenticated can update only
+> `players.is_online/last_seen_at`, presence trigger installed.
 
 ### 1. Players can rewrite their own `score`, `is_host`, `room_id`
 `20260712000100_production_schema.sql:2718`
