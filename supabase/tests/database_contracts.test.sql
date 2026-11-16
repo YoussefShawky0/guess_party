@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(40);
 
 select has_table('public', 'rooms', 'rooms table exists');
 select has_table('public', 'players', 'players table exists');
@@ -70,6 +70,27 @@ select ok(
       and qual like '%can_view_vote_row%'
   ),
   'raw vote reads preserve own-vote and results visibility'
+);
+
+select is(
+  (select count(*)::bigint from pg_policies
+   where schemaname = 'public'
+     and policyname in (
+       'Anyone can create room', 'Anyone can join as player',
+       'Only host can manage rounds', 'Only host can modify rounds',
+       'Only host can delete rounds', 'Only host can update room'
+     )),
+  0::bigint,
+  'open create/join and host direct-write policies stay dropped'
+);
+select is(
+  (select count(*)::bigint from pg_policies
+   where schemaname = 'public'
+     and tablename in ('players', 'rooms', 'hints')
+     and cmd = 'SELECT'
+     and qual = 'true'),
+  0::bigint,
+  'players, rooms and hints have no unconditional SELECT policy'
 );
 
 select ok(

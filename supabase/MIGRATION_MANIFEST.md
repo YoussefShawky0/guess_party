@@ -31,6 +31,7 @@ corrected in the canonical schema:
 | `20260712000300_realtime_publication.sql` | Exact Realtime table membership; deliberately excludes `round_participants`. |
 | `20260712195404_table_grants.sql` | Exact production table privileges for `anon`, `authenticated`, and `service_role`. |
 | `20260713015743_fix_recursive_secret_state_rls.sql` | Replaces recursive round/vote SELECT policy joins with boolean-only private predicates while preserving the approved visibility rules. |
+| `20261116000100_p0_privilege_hardening.sql` | Revokes direct writes from `anon`/`authenticated` (keeps only `players.is_online`/`last_seen_at` updates and `hints`/`votes` upserts), drops the open create/join and host direct-write policies, stamps `last_seen_at` server-side, and scopes players/rooms/hints SELECT to room members, and fixes hint writes (policies now use the `private.can_write_hint` definer helper because they previously joined RLS-hidden active rounds). Idempotent. |
 
 ## Legacy SQL Mapping
 
@@ -70,7 +71,12 @@ applied after the canonical chain.
   freshness, deterministic host migration, former-host reconnect behavior,
   near-simultaneous presence changes, stale cleanup isolation, and empty-room
   completion transactionally.
-- Production table ACLs grant the Data API roles access to the exposed tables;
+- `supabase/tests/p0_privilege_hardening_contracts.test.sql` exercises the
+  privilege hardening: no client score/host/room/username updates, server-side
+  `last_seen_at`, no direct player/room inserts, no host writes to rounds or
+  rooms, no anon reads, member-scoped players/rooms/hints reads, and
+  regressions for hint/vote upserts and the create_room/join_room RPCs.
+- Production table ACLs (before the P0 hardening migration) grant the Data API roles access to the exposed tables;
   RLS policies remain the row-authorization boundary. `round_participants` and
   `round_revisions` deliberately expose only `SELECT` to `authenticated` and no
   privileges to `anon`.
