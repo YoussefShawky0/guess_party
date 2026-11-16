@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
@@ -130,15 +131,19 @@ class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
                 _isLoading = false;
                 _clearSecretFields();
               });
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(SnackBar(content: Text(state.message)));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    localizedErrorMessage(context.l10n, state.code),
+                  ),
+                ),
+              );
             }
           },
           builder: (context, state) {
             if (state is LocalRoleRevealFailure) {
               return ErrorScreen(
-                message: state.message,
+                message: localizedErrorMessage(context.l10n, state.code),
                 onGoBack: () =>
                     context.read<LocalRoleRevealCubit>().load(widget.roomId),
               );

@@ -6,6 +6,7 @@ import 'package:guess_party/l10n/l10n.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/services/auth_session_service.dart';
 import '../../../../core/utils/validators.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import '../../../../shared/widgets/error_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
@@ -71,13 +72,22 @@ class _AccountUpgradeViewState extends State<AccountUpgradeView> {
               child: BlocConsumer<AuthCubit, AuthState>(
                 listener: (context, state) {
                   if (state is AuthError) {
-                    ErrorSnackBar.show(context, state.message);
+                    ErrorSnackBar.show(
+                      context,
+                      localizedErrorMessage(context.l10n, state.code),
+                    );
                   } else if (state is AuthUpgradePending) {
                     setState(() => _upgradeRequested = true);
                   } else if (state is AuthMessage) {
                     ScaffoldMessenger.of(context)
                       ..hideCurrentSnackBar()
-                      ..showSnackBar(SnackBar(content: Text(state.message)));
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            localizedErrorMessage(context.l10n, state.code),
+                          ),
+                        ),
+                      );
                   }
                 },
                 builder: (context, state) {

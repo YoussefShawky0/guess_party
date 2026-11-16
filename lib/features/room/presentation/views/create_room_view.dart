@@ -6,7 +6,8 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart' as di;
-import 'package:guess_party/core/utils/error_handler.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/core/services/room_query_service.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
@@ -83,10 +84,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
       }
     } catch (e) {
       if (mounted) {
-        final message = ErrorHandler.getUserFriendlyMessage(
-          ErrorHandler.extractErrorMessage(e),
-        );
-        final isNetworkError = message.contains('Connection lost');
+        final isNetworkError = appErrorCodeFrom(e) == AppErrorCode.network;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -161,7 +159,10 @@ class _CreateRoomViewState extends State<CreateRoomView> {
               context.go(AppRoutes.roomWaiting(state.room.id));
             }
           } else if (state is RoomError) {
-            ErrorSnackBar.show(context, state.message);
+            ErrorSnackBar.show(
+              context,
+              localizedErrorMessage(context.l10n, state.code),
+            );
           }
         },
         builder: (context, state) {

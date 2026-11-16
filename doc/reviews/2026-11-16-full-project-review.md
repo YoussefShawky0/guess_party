@@ -104,6 +104,16 @@ username, and all hints of all rooms. Scope to room members
 
 ## P1 — Gameplay correctness (constitution violations)
 
+> **Status (2026-11-16):** #6–#10 and the `isClosed`/polling parts of #11
+> fixed on `fix/p0-privilege-hardening`: member-run stale cleanup
+> (`20261116000200_member_stale_cleanup.sql` + pgTAP), inline action errors,
+> subscription generation guard, room poll as realtime fallback only, and
+> `AppErrorCode` → localized messages (en/ar). Verified locally: analyze
+> clean, `flutter test` 148 pass, `supabase test db` 200 pass. The
+> member-stale-cleanup migration is deployed to the live project (via
+> `apply_migration`, name `member_stale_cleanup`). Still open:
+> moving the countdown polling out of `countdown_view.dart` (#11), P2/P3.
+
 ### 6. Host crash ⇒ no host migration, room never cleaned up (§VI)
 `mark_stale_players_offline(p_room_id, …)` raises `HOST_REQUIRED` unless the
 caller is the current online host (`production_schema.sql:1674`), and only the

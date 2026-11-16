@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
@@ -48,7 +49,13 @@ Future<void> confirmAccountDeletion({
   if (!context.mounted) return;
   Navigator.of(context).pop();
 
-  result.fold((failure) => _showDeleteError(context, failure.message), (_) {});
+  result.fold(
+    (failure) => _showDeleteError(
+      context,
+      localizedErrorMessage(context.l10n, failure.code),
+    ),
+    (_) {},
+  );
 }
 
 void _showDeleteError(BuildContext context, String message) {

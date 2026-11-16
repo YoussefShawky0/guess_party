@@ -161,8 +161,7 @@ class GameRepositoryImpl implements GameRepository {
       operation: operation,
       data: data,
     );
-    final message = ErrorHandler.extractErrorMessage(error);
-    return ServerFailure(ErrorHandler.getUserFriendlyMessage(message));
+    return ServerFailure.from(error);
   }
 
   @override

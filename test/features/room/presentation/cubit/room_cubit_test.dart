@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -39,6 +40,7 @@ void main() {
       joinRoomCommand: JoinRoom(repository),
       watchRoomDetails: WatchRoomDetails(repository),
       watchRoomPlayers: WatchRoomPlayers(repository),
+      pollFallbackInterval: const Duration(milliseconds: 20),
     );
   });
 
@@ -110,6 +112,44 @@ void main() {
     },
   );
 
+  test('loadRoomDetails after close does not throw or emit', () async {
+    await cubit.close();
+
+    await cubit.loadRoomDetails(roomId: 'room-1');
+
+    expect(cubit.state, isA<RoomInitial>());
+  });
+
+  test('loadRoomDetails closed mid-request does not throw', () async {
+    final pending = cubit.loadRoomDetails(roomId: 'room-1');
+    await cubit.close();
+
+    await expectLater(pending, completes);
+  });
+
+  test('room poll does not run while streams are healthy', () async {
+    await cubit.watchRoomStatus(roomId: 'room-1');
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect(repository.detailsCalls, 0);
+    expect(repository.playersCalls, 0);
+  });
+
+  test('room poll starts after a stream error and stops on recovery', () async {
+    await cubit.watchRoomStatus(roomId: 'room-1');
+    repository.emitRoomError();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(repository.detailsCalls, greaterThan(0));
+    expect(repository.playersCalls, greaterThan(0));
+
+    repository.emitRoom(roomWithStatus('waiting'));
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    final callsAfterRecovery = repository.detailsCalls;
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect(repository.detailsCalls, callsAfterRecovery);
+  });
+
   test('waiting room owns exactly two replaceable session streams', () async {
     await cubit.watchRoomStatus(roomId: 'room-1');
     expect(cubit.activeSessionSubscriptionCount, 2);
@@ -141,12 +181,15 @@ void main() {
   );
 
   test('start validation failure currently becomes RoomError', () async {
-    repository.startFailure = const ServerFailure('NOT_ENOUGH_PLAYERS');
+    repository.startFailure = const ServerFailure(
+      'NOT_ENOUGH_PLAYERS',
+      code: AppErrorCode.notEnoughPlayers,
+    );
 
     await cubit.startGameSession('room-1');
 
     expect(repository.startCalls, 1);
-    expect(cubit.state, const RoomError('NOT_ENOUGH_PLAYERS'));
+    expect(cubit.state, const RoomError(AppErrorCode.notEnoughPlayers));
   });
 
   test(
@@ -214,7 +257,11 @@ class FakeRoomRepository implements RoomRepository {
   Failure? startFailure;
   int cleanupCalls = 0;
   int leaveCalls = 0;
+  int detailsCalls = 0;
+  int playersCalls = 0;
   final List<(String, bool)> statusUpdates = [];
+
+  void emitRoomError() => _controller.addError(StateError('stream down'));
 
   void emitRoom(Room room) {
     currentRoom = room;
@@ -272,11 +319,13 @@ class FakeRoomRepository implements RoomRepository {
 
   @override
   ResultFuture<Room> getRoomDetails({required String roomId}) async {
+    detailsCalls++;
     return Right(currentRoom);
   }
 
   @override
   ResultFuture<List<Player>> getRoomPlayers({required String roomId}) async {
+    playersCalls++;
     return const Right([]);
   }
 

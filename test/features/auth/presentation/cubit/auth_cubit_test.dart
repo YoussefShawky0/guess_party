@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
@@ -22,7 +23,7 @@ void main() {
 
     await cubit.requestPasswordReset('person@example.com');
 
-    expect(cubit.state, const AuthMessage(passwordResetRequestMessage));
+    expect(cubit.state, const AuthMessage(AppErrorCode.passwordResetRequested));
     expect(repository.requestedResetEmail, 'person@example.com');
     await cubit.close();
   });
@@ -35,9 +36,7 @@ void main() {
 
     expect(
       cubit.state,
-      const AuthMessage(
-        'Check your email to verify your account, then sign in.',
-      ),
+      const AuthMessage(AppErrorCode.emailVerificationRequired),
     );
     await cubit.close();
   });
@@ -95,7 +94,8 @@ class FakeAuthRepository implements AuthRepository {
     if (requireEmailVerification) {
       return const Left(
         EmailVerificationRequiredFailure(
-          'Check your email to verify your account, then sign in.',
+          'verification required',
+          code: AppErrorCode.emailVerificationRequired,
         ),
       );
     }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
 import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
 import 'package:guess_party/features/chat/presentation/cubit/chat_state.dart';
@@ -16,13 +17,16 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> start({required String roomId, required String roundId}) async {
     _roomId = roomId;
     _roundId = roundId;
+    if (isClosed) return;
     emit(const ChatLoading());
     await _subscription?.cancel();
+    if (isClosed) return;
     try {
       final page = await _repository.getMessages(
         roomId: roomId,
         roundId: roundId,
       );
+      if (isClosed) return;
       emit(
         ChatLoaded(
           messages: _sortAscending(page.messages),
@@ -34,7 +38,8 @@ class ChatCubit extends Cubit<ChatState> {
           .watchNewMessages(roomId: roomId, roundId: roundId)
           .listen(_handleRealtimeMessage, onError: _handleStreamError);
     } catch (_) {
-      emit(const ChatFailure('Unable to load chat. Please try again.'));
+      if (isClosed) return;
+      emit(const ChatFailure(AppErrorCode.chatLoadFailed));
     }
   }
 
@@ -57,6 +62,7 @@ class ChatCubit extends Cubit<ChatState> {
         roundId: roundId,
         before: current.nextCursor,
       );
+      if (isClosed) return;
       emit(
         current.copyWith(
           messages: _mergeMessages(current.messages, page.messages),
@@ -66,10 +72,11 @@ class ChatCubit extends Cubit<ChatState> {
         ),
       );
     } catch (_) {
+      if (isClosed) return;
       emit(
         current.copyWith(
           isLoadingOlder: false,
-          errorMessage: 'Unable to load older messages.',
+          messageCode: AppErrorCode.chatLoadOlderFailed,
         ),
       );
     }
@@ -88,11 +95,7 @@ class ChatCubit extends Cubit<ChatState> {
       return;
     }
     if (trimmed.length > 500) {
-      emit(
-        current.copyWith(
-          errorMessage: 'Message must be 500 characters or less.',
-        ),
-      );
+      emit(current.copyWith(messageCode: AppErrorCode.invalidChatContent));
       return;
     }
 
@@ -103,6 +106,7 @@ class ChatCubit extends Cubit<ChatState> {
         roundId: roundId,
         content: trimmed,
       );
+      if (isClosed) return;
       final latest = state;
       if (latest is ChatLoaded) {
         emit(
@@ -113,13 +117,11 @@ class ChatCubit extends Cubit<ChatState> {
         );
       }
     } catch (error) {
+      if (isClosed) return;
       final latest = state;
       if (latest is ChatLoaded) {
         emit(
-          latest.copyWith(
-            isSending: false,
-            errorMessage: _friendlySendError(error),
-          ),
+          latest.copyWith(isSending: false, messageCode: _sendErrorCode(error)),
         );
       }
     }
@@ -136,6 +138,7 @@ class ChatCubit extends Cubit<ChatState> {
         playerId: playerId,
         muted: muted,
       );
+      if (isClosed) return;
       final mutedIds = {...current.mutedPlayerIds};
       if (muted) {
         mutedIds.add(playerId);
@@ -154,7 +157,8 @@ class ChatCubit extends Cubit<ChatState> {
         ),
       );
     } catch (_) {
-      emit(current.copyWith(errorMessage: 'Unable to update mute setting.'));
+      if (isClosed) return;
+      emit(current.copyWith(messageCode: AppErrorCode.chatMuteFailed));
     }
   }
 
@@ -168,15 +172,17 @@ class ChatCubit extends Cubit<ChatState> {
 
     try {
       await _repository.reportMessage(messageId: messageId, reason: trimmed);
-      emit(current.copyWith(errorMessage: 'Report submitted for review.'));
+      if (isClosed) return;
+      emit(current.copyWith(messageCode: AppErrorCode.reportSubmitted));
     } catch (_) {
-      emit(current.copyWith(errorMessage: 'Unable to submit report.'));
+      if (isClosed) return;
+      emit(current.copyWith(messageCode: AppErrorCode.reportFailed));
     }
   }
 
   void acknowledgeMessage() {
     final current = state;
-    if (current is ChatLoaded && current.errorMessage != null) {
+    if (current is ChatLoaded && current.messageCode != null) {
       emit(current.copyWith(clearErrorMessage: true));
     }
   }
@@ -198,7 +204,9 @@ class ChatCubit extends Cubit<ChatState> {
   void _handleStreamError(Object _) {
     final current = state;
     if (current is ChatLoaded) {
-      emit(current.copyWith(errorMessage: 'Chat connection interrupted.'));
+      emit(
+        current.copyWith(messageCode: AppErrorCode.chatConnectionInterrupted),
+      );
     }
   }
 
@@ -225,15 +233,12 @@ class ChatCubit extends Cubit<ChatState> {
     return sorted;
   }
 
-  String _friendlySendError(Object error) {
-    final text = error.toString();
-    if (text.contains('CHAT_RATE_LIMITED')) {
-      return 'Slow down a little before sending another message.';
-    }
-    if (text.contains('INVALID_CHAT_CONTENT')) {
-      return 'Message must be 500 characters or less.';
-    }
-    return 'Unable to send message. Please try again.';
+  AppErrorCode _sendErrorCode(Object error) {
+    final code = appErrorCodeFrom(error);
+    return code == AppErrorCode.chatRateLimited ||
+            code == AppErrorCode.invalidChatContent
+        ? code
+        : AppErrorCode.chatSendFailed;
   }
 
   @override

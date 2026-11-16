@@ -2059,6 +2059,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Most voted: {name} ({count} votes)'**
   String mostVoted(String name, int count);
+
+  /// No description provided for @errUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get errUnknown;
+
+  /// No description provided for @errNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost. Reconnecting...'**
+  String get errNetwork;
+
+  /// No description provided for @errUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have permission to do that.'**
+  String get errUnauthorized;
+
+  /// No description provided for @errDuplicateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'You already did that.'**
+  String get errDuplicateAction;
+
+  /// No description provided for @errInvalidInput.
+  ///
+  /// In en, this message translates to:
+  /// **'That does not look right. Check your input and try again.'**
+  String get errInvalidInput;
+
+  /// No description provided for @errAuthRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please sign in to continue.'**
+  String get errAuthRequired;
+
+  /// No description provided for @errHostRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the host can do that.'**
+  String get errHostRequired;
+
+  /// No description provided for @errRoomMemberRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You need to be in this room to do that.'**
+  String get errRoomMemberRequired;
+
+  /// No description provided for @errRoomParticipantRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not a player in this room.'**
+  String get errRoomParticipantRequired;
+
+  /// No description provided for @errRoundParticipantRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not taking part in this round.'**
+  String get errRoundParticipantRequired;
+
+  /// No description provided for @errRoundNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This round is no longer available.'**
+  String get errRoundNotFound;
+
+  /// No description provided for @errPlayerNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not find that player.'**
+  String get errPlayerNotFound;
+
+  /// No description provided for @errRoomFull.
+  ///
+  /// In en, this message translates to:
+  /// **'This room is full.'**
+  String get errRoomFull;
+
+  /// No description provided for @errRoomAlreadyStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'This room has already started.'**
+  String get errRoomAlreadyStarted;
+
+  /// No description provided for @errRoomNotActive.
+  ///
+  /// In en, this message translates to:
+  /// **'This room is no longer active.'**
+  String get errRoomNotActive;
+
+  /// No description provided for @errNotEnoughPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough players to continue.'**
+  String get errNotEnoughPlayers;
+
+  /// No description provided for @errOnlineRoomRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This is only available in online rooms.'**
+  String get errOnlineRoomRequired;
+
+  /// No description provided for @errInvalidRoomSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Those room settings are not valid.'**
+  String get errInvalidRoomSettings;
+
+  /// No description provided for @errInvalidStaleSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update player status. Please try again.'**
+  String get errInvalidStaleSeconds;
+
+  /// No description provided for @errChatRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Slow down a little before sending another message.'**
+  String get errChatRateLimited;
+
+  /// No description provided for @errInvalidChatContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Message must be 500 characters or less.'**
+  String get errInvalidChatContent;
+
+  /// No description provided for @errInvalidReportReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Please describe the problem so we can review it.'**
+  String get errInvalidReportReason;
+
+  /// No description provided for @errPlayerColumnUpdateForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'That player change is not allowed.'**
+  String get errPlayerColumnUpdateForbidden;
+
+  /// No description provided for @errWrongPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'That action is not available in this phase.'**
+  String get errWrongPhase;
+
+  /// No description provided for @errVotesIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for every player to vote.'**
+  String get errVotesIncomplete;
+
+  /// No description provided for @errUsernameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'That name is already taken. Try another one.'**
+  String get errUsernameTaken;
+
+  /// No description provided for @errInvalidUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'That name is not valid. Try another one.'**
+  String get errInvalidUsername;
+
+  /// No description provided for @errInvalidCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid sign-in details'**
+  String get errInvalidCredentials;
+
+  /// No description provided for @errEmailNotConfirmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Email confirmation required. Check your inbox.'**
+  String get errEmailNotConfirmed;
+
+  /// No description provided for @errWeakPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password is too weak. Use at least 8 characters.'**
+  String get errWeakPassword;
+
+  /// No description provided for @errEmailAlreadyRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'An account already uses this email. Try signing in instead.'**
+  String get errEmailAlreadyRegistered;
+
+  /// No description provided for @errRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Try again later.'**
+  String get errRateLimited;
+
+  /// No description provided for @errInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid email address'**
+  String get errInvalidEmail;
+
+  /// No description provided for @errAccountAlreadyUpgraded.
+  ///
+  /// In en, this message translates to:
+  /// **'This account already uses a real email.'**
+  String get errAccountAlreadyUpgraded;
+
+  /// No description provided for @errChatLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load chat. Please try again.'**
+  String get errChatLoadFailed;
+
+  /// No description provided for @errChatLoadOlderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load older messages.'**
+  String get errChatLoadOlderFailed;
+
+  /// No description provided for @errChatSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to send message. Please try again.'**
+  String get errChatSendFailed;
+
+  /// No description provided for @errChatMuteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to update mute setting.'**
+  String get errChatMuteFailed;
+
+  /// No description provided for @errChatConnectionInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat connection interrupted.'**
+  String get errChatConnectionInterrupted;
+
+  /// No description provided for @errReportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to submit report.'**
+  String get errReportFailed;
+
+  /// No description provided for @errEmailVerificationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email to verify your account, then sign in.'**
+  String get errEmailVerificationRequired;
+
+  /// No description provided for @errPasswordResetRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'If an account exists for that email, a password reset link has been sent.'**
+  String get errPasswordResetRequested;
+
+  /// No description provided for @errAccountUpgradeComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account upgrade is complete.'**
+  String get errAccountUpgradeComplete;
+
+  /// No description provided for @errReportSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Report submitted for review.'**
+  String get errReportSubmitted;
+
+  /// No description provided for @playerLeftGame.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has left the game'**
+  String playerLeftGame(String name);
+
+  /// No description provided for @playersLeftGame.
+  ///
+  /// In en, this message translates to:
+  /// **'{names} have left the game'**
+  String playersLeftGame(String names);
+
+  /// No description provided for @playerIsNowHost.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now the host'**
+  String playerIsNowHost(String name);
+
+  /// No description provided for @aPlayerFallbackName.
+  ///
+  /// In en, this message translates to:
+  /// **'A player'**
+  String get aPlayerFallbackName;
 }
 
 class _AppLocalizationsDelegate

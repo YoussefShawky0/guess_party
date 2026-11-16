@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/config/app_config.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/services/update_service.dart';
@@ -201,7 +202,9 @@ class _HomeContentState extends State<HomeContent> {
                   if (state is HomeError) {
                     return Center(
                       child: Text(
-                        context.l10n.errorWithMessage(state.message),
+                        context.l10n.errorWithMessage(
+                          localizedErrorMessage(context.l10n, state.code),
+                        ),
                         style: TextStyle(color: AppColors.error),
                       ),
                     );

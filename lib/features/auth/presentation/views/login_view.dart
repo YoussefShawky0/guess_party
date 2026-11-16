@@ -7,6 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/utils/validators.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import '../../../../shared/widgets/error_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
@@ -119,11 +120,20 @@ class _LoginViewState extends State<LoginView> {
           if (state is AuthSuccess) {
             context.go(AppRoutes.home);
           } else if (state is AuthError) {
-            ErrorSnackBar.show(context, state.message);
+            ErrorSnackBar.show(
+              context,
+              localizedErrorMessage(context.l10n, state.code),
+            );
           } else if (state is AuthMessage) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text(state.message)));
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(
+                    localizedErrorMessage(context.l10n, state.code),
+                  ),
+                ),
+              );
           }
         },
         builder: (context, state) => SafeArea(

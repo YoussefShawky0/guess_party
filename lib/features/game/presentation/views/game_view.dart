@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
@@ -266,7 +267,7 @@ class _GameViewContentState extends State<GameViewContent> {
             listenWhen: (previous, current) {
               if (previous is GameLoaded && current is GameLoaded) {
                 final hasNewInlineMessage =
-                    current.nonFatalMessage != null &&
+                    current.nonFatalError != null &&
                     current.nonFatalMessageId != previous.nonFatalMessageId;
                 if (hasNewInlineMessage) return true;
 
@@ -291,7 +292,7 @@ class _GameViewContentState extends State<GameViewContent> {
                 return false;
               }
               return current is GameError ||
-                  (current is GameLoaded && current.nonFatalMessage != null);
+                  (current is GameLoaded && current.nonFatalError != null);
             },
             listener: (context, state) {
               // Auto-finalize voting: trigger score calculation and phase advance
@@ -324,7 +325,7 @@ class _GameViewContentState extends State<GameViewContent> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            state.message,
+                            localizedErrorMessage(context.l10n, state.code),
                             style: TextStyle(
                               fontSize: 16,
                               color: AppColors.of(context).textPrimary,
@@ -341,7 +342,7 @@ class _GameViewContentState extends State<GameViewContent> {
                     ),
                   ),
                 );
-              } else if (state is GameLoaded && state.nonFatalMessage != null) {
+              } else if (state is GameLoaded && state.nonFatalError != null) {
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -354,7 +355,10 @@ class _GameViewContentState extends State<GameViewContent> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            state.nonFatalMessage!,
+                            localizedErrorMessage(
+                              context.l10n,
+                              state.nonFatalError!,
+                            ),
                             style: TextStyle(
                               fontSize: 16,
                               color: AppColors.of(context).textPrimary,
@@ -428,7 +432,7 @@ class _GameViewContentState extends State<GameViewContent> {
 
               if (state is GameError) {
                 return ErrorScreen(
-                  message: state.message,
+                  message: localizedErrorMessage(context.l10n, state.code),
                   onRetry: () {
                     context.read<GameCubit>().loadGameState(
                       roomId: widget.roomId,

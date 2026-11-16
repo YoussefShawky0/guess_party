@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_cursor.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_page.dart';
@@ -124,10 +125,7 @@ void main() {
     await cubit.send('too fast');
 
     final state = cubit.state as ChatLoaded;
-    expect(
-      state.errorMessage,
-      'Slow down a little before sending another message.',
-    );
+    expect(state.messageCode, AppErrorCode.chatRateLimited);
     await cubit.close();
   });
 

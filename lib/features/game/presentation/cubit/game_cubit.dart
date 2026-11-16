@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart'
@@ -24,7 +25,8 @@ part 'game_state.dart';
 typedef GameStateEntity = entity.GameState;
 
 class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
-  static const int _minConnectedPlayersForPhaseAdvance = 2;
+  static const int _minConnectedPlayersForPhaseAdvance =
+      minConnectedPlayersToAdvance;
 
   final GetGameState getGameState;
   final SubmitHint submitHint;
@@ -46,6 +48,10 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       (_roundSubscription == null ? 0 : 1) +
       (_playersSubscription == null ? 0 : 1) +
       (_roomStatusSubscription == null ? 0 : 1);
+
+  /// Incremented every time subscriptions are replaced (or the cubit closes) so
+  /// a stale concurrent replacement never assigns or leaks streams.
+  int _subscriptionGeneration = 0;
 
   /// Prevents double-tap from calling createNextRound twice (duplicate-key guard)
   bool _isCreatingRound = false;
@@ -116,7 +122,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
           data: {'roomId': roomId, 'error': failure.message},
         );
         _errorIdCounter++;
-        emit(GameError(failure.message, errorId: _errorIdCounter));
+        emit(GameError(failure.code, errorId: _errorIdCounter));
       },
       (gameState) {
         final stateToEmit = gameState;
@@ -201,7 +207,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
         _errorIdCounter++;
         emit(
           GameError(
-            failure?.message ?? 'Connection error. Try again.',
+            failure?.code ?? AppErrorCode.network,
             errorId: _errorIdCounter,
           ),
         );
@@ -221,13 +227,21 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
     required String roomId,
   }) async {
     _addBreadcrumb('subscribeToGameUpdates', data: {'roundId': roundId});
-    await _roundSubscription?.cancel();
-    await _playersSubscription?.cancel();
-    await _roomStatusSubscription?.cancel();
+    final generation = ++_subscriptionGeneration;
+    final previous = <StreamSubscription?>[
+      _roundSubscription,
+      _playersSubscription,
+      _roomStatusSubscription,
+    ];
     _roundSubscription = null;
     _playersSubscription = null;
     _roomStatusSubscription = null;
-    if (isClosed) return;
+    await Future.wait<void>([
+      for (final subscription in previous)
+        if (subscription != null) subscription.cancel(),
+    ]);
+    // A newer replacement (or close) superseded this one while cancelling.
+    if (isClosed || generation != _subscriptionGeneration) return;
 
     _roundSubscription = gameRepository
         .watchRoundUpdates(roundId: roundId)
@@ -271,7 +285,6 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
             final loaded = state as GameLoaded;
             emit(
               GameEnded(
-                'Game Over',
                 players: loaded.gameState.players,
                 playerScores: loaded.gameState.playerScores,
               ),
@@ -322,8 +335,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
             'error': failure.message,
           },
         );
-        _errorIdCounter++;
-        emit(GameError(failure.message, errorId: _errorIdCounter));
+        _emitActionFailure(failure.code);
       },
       (_) {
         // The safe round revision stream reloads the complete snapshot.
@@ -345,10 +357,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       );
       final currentState = state;
       if (currentState is GameLoaded) {
-        _emitInlineValidationMessage(
-          currentState,
-          'You cannot vote for yourself',
-        );
+        _emitInlineValidationMessage(currentState, AppErrorCode.selfVote);
       }
       return;
     }
@@ -366,20 +375,14 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
 
     if (isClosed) return;
     result.fold((failure) {
-      final message = failure.message;
-      final lower = message.toLowerCase();
-      if (message.contains('لا يمكنك التصويت لنفسك') ||
-          lower.contains('cannot vote for yourself')) {
+      if (failure.code == AppErrorCode.selfVote) {
         _addBreadcrumb(
           'sendVote:selfVoteValidation',
           data: {'roundId': roundId, 'voterId': voterId},
         );
         final latestState = state;
         if (latestState is GameLoaded) {
-          _emitInlineValidationMessage(
-            latestState,
-            'You cannot vote for yourself',
-          );
+          _emitInlineValidationMessage(latestState, AppErrorCode.selfVote);
         }
         return;
       }
@@ -392,8 +395,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
           'error': failure.message,
         },
       );
-      _errorIdCounter++;
-      emit(GameError(failure.message, errorId: _errorIdCounter));
+      _emitActionFailure(failure.code);
     }, (_) {});
   }
 
@@ -412,8 +414,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       if (connectedPlayers < _minConnectedPlayersForPhaseAdvance) {
         _emitInlineValidationMessage(
           currentState,
-          'Not enough connected players. Minimum '
-          '$_minConnectedPlayersForPhaseAdvance required to skip/advance.',
+          AppErrorCode.notEnoughPlayersToAdvance,
         );
         return;
       }
@@ -434,14 +435,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
           'progressPhase:failure',
           data: {'roundId': roundId, 'error': failure.message},
         );
-        final latestState = state;
-        if (latestState is GameLoaded &&
-            _isNonFatalPhaseAdvanceValidationFailure(failure.message)) {
-          _emitInlineValidationMessage(latestState, failure.message);
-          return;
-        }
-        _errorIdCounter++;
-        emit(GameError(failure.message, errorId: _errorIdCounter));
+        _emitActionFailure(failure.code);
       },
       (updatedRound) {
         // Update the current state with new round info
@@ -484,7 +478,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
           );
           final current = state;
           if (current is GameLoaded) {
-            _emitInlineValidationMessage(current, failure.message);
+            _emitInlineValidationMessage(current, failure.code);
           }
         },
         (finalized) {
@@ -537,8 +531,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
               'error': failure.message,
             },
           );
-          _errorIdCounter++;
-          emit(GameError(failure.message, errorId: _errorIdCounter));
+          _emitActionFailure(failure.code);
         },
         (newRound) async {
           if (state is GameLoaded) {
@@ -608,8 +601,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
           'finishGame:failure',
           data: {'roomId': roomId, 'error': failure.message},
         );
-        _errorIdCounter++;
-        emit(GameError(failure.message, errorId: _errorIdCounter));
+        _emitActionFailure(failure.code);
       },
       (_) {
         final players = snapshot is GameLoaded
@@ -618,8 +610,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
         final scores = snapshot is GameLoaded
             ? snapshot.gameState.playerScores
             : <String, int>{};
-        // Step 15: English text consistency
-        emit(GameEnded('Game Over', players: players, playerScores: scores));
+        emit(GameEnded(players: players, playerScores: scores));
       },
     );
   }
@@ -642,22 +633,29 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
         .length;
   }
 
-  bool _isNonFatalPhaseAdvanceValidationFailure(String message) {
-    final normalized = message.toLowerCase();
-    return normalized.contains('not enough players') ||
-        normalized.contains('minimum 2') ||
-        normalized.contains('only the current host') ||
-        normalized.contains('not authorized') ||
-        normalized.contains('permission');
+  /// Recoverable action failures keep the visible game (snackbar via
+  /// [GameLoaded.nonFatalMessage]); only fall back to [GameError] when there is
+  /// no loaded state to preserve.
+  void _emitActionFailure(AppErrorCode code) {
+    final current = state;
+    if (current is GameLoaded) {
+      _emitInlineValidationMessage(current, code);
+      return;
+    }
+    _errorIdCounter++;
+    emit(GameError(code, errorId: _errorIdCounter));
   }
 
-  void _emitInlineValidationMessage(GameLoaded currentState, String message) {
+  void _emitInlineValidationMessage(
+    GameLoaded currentState,
+    AppErrorCode code,
+  ) {
     _nonFatalMessageIdCounter++;
     emit(
       GameLoaded(
         currentState.gameState,
         isReconnecting: currentState.isReconnecting,
-        nonFatalMessage: message,
+        nonFatalError: code,
         nonFatalMessageId: _nonFatalMessageIdCounter,
       ),
     );
@@ -665,6 +663,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
 
   @override
   Future<void> close() async {
+    _subscriptionGeneration++;
     await _roundSubscription?.cancel();
     await _playersSubscription?.cancel();
     await _roomStatusSubscription?.cancel();

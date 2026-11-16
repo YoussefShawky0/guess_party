@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/app_error_code.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/usecases/begin_account_upgrade.dart';
 import '../../domain/usecases/request_password_reset.dart';
@@ -38,7 +39,7 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await signInGuest(username);
 
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(AuthError(failure.code)),
       (player) => emit(AuthSuccess(player)),
     );
   }
@@ -55,8 +56,8 @@ class AuthCubit extends Cubit<AuthState> {
     result.fold(
       (failure) => emit(
         failure is EmailVerificationRequiredFailure
-            ? AuthMessage(failure.message)
-            : AuthError(failure.message),
+            ? AuthMessage(failure.code)
+            : AuthError(failure.code),
       ),
       (player) => emit(AuthSuccess(player)),
     );
@@ -71,7 +72,7 @@ class AuthCubit extends Cubit<AuthState> {
     );
 
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(AuthError(failure.code)),
       (player) => emit(AuthSuccess(player)),
     );
   }
@@ -86,7 +87,7 @@ class AuthCubit extends Cubit<AuthState> {
       password: password,
     );
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(AuthError(failure.code)),
       (player) => emit(AuthSuccess(player)),
     );
   }
@@ -95,8 +96,8 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     final result = await requestPasswordResetUseCase(email);
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (_) => emit(const AuthMessage(passwordResetRequestMessage)),
+      (failure) => emit(AuthError(failure.code)),
+      (_) => emit(const AuthMessage(AppErrorCode.passwordResetRequested)),
     );
   }
 
@@ -107,7 +108,7 @@ class AuthCubit extends Cubit<AuthState> {
       displayName: displayName,
     );
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(AuthError(failure.code)),
       (userId) => emit(AuthUpgradePending(userId)),
     );
   }
@@ -116,8 +117,8 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     final result = await setVerifiedAccountPasswordUseCase(password);
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (_) => emit(const AuthMessage('Your account upgrade is complete.')),
+      (failure) => emit(AuthError(failure.code)),
+      (_) => emit(const AuthMessage(AppErrorCode.accountUpgradeComplete)),
     );
   }
 
@@ -125,7 +126,7 @@ class AuthCubit extends Cubit<AuthState> {
     emit(AuthLoading());
     final result = await updateRecoveredPasswordUseCase(password);
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
+      (failure) => emit(AuthError(failure.code)),
       (_) => emit(const AuthPasswordUpdated()),
     );
   }

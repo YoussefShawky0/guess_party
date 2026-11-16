@@ -19,7 +19,7 @@ class HomeCubit extends Cubit<HomeState> {
     if (isClosed) return;
 
     result.fold(
-      (failure) => emit(HomeError(message: failure.message)),
+      (failure) => emit(HomeError(code: failure.code)),
       (userInfo) => emit(HomeLoaded(userInfo: userInfo)),
     );
   }
@@ -31,7 +31,7 @@ class HomeCubit extends Cubit<HomeState> {
     if (isClosed) return;
 
     result.fold(
-      (failure) => emit(HomeError(message: failure.message)),
+      (failure) => emit(HomeError(code: failure.code)),
       (_) => emit(HomeSignedOut()),
     );
   }

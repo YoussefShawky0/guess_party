@@ -240,7 +240,7 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
       if (errorText.contains('no rows') ||
           errorText.contains('norowsfoundexception') ||
           errorText.contains('pgrst116')) {
-        throw Exception('Room not found. Please check the code and try again.');
+        throw StateError('ROOM_NOT_FOUND');
       }
       rethrow;
     }

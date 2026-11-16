@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
 import 'package:guess_party/features/room/domain/usecases/create_room.dart';
@@ -36,6 +37,9 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
   StreamSubscription<Room>? _roomDetailsSubscription;
   StreamSubscription<List<Player>>? _roomPlayersSubscription;
   Timer? _roomDetailsPollTimer;
+  final Duration _pollFallbackInterval;
+  bool _roomStreamHealthy = true;
+  bool _playersStreamHealthy = true;
   String? _createRequestId;
   String? _createRequestFingerprint;
 
@@ -56,7 +60,9 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     required this.joinRoomCommand,
     required this.watchRoomDetails,
     required this.watchRoomPlayers,
-  }) : super(RoomInitial());
+    Duration pollFallbackInterval = const Duration(seconds: 10),
+  }) : _pollFallbackInterval = pollFallbackInterval,
+       super(RoomInitial());
 
   Future<void> createNewRoom({
     required String category,
@@ -67,6 +73,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     required String gameMode,
     List<String>? localPlayerNames,
   }) async {
+    if (isClosed) return;
     emit(RoomLoading());
 
     final localNames = gameMode == GameConstants.gameModeLocal
@@ -102,7 +109,9 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     if (isClosed) return;
 
     if (roomResult.isLeft()) {
-      emit(RoomError(roomResult.fold((f) => f.message, (_) => '')));
+      emit(
+        RoomError(roomResult.fold((f) => f.code, (_) => AppErrorCode.unknown)),
+      );
       return;
     }
     final session = roomResult.getOrElse(() => throw StateError('unreachable'));
@@ -114,12 +123,15 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
   }
 
   Future<void> loadRoomDetails({required String roomId}) async {
+    if (isClosed) return;
     emit(RoomLoading());
 
     final result = await getRoomDetails(roomId: roomId);
 
+    if (isClosed) return;
+
     result.fold(
-      (failure) => emit(RoomError(failure.message)),
+      (failure) => emit(RoomError(failure.code)),
       (room) => emit(RoomDetailsLoaded(room)),
     );
   }
@@ -130,27 +142,46 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     await _roomPlayersSubscription?.cancel();
     _roomDetailsSubscription = null;
     _roomPlayersSubscription = null;
-    _roomDetailsPollTimer?.cancel();
+    _stopPollFallback();
+    if (isClosed) return;
+
+    _roomStreamHealthy = true;
+    _playersStreamHealthy = true;
 
     _roomDetailsSubscription = watchRoomDetails(roomId: roomId).listen(
-      _emitWatchedRoom,
+      (room) {
+        _roomStreamHealthy = true;
+        _stopPollFallbackIfHealthy();
+        _emitWatchedRoom(room);
+      },
       onError: (_) {
+        _roomStreamHealthy = false;
+        _startPollFallback(roomId);
         if (!isClosed && state is! RoomDetailsLoaded) {
-          emit(const RoomError('Connection lost. Reconnecting...'));
+          emit(const RoomError(AppErrorCode.network));
         }
       },
     );
 
     _roomPlayersSubscription = watchRoomPlayers(roomId: roomId).listen(
-      _emitWatchedPlayers,
+      (players) {
+        _playersStreamHealthy = true;
+        _stopPollFallbackIfHealthy();
+        _emitWatchedPlayers(players);
+      },
       onError: (_) {
-        // The centralized polling fallback below preserves the last roster.
+        // The polling fallback preserves the last roster until Realtime recovers.
+        _playersStreamHealthy = false;
+        _startPollFallback(roomId);
       },
     );
+  }
 
-    _roomDetailsPollTimer = Timer.periodic(const Duration(seconds: 10), (
-      _,
-    ) async {
+  /// Polling is only a fallback while Realtime is unavailable.
+  void _startPollFallback(String roomId) {
+    if (isClosed || _roomDetailsPollTimer?.isActive == true) return;
+
+    _roomDetailsPollTimer = Timer.periodic(_pollFallbackInterval, (_) async {
       if (isClosed) return;
 
       final results = await Future.wait([
@@ -166,6 +197,15 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
         (players) => _emitWatchedPlayers(players as List<Player>),
       );
     });
+  }
+
+  void _stopPollFallbackIfHealthy() {
+    if (_roomStreamHealthy && _playersStreamHealthy) _stopPollFallback();
+  }
+
+  void _stopPollFallback() {
+    _roomDetailsPollTimer?.cancel();
+    _roomDetailsPollTimer = null;
   }
 
   void _emitWatchedRoom(Room room) {
@@ -204,7 +244,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
       (failure) {
         // Keep current waiting-room state stable on transient refresh failures.
         if (currentState is! RoomDetailsLoaded) {
-          emit(RoomError(failure.message));
+          emit(RoomError(failure.code));
         }
       },
       (players) {
@@ -225,7 +265,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     result.fold(
       (failure) {
         if (!isClosed) {
-          emit(RoomError(failure.message));
+          emit(RoomError(failure.code));
         }
       },
       (_) {
@@ -269,6 +309,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     required String roomCode,
     required String username,
   }) async {
+    if (isClosed) return;
     emit(RoomLoading());
 
     final roomResult = await joinRoomCommand(
@@ -279,7 +320,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     if (isClosed) return;
 
     roomResult.fold(
-      (failure) => emit(RoomError(failure.message)),
+      (failure) => emit(RoomError(failure.code)),
       (session) => emit(
         RoomWithPlayerCreated(
           room: session.room,
@@ -295,7 +336,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     await _roomPlayersSubscription?.cancel();
     _roomDetailsSubscription = null;
     _roomPlayersSubscription = null;
-    _roomDetailsPollTimer?.cancel();
+    _stopPollFallback();
     return super.close();
   }
 }

@@ -10,6 +10,8 @@ import 'package:guess_party/features/room/presentation/views/widgets/join_room_b
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_header.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/room_code_input.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
@@ -76,16 +78,17 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
       body: BlocConsumer<RoomCubit, RoomState>(
         listener: (context, state) {
           if (state is RoomError) {
-            if (state.message.toLowerCase().contains('room not found')) {
+            final message = localizedErrorMessage(context.l10n, state.code);
+            if (state.code == AppErrorCode.roomNotFound) {
               setState(() {
-                _roomCodeErrorMessage = state.message;
+                _roomCodeErrorMessage = message;
               });
               ErrorSnackBar.showRoomCodeError(context);
             } else {
               if (_roomCodeErrorMessage != null) {
                 setState(() => _roomCodeErrorMessage = null);
               }
-              ErrorSnackBar.show(context, state.message);
+              ErrorSnackBar.show(context, message);
             }
           }
 

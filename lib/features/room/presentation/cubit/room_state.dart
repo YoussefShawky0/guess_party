@@ -39,10 +39,10 @@ class RoomDetailsLoaded extends RoomState {
 }
 
 class RoomError extends RoomState {
-  final String message;
+  final AppErrorCode code;
 
-  const RoomError(this.message);
+  const RoomError(this.code);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [code];
 }

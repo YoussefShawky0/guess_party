@@ -5,6 +5,8 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 
 import '../../../../core/di/injection_container.dart' as di;
+import 'package:guess_party/core/error/app_error_localizer.dart';
+import 'package:guess_party/l10n/l10n.dart';
 import '../../../../shared/widgets/error_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
@@ -62,7 +64,10 @@ class _AuthViewState extends State<AuthView> {
               router.go(AppRoutes.home);
             });
           } else if (state is AuthError) {
-            ErrorSnackBar.show(context, state.message);
+            ErrorSnackBar.show(
+              context,
+              localizedErrorMessage(context.l10n, state.code),
+            );
           }
         },
         builder: (context, state) {

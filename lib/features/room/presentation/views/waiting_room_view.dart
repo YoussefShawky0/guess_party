@@ -7,6 +7,7 @@ import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
@@ -138,7 +139,10 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
       body: BlocConsumer<RoomCubit, RoomState>(
         listener: (context, state) {
           if (state is RoomError) {
-            ErrorSnackBar.show(context, state.message);
+            ErrorSnackBar.show(
+              context,
+              localizedErrorMessage(context.l10n, state.code),
+            );
           }
 
           if (state is RoomDetailsLoaded && state.room.status == 'active') {

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/home/domain/entities/user_info.dart';
 
 abstract class HomeState extends Equatable {
@@ -22,12 +23,12 @@ class HomeLoaded extends HomeState {
 }
 
 class HomeError extends HomeState {
-  final String message;
+  final AppErrorCode code;
 
-  const HomeError({required this.message});
+  const HomeError({required this.code});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [code];
 }
 
 class HomeSignedOut extends HomeState {}

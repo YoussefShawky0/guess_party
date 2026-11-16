@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/game/domain/entities/local_role_reveal_data.dart';
 import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
 import 'package:guess_party/features/game/domain/usecases/get_local_role_reveal_data.dart';
@@ -25,12 +26,12 @@ final class LocalRoleRevealLoaded extends LocalRoleRevealState {
 }
 
 final class LocalRoleRevealFailure extends LocalRoleRevealState {
-  final String message;
+  final AppErrorCode code;
 
-  const LocalRoleRevealFailure(this.message);
+  const LocalRoleRevealFailure(this.code);
 
   @override
-  List<Object> get props => [message];
+  List<Object> get props => [code];
 }
 
 class LocalRoleRevealCubit extends Cubit<LocalRoleRevealState> {
@@ -43,11 +44,12 @@ class LocalRoleRevealCubit extends Cubit<LocalRoleRevealState> {
   }) : super(LocalRoleRevealInitial());
 
   Future<void> load(String roomId) async {
+    if (isClosed) return;
     emit(LocalRoleRevealLoading());
     final result = await getLocalRoleRevealData(roomId: roomId);
     if (isClosed) return;
     result.fold(
-      (failure) => emit(LocalRoleRevealFailure(failure.message)),
+      (failure) => emit(LocalRoleRevealFailure(failure.code)),
       (data) => emit(LocalRoleRevealLoaded(data)),
     );
   }

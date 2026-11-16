@@ -7,6 +7,7 @@ import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
+import 'package:guess_party/l10n/l10n.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 class GameLifecycleManager extends StatefulWidget {
@@ -56,37 +57,29 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     }
   }
 
+  /// Best-effort stale-player cleanup.
+  ///
+  /// Every online player runs this (not only the host) so the room still heals
+  /// when the host's app is killed: the server lets any online room member run
+  /// it. Cost is one cheap indexed UPDATE per player every heartbeat (4-10
+  /// players x 25 s), which is cheaper and more robust than electing a runner
+  /// who could itself be the dead one. Failures are never surfaced to the UI.
   Future<void> _cleanupStalePlayers() async {
-    await sl<MarkStalePlayersOffline>()(
-      roomId: widget.roomId,
-      staleSeconds: 90,
-    );
-  }
-
-  /// Returns true if the authenticated user is currently the room host.
-  /// Used to restrict stale-player cleanup to the host only (Step 7).
-  bool _isCurrentUserHost() {
-    final cubitState = _gameCubit.state;
-    if (cubitState is! GameLoaded) return false;
-    final currentUserId = sl<AuthSessionService>().currentUserId;
-    if (currentUserId == null) return false;
-    for (final player in cubitState.gameState.players) {
-      if (player.userId == currentUserId) {
-        return player.isHost;
-      }
+    try {
+      await sl<MarkStalePlayersOffline>()(
+        roomId: widget.roomId,
+        staleSeconds: 90,
+      );
+    } catch (_) {
+      // Best-effort; the next heartbeat retries.
     }
-    return false;
   }
 
   void _startHeartbeat() {
     _heartbeatTimer?.cancel();
     _heartbeatTimer = Timer.periodic(_heartbeatInterval, (_) {
       _setCurrentUserOnlineStatus(true);
-      // Step 7: Only the host runs stale-player cleanup. Avoids N players
-      // all calling the same RPC every 25 seconds (~14x/min with 6 players).
-      if (_isCurrentUserHost()) {
-        unawaited(_cleanupStalePlayers());
-      }
+      unawaited(_cleanupStalePlayers());
     });
   }
 
@@ -183,12 +176,16 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
         }).toList();
 
         if (newlyDisconnected.isNotEmpty) {
+          final l10n = context.l10n;
           final names = newlyDisconnected
-              .map((player) => player['username']?.toString() ?? 'Player')
+              .map(
+                (player) =>
+                    player['username']?.toString() ?? l10n.aPlayerFallbackName,
+              )
               .toList();
           final label = names.length == 1
-              ? '${names.first} has left the game'
-              : '${names.join(', ')} have left the game';
+              ? l10n.playerLeftGame(names.first)
+              : l10n.playersLeftGame(names.join(', '));
           final offlineIds = newlyDisconnected
             ..sort((a, b) {
               final aId = a['id']?.toString() ?? '';
@@ -206,12 +203,14 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
             currentHostPlayerId != null &&
             _previousHostPlayerId != currentHostPlayerId &&
             _lastAnnouncedHostPlayerId != currentHostPlayerId) {
+          final l10n = context.l10n;
           final hostName = currentHost.isEmpty
-              ? 'A player'
-              : currentHost.first['username']?.toString() ?? 'A player';
+              ? l10n.aPlayerFallbackName
+              : currentHost.first['username']?.toString() ??
+                    l10n.aPlayerFallbackName;
           _lastAnnouncedHostPlayerId = currentHostPlayerId;
           _showPresenceBanner(
-            '$hostName is now the host',
+            l10n.playerIsNowHost(hostName),
             color: AppColors.success,
             dedupeKey: 'host:$currentHostPlayerId',
           );
@@ -264,7 +263,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     _setCurrentUserOnlineStatus(true);
     _startHeartbeat();
     _refreshPresenceSnapshot(notify: false);
-    // Run cleanup once on init regardless of host (catch-up); periodic is host-only.
+    // Catch-up cleanup on init; the periodic heartbeat repeats it.
     unawaited(_cleanupStalePlayers());
     _subscribeToPresenceChanges();
     _subscribeToRoomStatus(); // Step 10
@@ -298,9 +297,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     _setCurrentUserOnlineStatus(true);
     _startHeartbeat();
     _refreshPresenceSnapshot(notify: false);
-    if (_isCurrentUserHost()) {
-      unawaited(_cleanupStalePlayers());
-    }
+    unawaited(_cleanupStalePlayers());
     _subscribeToPresenceChanges();
     _subscribeToRoomStatus(); // Step 10
   }
@@ -326,9 +323,7 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
       case AppLifecycleState.resumed:
         _setCurrentUserOnlineStatus(true);
         _startHeartbeat();
-        if (_isCurrentUserHost()) {
-          unawaited(_cleanupStalePlayers()); // host-only on resume
-        }
+        unawaited(_cleanupStalePlayers());
 
         Sentry.addBreadcrumb(
           Breadcrumb(

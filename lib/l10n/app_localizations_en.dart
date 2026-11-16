@@ -1085,4 +1085,166 @@ class AppLocalizationsEn extends AppLocalizations {
   String mostVoted(String name, int count) {
     return 'Most voted: $name ($count votes)';
   }
+
+  @override
+  String get errUnknown => 'Something went wrong. Please try again.';
+
+  @override
+  String get errNetwork => 'Connection lost. Reconnecting...';
+
+  @override
+  String get errUnauthorized => 'You do not have permission to do that.';
+
+  @override
+  String get errDuplicateAction => 'You already did that.';
+
+  @override
+  String get errInvalidInput =>
+      'That does not look right. Check your input and try again.';
+
+  @override
+  String get errAuthRequired => 'Please sign in to continue.';
+
+  @override
+  String get errHostRequired => 'Only the host can do that.';
+
+  @override
+  String get errRoomMemberRequired => 'You need to be in this room to do that.';
+
+  @override
+  String get errRoomParticipantRequired => 'You are not a player in this room.';
+
+  @override
+  String get errRoundParticipantRequired =>
+      'You are not taking part in this round.';
+
+  @override
+  String get errRoundNotFound => 'This round is no longer available.';
+
+  @override
+  String get errPlayerNotFound => 'We could not find that player.';
+
+  @override
+  String get errRoomFull => 'This room is full.';
+
+  @override
+  String get errRoomAlreadyStarted => 'This room has already started.';
+
+  @override
+  String get errRoomNotActive => 'This room is no longer active.';
+
+  @override
+  String get errNotEnoughPlayers => 'Not enough players to continue.';
+
+  @override
+  String get errOnlineRoomRequired => 'This is only available in online rooms.';
+
+  @override
+  String get errInvalidRoomSettings => 'Those room settings are not valid.';
+
+  @override
+  String get errInvalidStaleSeconds =>
+      'Could not update player status. Please try again.';
+
+  @override
+  String get errChatRateLimited =>
+      'Slow down a little before sending another message.';
+
+  @override
+  String get errInvalidChatContent => 'Message must be 500 characters or less.';
+
+  @override
+  String get errInvalidReportReason =>
+      'Please describe the problem so we can review it.';
+
+  @override
+  String get errPlayerColumnUpdateForbidden =>
+      'That player change is not allowed.';
+
+  @override
+  String get errWrongPhase => 'That action is not available in this phase.';
+
+  @override
+  String get errVotesIncomplete => 'Waiting for every player to vote.';
+
+  @override
+  String get errUsernameTaken => 'That name is already taken. Try another one.';
+
+  @override
+  String get errInvalidUsername => 'That name is not valid. Try another one.';
+
+  @override
+  String get errInvalidCredentials => 'Invalid sign-in details';
+
+  @override
+  String get errEmailNotConfirmed =>
+      'Email confirmation required. Check your inbox.';
+
+  @override
+  String get errWeakPassword =>
+      'Password is too weak. Use at least 8 characters.';
+
+  @override
+  String get errEmailAlreadyRegistered =>
+      'An account already uses this email. Try signing in instead.';
+
+  @override
+  String get errRateLimited => 'Too many attempts. Try again later.';
+
+  @override
+  String get errInvalidEmail => 'Invalid email address';
+
+  @override
+  String get errAccountAlreadyUpgraded =>
+      'This account already uses a real email.';
+
+  @override
+  String get errChatLoadFailed => 'Unable to load chat. Please try again.';
+
+  @override
+  String get errChatLoadOlderFailed => 'Unable to load older messages.';
+
+  @override
+  String get errChatSendFailed => 'Unable to send message. Please try again.';
+
+  @override
+  String get errChatMuteFailed => 'Unable to update mute setting.';
+
+  @override
+  String get errChatConnectionInterrupted => 'Chat connection interrupted.';
+
+  @override
+  String get errReportFailed => 'Unable to submit report.';
+
+  @override
+  String get errEmailVerificationRequired =>
+      'Check your email to verify your account, then sign in.';
+
+  @override
+  String get errPasswordResetRequested =>
+      'If an account exists for that email, a password reset link has been sent.';
+
+  @override
+  String get errAccountUpgradeComplete => 'Your account upgrade is complete.';
+
+  @override
+  String get errReportSubmitted => 'Report submitted for review.';
+
+  @override
+  String playerLeftGame(String name) {
+    return '$name has left the game';
+  }
+
+  @override
+  String playersLeftGame(String names) {
+    return '$names have left the game';
+  }
+
+  @override
+  String playerIsNowHost(String name) {
+    return '$name is now the host';
+  }
+
+  @override
+  String get aPlayerFallbackName => 'A player';
 }
