@@ -2,41 +2,20 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/error/app_error_code.dart';
 import '../../../../core/error/failures.dart';
-import '../../domain/usecases/begin_account_upgrade.dart';
-import '../../domain/usecases/request_password_reset.dart';
-import '../../domain/usecases/set_verified_account_password.dart';
-import '../../domain/usecases/sign_in_guest.dart';
-import '../../domain/usecases/sign_in_legacy_with_password.dart';
-import '../../domain/usecases/sign_in_with_password.dart';
-import '../../domain/usecases/sign_up_with_password.dart';
-import '../../domain/usecases/update_recovered_password.dart';
+import '../../domain/repositories/auth_repository.dart';
 import 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
-  final SignInGuest signInGuest;
-  final SignUpWithPassword signUpWithPassword;
-  final SignInWithPassword signInWithPasswordUseCase;
-  final SignInLegacyWithPassword signInLegacyWithPasswordUseCase;
-  final RequestPasswordReset requestPasswordResetUseCase;
-  final BeginAccountUpgrade beginAccountUpgradeUseCase;
-  final SetVerifiedAccountPassword setVerifiedAccountPasswordUseCase;
-  final UpdateRecoveredPassword updateRecoveredPasswordUseCase;
+  final AuthRepository _repository;
 
-  AuthCubit({
-    required this.signInGuest,
-    required this.signUpWithPassword,
-    required this.signInWithPasswordUseCase,
-    required this.signInLegacyWithPasswordUseCase,
-    required this.requestPasswordResetUseCase,
-    required this.beginAccountUpgradeUseCase,
-    required this.setVerifiedAccountPasswordUseCase,
-    required this.updateRecoveredPasswordUseCase,
-  }) : super(AuthInitial());
+  AuthCubit({required AuthRepository repository})
+    : _repository = repository,
+      super(AuthInitial());
 
   Future<void> signIn(String username) async {
     emit(AuthLoading());
 
-    final result = await signInGuest(username);
+    final result = await _repository.signInAsGuest(username);
 
     result.fold(
       (failure) => emit(AuthError(failure.code)),
@@ -47,7 +26,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signUp(String email, String displayName, String password) async {
     emit(AuthLoading());
 
-    final result = await signUpWithPassword(
+    final result = await _repository.signUpWithPassword(
       email: email,
       displayName: displayName,
       password: password,
@@ -66,7 +45,7 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> signInWithPassword(String email, String password) async {
     emit(AuthLoading());
 
-    final result = await signInWithPasswordUseCase(
+    final result = await _repository.signInWithPassword(
       email: email,
       password: password,
     );
@@ -82,7 +61,7 @@ class AuthCubit extends Cubit<AuthState> {
     String password,
   ) async {
     emit(AuthLoading());
-    final result = await signInLegacyWithPasswordUseCase(
+    final result = await _repository.signInLegacyWithPassword(
       username: username,
       password: password,
     );
@@ -94,7 +73,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> requestPasswordReset(String email) async {
     emit(AuthLoading());
-    final result = await requestPasswordResetUseCase(email);
+    final result = await _repository.requestPasswordReset(email);
     result.fold(
       (failure) => emit(AuthError(failure.code)),
       (_) => emit(const AuthMessage(AppErrorCode.passwordResetRequested)),
@@ -103,7 +82,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> beginAccountUpgrade(String email, String displayName) async {
     emit(AuthLoading());
-    final result = await beginAccountUpgradeUseCase(
+    final result = await _repository.beginAccountUpgrade(
       email: email,
       displayName: displayName,
     );
@@ -115,7 +94,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> setVerifiedAccountPassword(String password) async {
     emit(AuthLoading());
-    final result = await setVerifiedAccountPasswordUseCase(password);
+    final result = await _repository.setVerifiedAccountPassword(password);
     result.fold(
       (failure) => emit(AuthError(failure.code)),
       (_) => emit(const AuthMessage(AppErrorCode.accountUpgradeComplete)),
@@ -124,7 +103,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> updateRecoveredPassword(String password) async {
     emit(AuthLoading());
-    final result = await updateRecoveredPasswordUseCase(password);
+    final result = await _repository.updateRecoveredPassword(password);
     result.fold(
       (failure) => emit(AuthError(failure.code)),
       (_) => emit(const AuthPasswordUpdated()),

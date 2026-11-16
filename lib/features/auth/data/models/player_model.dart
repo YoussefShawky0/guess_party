@@ -34,8 +34,9 @@ class PlayerModel extends Player {
     final timeStart = value.indexOf(RegExp(r'[T ]'));
     final hasOffset =
         timeStart >= 0 &&
-        RegExp(r'(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$')
-            .hasMatch(value.substring(timeStart));
+        RegExp(
+          r'(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$',
+        ).hasMatch(value.substring(timeStart));
     final parsed = DateTime.tryParse(hasOffset ? value : '${value}Z');
     return parsed?.toUtc();
   }
@@ -46,8 +47,7 @@ class PlayerModel extends Player {
     }
 
     final parsed = _tryParseUtc(value.toString());
-    return parsed ??
-        DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    return parsed ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
   }
 
   factory PlayerModel.fromJson(Map<String, dynamic> json) {

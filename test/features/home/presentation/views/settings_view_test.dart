@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get_it/get_it.dart';
+import 'package:dartz/dartz.dart';
 import 'package:guess_party/core/config/app_config.dart';
 import 'package:guess_party/core/localization/locale_cubit.dart';
 import 'package:guess_party/core/theme/app_theme.dart';
+import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
+import 'package:guess_party/features/home/domain/entities/user_info.dart';
+import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
 import 'package:guess_party/features/home/presentation/views/settings_view.dart';
 import 'package:guess_party/l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-final _sl = GetIt.instance;
-
 void main() {
   late ThemeCubit themeCubit;
   late LocaleCubit localeCubit;
+  late AppConfig config;
 
   setUp(() async {
-    await _sl.reset();
     SharedPreferences.setMockInitialValues({});
     PackageInfo.setMockInitialValues(
       appName: 'Guess Party',
@@ -31,30 +32,30 @@ void main() {
 
     themeCubit = ThemeCubit();
     localeCubit = LocaleCubit();
-    _sl.registerSingleton<ThemeCubit>(themeCubit);
-    _sl.registerSingleton<LocaleCubit>(localeCubit);
-    _sl.registerSingleton<AppConfig>(
-      const AppConfig(
-        environment: AppEnvironment.development,
-        distribution: AppDistribution.internal,
-        supabaseUrl: 'https://example.supabase.co',
-        supabasePublishableKey: 'sb_publishable_test',
-        sentryDsn: null,
-        sentryTracesSampleRate: 0,
-        sentryRelease: null,
-        sentryDist: null,
-      ),
+    config = const AppConfig(
+      environment: AppEnvironment.development,
+      distribution: AppDistribution.internal,
+      supabaseUrl: 'https://example.supabase.co',
+      supabasePublishableKey: 'sb_publishable_test',
+      sentryDsn: null,
+      sentryTracesSampleRate: 0,
+      sentryRelease: null,
+      sentryDist: null,
     );
   });
 
   tearDown(() async {
     await themeCubit.close();
     await localeCubit.close();
-    await _sl.reset();
   });
 
   Widget harness({TextScaler textScaler = const TextScaler.linear(1)}) {
-    return BlocLocaleHarness(localeCubit: localeCubit, textScaler: textScaler);
+    return BlocLocaleHarness(
+      themeCubit: themeCubit,
+      localeCubit: localeCubit,
+      config: config,
+      textScaler: textScaler,
+    );
   }
 
   testWidgets(
@@ -114,12 +115,16 @@ void main() {
 
 class BlocLocaleHarness extends StatelessWidget {
   const BlocLocaleHarness({
+    required this.themeCubit,
     required this.localeCubit,
+    required this.config,
     required this.textScaler,
     super.key,
   });
 
+  final ThemeCubit themeCubit;
   final LocaleCubit localeCubit;
+  final AppConfig config;
   final TextScaler textScaler;
 
   @override
@@ -136,9 +141,27 @@ class BlocLocaleHarness extends StatelessWidget {
             data: MediaQuery.of(context).copyWith(textScaler: textScaler),
             child: child!,
           ),
-          home: const SettingsView(),
+          home: SettingsView(
+            themeCubit: themeCubit,
+            localeCubit: localeCubit,
+            config: config,
+            homeRepository: _FakeHomeRepository(),
+          ),
         );
       },
     );
   }
+}
+
+class _FakeHomeRepository implements HomeRepository {
+  @override
+  Future<Either<Failure, void>> deleteAccount() async =>
+      const Right<Failure, void>(null);
+
+  @override
+  Future<Either<Failure, UserInfo>> getCurrentUser() =>
+      throw UnimplementedError();
+
+  @override
+  Future<Either<Failure, void>> signOut() => throw UnimplementedError();
 }

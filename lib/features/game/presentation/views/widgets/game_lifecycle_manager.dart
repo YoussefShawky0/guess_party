@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/game/presentation/cubit/presence_coordinator.dart';
-import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
+import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/l10n/l10n.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -16,11 +15,15 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 /// shows localized banners for the typed notices coming out.
 class GameLifecycleManager extends StatefulWidget {
   final String roomId;
+  final AuthSessionService session;
+  final RoomRepository roomRepository;
   final Widget child;
 
   const GameLifecycleManager({
     super.key,
     required this.roomId,
+    required this.session,
+    required this.roomRepository,
     required this.child,
   });
 
@@ -50,10 +53,10 @@ class _GameLifecycleManagerState extends State<GameLifecycleManager>
     _gameCubit = context.read<GameCubit>();
     _presence = PresenceCoordinator(
       roomId: widget.roomId,
-      currentUserId: () => sl<AuthSessionService>().currentUserId,
+      currentUserId: () => widget.session.currentUserId,
       setPresence: _gameCubit.setCurrentPlayerPresence,
       cleanupStalePlayers: ({required roomId, required staleSeconds}) async {
-        await sl<MarkStalePlayersOffline>()(
+        await widget.roomRepository.markStalePlayersOffline(
           roomId: roomId,
           staleSeconds: staleSeconds,
         );

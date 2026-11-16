@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
@@ -14,14 +13,6 @@ import '../cubit/auth_state.dart';
 import 'widgets/login_header.dart';
 
 enum _AuthFormMode { signIn, signUp, legacy }
-
-class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) =>
-      BlocProvider(create: (_) => di.sl<AuthCubit>(), child: const LoginView());
-}
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});

@@ -5,10 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
-import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
-import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/core/services/room_query_service.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
@@ -23,32 +21,15 @@ import 'widgets/player_count_selector.dart';
 import 'widgets/round_duration_selector.dart';
 import 'widgets/rounds_selector.dart';
 
-class CreateRoomScreen extends StatelessWidget {
-  const CreateRoomScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final session = di.sl<AuthSessionService>();
-    final username = session.currentUsername;
-
-    if (session.currentUserId == null) {
-      return Scaffold(
-        appBar: AppBar(title: Text(context.l10n.createRoom)),
-        body: Center(child: Text(context.l10n.userNotAuthenticated)),
-      );
-    }
-
-    return BlocProvider(
-      create: (_) => di.sl<RoomCubit>(),
-      child: CreateRoomView(username: username),
-    );
-  }
-}
-
 class CreateRoomView extends StatefulWidget {
   final String username;
+  final RoomQueryService roomQueryService;
 
-  const CreateRoomView({super.key, required this.username});
+  const CreateRoomView({
+    super.key,
+    required this.username,
+    required this.roomQueryService,
+  });
 
   @override
   State<CreateRoomView> createState() => _CreateRoomViewState();
@@ -73,7 +54,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
 
   Future<void> _loadCategories() async {
     try {
-      final fetched = await di.sl<RoomQueryService>().getActiveCategories();
+      final fetched = await widget.roomQueryService.getActiveCategories();
 
       if (mounted && fetched.isNotEmpty) {
         setState(() {

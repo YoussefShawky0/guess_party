@@ -9,12 +9,6 @@ import 'package:guess_party/features/game/domain/entities/game_state.dart'
     as entity;
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
-import 'package:guess_party/features/game/domain/usecases/advance_to_voting.dart';
-import 'package:guess_party/features/game/domain/usecases/create_next_round.dart';
-import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
-import 'package:guess_party/features/game/domain/usecases/finalize_voting.dart';
-import 'package:guess_party/features/game/domain/usecases/finish_game.dart';
-import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
 import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -28,16 +22,16 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
   static const int _minConnectedPlayersForPhaseAdvance =
       minConnectedPlayersToAdvance;
 
-  final GetGameState getGameState;
-  final SubmitHint submitHint;
-  final SubmitVote submitVote;
-  final AdvanceToVoting advanceToVoting;
-  final FinalizeVoting finalizeVotingUseCase;
-  final CreateNextRound createNextRound;
-  final FinishGame finishGameUseCase;
-  final ExtendLocalRoleReveal extendLocalRoleReveal;
   final GameRepository gameRepository;
   final TimeSyncService timeSyncService;
+
+  // Hint/vote validation lives in these use cases; every other game command
+  // goes straight to the repository.
+  late final SubmitHint _submitHint = SubmitHint(gameRepository);
+  late final SubmitVote _submitVote = SubmitVote(gameRepository);
+
+  /// Server-synchronized current time, used by phase timers.
+  DateTime get serverNow => timeSyncService.serverTime;
 
   StreamSubscription? _roundSubscription;
   StreamSubscription? _playersSubscription;
@@ -65,18 +59,8 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
   String _currentPlayerId = '';
   String get currentPlayerId => _currentPlayerId;
 
-  GameCubit({
-    required this.getGameState,
-    required this.submitHint,
-    required this.submitVote,
-    required this.advanceToVoting,
-    required this.finalizeVotingUseCase,
-    required this.createNextRound,
-    required this.finishGameUseCase,
-    required this.extendLocalRoleReveal,
-    required this.gameRepository,
-    required this.timeSyncService,
-  }) : super(GameInitial());
+  GameCubit({required this.gameRepository, required this.timeSyncService})
+    : super(GameInitial());
 
   void _addBreadcrumb(String message, {Map<String, Object?> data = const {}}) {
     Sentry.addBreadcrumb(
@@ -109,7 +93,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       );
     }
 
-    final result = await getGameState(
+    final result = await gameRepository.getGameState(
       roomId: roomId,
       currentPlayerId: currentPlayerId,
     );
@@ -159,7 +143,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
     );
 
     for (var attempt = 1; attempt <= maxRetries; attempt++) {
-      final result = await getGameState(
+      final result = await gameRepository.getGameState(
         roomId: roomId,
         currentPlayerId: _currentPlayerId,
       );
@@ -318,7 +302,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       data: {'roundId': roundId, 'playerId': playerId},
     );
 
-    final result = await submitHint(
+    final result = await _submitHint(
       roundId: roundId,
       playerId: playerId,
       hint: hint,
@@ -367,7 +351,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       data: {'roundId': roundId, 'voterId': voterId},
     );
 
-    final result = await submitVote(
+    final result = await _submitVote(
       roundId: roundId,
       voterId: voterId,
       votedPlayerId: votedPlayerId,
@@ -426,7 +410,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       return;
     }
 
-    final result = await advanceToVoting(roundId: roundId);
+    final result = await gameRepository.advanceToVoting(roundId: roundId);
 
     if (isClosed) return;
     result.fold(
@@ -464,7 +448,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
     );
 
     try {
-      final result = await finalizeVotingUseCase(
+      final result = await gameRepository.finalizeVoting(
         roundId: roundId,
         reason: reason,
       );
@@ -514,7 +498,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
     );
 
     try {
-      final result = await createNextRound(
+      final result = await gameRepository.createNextRound(
         roomId: roomId,
         expectedRoundNumber: roundNumber,
       );
@@ -564,7 +548,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
       data: {'roundId': roundId, 'additionalSeconds': additionalSeconds},
     );
 
-    final result = await extendLocalRoleReveal(
+    final result = await gameRepository.extendLocalRoleReveal(
       roundId: roundId,
       seconds: additionalSeconds,
     );
@@ -592,7 +576,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
     _addBreadcrumb('finishGame:start', data: {'roomId': roomId});
 
     final snapshot = state;
-    final result = await finishGameUseCase(roomId: roomId);
+    final result = await gameRepository.finishGame(roomId: roomId);
 
     if (isClosed) return;
     result.fold(

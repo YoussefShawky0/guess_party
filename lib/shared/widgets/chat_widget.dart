@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
 import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
@@ -26,8 +25,8 @@ class ChatWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       key: ValueKey('chat-$roomId-$roundId'),
-      create: (_) =>
-          ChatCubit(sl<ChatRepository>())
+      create: (context) =>
+          ChatCubit(context.read<ChatRepository>())
             ..start(roomId: roomId, roundId: roundId),
       child: _ChatPanel(currentPlayerId: currentPlayerId),
     );

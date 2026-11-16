@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
@@ -14,7 +13,7 @@ import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/game/presentation/reconnect_notice_gate.dart';
-import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
+import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'widgets/online_game_content.dart';
 import 'widgets/game_lifecycle_manager.dart';
@@ -25,12 +24,21 @@ import 'package:guess_party/l10n/l10n.dart';
 class GameView extends StatelessWidget {
   final String roomId;
   final Map<String, int>? preservedScores;
+  final AuthSessionService session;
+  final RoomRepository roomRepository;
+  final GameCubit Function() createGameCubit;
 
-  const GameView({super.key, required this.roomId, this.preservedScores});
+  const GameView({
+    super.key,
+    required this.roomId,
+    required this.session,
+    required this.roomRepository,
+    required this.createGameCubit,
+    this.preservedScores,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final session = sl<AuthSessionService>();
     return StreamBuilder<String?>(
       stream: session.userIdChanges,
       initialData: session.currentUserId,
@@ -44,7 +52,7 @@ class GameView extends StatelessWidget {
         }
 
         return BlocProvider(
-          create: (context) => sl<GameCubit>()
+          create: (context) => createGameCubit()
             ..loadGameState(
               roomId: roomId,
               currentPlayerId: currentUserId,
@@ -52,7 +60,12 @@ class GameView extends StatelessWidget {
             ),
           child: GameLifecycleManager(
             roomId: roomId,
-            child: GameViewContent(roomId: roomId),
+            session: session,
+            roomRepository: roomRepository,
+            child: GameViewContent(
+              roomId: roomId,
+              roomRepository: roomRepository,
+            ),
           ),
         );
       },
@@ -62,8 +75,13 @@ class GameView extends StatelessWidget {
 
 class GameViewContent extends StatefulWidget {
   final String roomId;
+  final RoomRepository roomRepository;
 
-  const GameViewContent({super.key, required this.roomId});
+  const GameViewContent({
+    super.key,
+    required this.roomId,
+    required this.roomRepository,
+  });
 
   @override
   State<GameViewContent> createState() => _GameViewContentState();
@@ -229,7 +247,7 @@ class _GameViewContentState extends State<GameViewContent> {
         return;
       }
 
-      await sl<LeaveRoom>()(
+      await widget.roomRepository.leaveRoom(
         playerId: currentPlayer.id,
         roomId: widget.roomId,
         isHost: currentPlayer.isHost,

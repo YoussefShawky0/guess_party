@@ -5,14 +5,6 @@ import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/auth/domain/repositories/auth_repository.dart';
-import 'package:guess_party/features/auth/domain/usecases/begin_account_upgrade.dart';
-import 'package:guess_party/features/auth/domain/usecases/request_password_reset.dart';
-import 'package:guess_party/features/auth/domain/usecases/set_verified_account_password.dart';
-import 'package:guess_party/features/auth/domain/usecases/sign_in_guest.dart';
-import 'package:guess_party/features/auth/domain/usecases/sign_in_legacy_with_password.dart';
-import 'package:guess_party/features/auth/domain/usecases/sign_in_with_password.dart';
-import 'package:guess_party/features/auth/domain/usecases/sign_up_with_password.dart';
-import 'package:guess_party/features/auth/domain/usecases/update_recovered_password.dart';
 import 'package:guess_party/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:guess_party/features/auth/presentation/cubit/auth_state.dart';
 
@@ -42,16 +34,8 @@ void main() {
   });
 }
 
-AuthCubit buildCubit(AuthRepository repository) => AuthCubit(
-  signInGuest: SignInGuest(repository),
-  signUpWithPassword: SignUpWithPassword(repository),
-  signInWithPasswordUseCase: SignInWithPassword(repository),
-  signInLegacyWithPasswordUseCase: SignInLegacyWithPassword(repository),
-  requestPasswordResetUseCase: RequestPasswordReset(repository),
-  beginAccountUpgradeUseCase: BeginAccountUpgrade(repository),
-  setVerifiedAccountPasswordUseCase: SetVerifiedAccountPassword(repository),
-  updateRecoveredPasswordUseCase: UpdateRecoveredPassword(repository),
-);
+AuthCubit buildCubit(AuthRepository repository) =>
+    AuthCubit(repository: repository);
 
 class FakeAuthRepository implements AuthRepository {
   FakeAuthRepository({this.requireEmailVerification = false});

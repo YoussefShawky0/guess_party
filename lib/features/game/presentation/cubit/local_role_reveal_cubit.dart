@@ -2,8 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/game/domain/entities/local_role_reveal_data.dart';
-import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
-import 'package:guess_party/features/game/domain/usecases/get_local_role_reveal_data.dart';
+import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
 
 sealed class LocalRoleRevealState extends Equatable {
   const LocalRoleRevealState();
@@ -35,18 +34,16 @@ final class LocalRoleRevealFailure extends LocalRoleRevealState {
 }
 
 class LocalRoleRevealCubit extends Cubit<LocalRoleRevealState> {
-  final GetLocalRoleRevealData getLocalRoleRevealData;
-  final ExtendLocalRoleReveal extendLocalRoleReveal;
+  final GameRepository _repository;
 
-  LocalRoleRevealCubit({
-    required this.getLocalRoleRevealData,
-    required this.extendLocalRoleReveal,
-  }) : super(LocalRoleRevealInitial());
+  LocalRoleRevealCubit({required GameRepository repository})
+    : _repository = repository,
+      super(LocalRoleRevealInitial());
 
   Future<void> load(String roomId) async {
     if (isClosed) return;
     emit(LocalRoleRevealLoading());
-    final result = await getLocalRoleRevealData(roomId: roomId);
+    final result = await _repository.getLocalRoleRevealData(roomId: roomId);
     if (isClosed) return;
     result.fold(
       (failure) => emit(LocalRoleRevealFailure(failure.code)),
@@ -58,7 +55,7 @@ class LocalRoleRevealCubit extends Cubit<LocalRoleRevealState> {
     required String roundId,
     required int seconds,
   }) async {
-    final result = await extendLocalRoleReveal(
+    final result = await _repository.extendLocalRoleReveal(
       roundId: roundId,
       seconds: seconds.clamp(5, 300).toInt(),
     );

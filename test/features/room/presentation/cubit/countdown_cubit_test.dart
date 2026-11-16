@@ -8,7 +8,7 @@ import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
-import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
+import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/features/room/presentation/cubit/countdown_cubit.dart';
 
 import '../../../../helpers/game_test_fixtures.dart';
@@ -30,14 +30,14 @@ class _FakeGameRepository implements GameRepository {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _FakeGetRoomDetails implements GetRoomDetails {
+class _FakeRoomRepository implements RoomRepository {
   final String gameMode;
   final bool fail;
 
-  _FakeGetRoomDetails([this.gameMode = 'online', this.fail = false]);
+  _FakeRoomRepository([this.gameMode = 'online', this.fail = false]);
 
   @override
-  ResultFuture<Room> call({required String roomId}) async => fail
+  ResultFuture<Room> getRoomDetails({required String roomId}) async => fail
       ? const Left(ServerFailure('net', code: AppErrorCode.network))
       : Right(
           Room(
@@ -70,7 +70,7 @@ CountdownCubit _cubit(
   bool roomLookupFails = false,
 }) => CountdownCubit(
   gameRepository: repo,
-  getRoomDetails: _FakeGetRoomDetails(gameMode, roomLookupFails),
+  roomRepository: _FakeRoomRepository(gameMode, roomLookupFails),
   roomId: 'room-1',
   maxAttempts: maxAttempts,
   pollInterval: const Duration(milliseconds: 1),

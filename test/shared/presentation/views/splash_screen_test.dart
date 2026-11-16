@@ -1,28 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/shared/presentation/views/splash_screen.dart';
 import 'package:guess_party/shared/presentation/views/widgets/fullscreen_splash_artwork.dart';
 
 void main() {
-  setUp(() async {
-    await sl.reset();
-  });
-
-  tearDown(() async {
-    await sl.reset();
-  });
-
   testWidgets('keeps the artwork visible before navigating to auth', (
     tester,
   ) async {
-    sl.registerSingleton<AuthSessionService>(
-      const _FakeAuthSessionService(userId: null),
-    );
-    final router = _buildRouter();
+    final router = _buildRouter(const _FakeAuthSessionService(userId: null));
     addTearDown(router.dispose);
 
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
@@ -43,13 +31,13 @@ void main() {
   });
 }
 
-GoRouter _buildRouter() {
+GoRouter _buildRouter(AuthSessionService session) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
     routes: [
       GoRoute(
         path: AppRoutes.splash,
-        builder: (context, state) => const SplashScreen(),
+        builder: (context, state) => SplashScreen(session: session),
       ),
       GoRoute(
         path: AppRoutes.auth,

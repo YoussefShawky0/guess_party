@@ -14,14 +14,6 @@ import 'package:guess_party/features/game/domain/entities/local_role_reveal_bund
 import 'package:guess_party/features/game/domain/entities/local_role_reveal_data.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
-import 'package:guess_party/features/game/domain/usecases/advance_to_voting.dart';
-import 'package:guess_party/features/game/domain/usecases/create_next_round.dart';
-import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
-import 'package:guess_party/features/game/domain/usecases/finalize_voting.dart';
-import 'package:guess_party/features/game/domain/usecases/finish_game.dart';
-import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
-import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
-import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 
 import '../../../../helpers/game_test_fixtures.dart';
@@ -33,14 +25,6 @@ void main() {
   setUp(() {
     repository = CharacterizationGameRepository();
     cubit = GameCubit(
-      getGameState: GetGameState(repository: repository),
-      submitHint: SubmitHint(repository),
-      submitVote: SubmitVote(repository),
-      advanceToVoting: AdvanceToVoting(repository),
-      finalizeVotingUseCase: FinalizeVoting(repository),
-      createNextRound: CreateNextRound(repository),
-      finishGameUseCase: FinishGame(repository),
-      extendLocalRoleReveal: ExtendLocalRoleReveal(repository),
       gameRepository: repository,
       timeSyncService: TimeSyncService(FixedServerClock()),
     );
@@ -217,14 +201,6 @@ void main() {
     'action failure without a loaded state falls back to GameError',
     () async {
       final fresh = GameCubit(
-        getGameState: GetGameState(repository: repository),
-        submitHint: SubmitHint(repository),
-        submitVote: SubmitVote(repository),
-        advanceToVoting: AdvanceToVoting(repository),
-        finalizeVotingUseCase: FinalizeVoting(repository),
-        createNextRound: CreateNextRound(repository),
-        finishGameUseCase: FinishGame(repository),
-        extendLocalRoleReveal: ExtendLocalRoleReveal(repository),
         gameRepository: repository,
         timeSyncService: TimeSyncService(FixedServerClock()),
       );

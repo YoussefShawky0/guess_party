@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
-import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
+import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 
 sealed class CountdownState extends Equatable {
   const CountdownState();
@@ -45,7 +45,7 @@ final class CountdownRoundUnavailable extends CountdownState {
 /// countdown ends, but slow networks can delay it, so the lookup is polled.
 class CountdownCubit extends Cubit<CountdownState> {
   final GameRepository _gameRepository;
-  final GetRoomDetails _getRoomDetails;
+  final RoomRepository _roomRepository;
   final String roomId;
   final int maxAttempts;
   final Duration pollInterval;
@@ -54,12 +54,12 @@ class CountdownCubit extends Cubit<CountdownState> {
 
   CountdownCubit({
     required GameRepository gameRepository,
-    required GetRoomDetails getRoomDetails,
+    required RoomRepository roomRepository,
     required this.roomId,
     this.maxAttempts = 5,
     this.pollInterval = const Duration(seconds: 1),
   }) : _gameRepository = gameRepository,
-       _getRoomDetails = getRoomDetails,
+       _roomRepository = roomRepository,
        super(const CountdownCounting());
 
   /// Polls for the first round, then emits [CountdownReady] or
@@ -105,7 +105,7 @@ class CountdownCubit extends Cubit<CountdownState> {
       final AppErrorCode? modeError;
       String? gameMode;
       try {
-        final result = await _getRoomDetails(roomId: roomId);
+        final result = await _roomRepository.getRoomDetails(roomId: roomId);
         modeError = result.fold((f) => f.code, (room) {
           gameMode = room.gameMode;
           return null;

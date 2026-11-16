@@ -4,42 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/router/app_routes.dart';
-import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
-import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
 import 'package:guess_party/features/room/presentation/cubit/countdown_cubit.dart';
 import 'package:guess_party/l10n/app_localizations.dart';
 
-class CountdownScreen extends StatelessWidget {
+class CountdownScreen extends StatefulWidget {
   final String roomId;
 
   const CountdownScreen({super.key, required this.roomId});
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => CountdownCubit(
-        gameRepository: sl<GameRepository>(),
-        getRoomDetails: sl<GetRoomDetails>(),
-        roomId: roomId,
-      ),
-      child: _CountdownBody(roomId: roomId),
-    );
-  }
+  State<CountdownScreen> createState() => _CountdownScreenState();
 }
 
-class _CountdownBody extends StatefulWidget {
-  final String roomId;
-
-  const _CountdownBody({required this.roomId});
-
-  @override
-  State<_CountdownBody> createState() => _CountdownBodyState();
-}
-
-class _CountdownBodyState extends State<_CountdownBody>
+class _CountdownScreenState extends State<CountdownScreen>
     with SingleTickerProviderStateMixin {
   int _countdown = 3;
   late AnimationController _animationController;

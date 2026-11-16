@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/router/app_routes.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/character.dart';
@@ -14,7 +13,7 @@ import 'package:guess_party/l10n/l10n.dart';
 
 /// Shared-Device screen where each player sees their role one by one.
 /// before the game starts. This ensures privacy on a shared device.
-class LocalRoleRevealScreen extends StatelessWidget {
+class LocalRoleRevealScreen extends StatefulWidget {
   final String roomId;
   final Map<String, int>? preservedScores;
 
@@ -25,32 +24,10 @@ class LocalRoleRevealScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => sl<LocalRoleRevealCubit>()..load(roomId),
-      child: LocalRoleRevealContent(
-        roomId: roomId,
-        preservedScores: preservedScores,
-      ),
-    );
-  }
+  State<LocalRoleRevealScreen> createState() => _LocalRoleRevealScreenState();
 }
 
-class LocalRoleRevealContent extends StatefulWidget {
-  final String roomId;
-  final Map<String, int>? preservedScores;
-
-  const LocalRoleRevealContent({
-    super.key,
-    required this.roomId,
-    this.preservedScores,
-  });
-
-  @override
-  State<LocalRoleRevealContent> createState() => _LocalRoleRevealContentState();
-}
-
-class _LocalRoleRevealContentState extends State<LocalRoleRevealContent> {
+class _LocalRoleRevealScreenState extends State<LocalRoleRevealScreen> {
   int _currentPlayerIndex = 0;
   bool _isRoleRevealed = false;
   List<Player> _players = [];

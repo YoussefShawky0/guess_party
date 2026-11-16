@@ -9,17 +9,6 @@ import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
 import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
-import 'package:guess_party/features/room/domain/usecases/create_room.dart';
-import 'package:guess_party/features/room/domain/usecases/get_room_by_code.dart';
-import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
-import 'package:guess_party/features/room/domain/usecases/get_room_players.dart';
-import 'package:guess_party/features/room/domain/usecases/leave_room.dart';
-import 'package:guess_party/features/room/domain/usecases/join_room.dart';
-import 'package:guess_party/features/room/domain/usecases/mark_stale_players_offline.dart';
-import 'package:guess_party/features/room/domain/usecases/start_game.dart';
-import 'package:guess_party/features/room/domain/usecases/update_player_status.dart';
-import 'package:guess_party/features/room/domain/usecases/watch_room_details.dart';
-import 'package:guess_party/features/room/domain/usecases/watch_room_players.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 
 void main() {
@@ -29,17 +18,7 @@ void main() {
   setUp(() {
     repository = FakeRoomRepository();
     cubit = RoomCubit(
-      createRoom: CreateRoom(repository),
-      getRoomDetails: GetRoomDetails(repository),
-      getRoomPlayers: GetRoomPlayers(repository),
-      getRoomByCode: GetRoomByCode(repository),
-      startGame: StartGame(repository),
-      updatePlayerStatus: UpdatePlayerStatus(repository),
-      markStalePlayersOffline: MarkStalePlayersOffline(repository),
-      leaveRoom: LeaveRoom(repository),
-      joinRoomCommand: JoinRoom(repository),
-      watchRoomDetails: WatchRoomDetails(repository),
-      watchRoomPlayers: WatchRoomPlayers(repository),
+      repository: repository,
       pollFallbackInterval: const Duration(milliseconds: 20),
     );
   });

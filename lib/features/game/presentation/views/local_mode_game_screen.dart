@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
@@ -15,42 +14,21 @@ import 'package:guess_party/features/game/presentation/views/widgets/shared_devi
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
-class LocalModeGameScreen extends StatelessWidget {
+class LocalModeGameScreen extends StatefulWidget {
   final String roomId;
-  final Map<String, int>? preservedScores;
+  final AuthSessionService session;
 
   const LocalModeGameScreen({
     super.key,
     required this.roomId,
-    this.preservedScores,
+    required this.session,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final currentUserId = sl<AuthSessionService>().currentUserId ?? '';
-
-    return BlocProvider(
-      create: (context) => sl<GameCubit>()
-        ..loadGameState(
-          roomId: roomId,
-          currentPlayerId: currentUserId,
-          preservedScores: preservedScores,
-        ),
-      child: _LocalModeGameBody(roomId: roomId),
-    );
-  }
+  State<LocalModeGameScreen> createState() => _LocalModeGameScreenState();
 }
 
-class _LocalModeGameBody extends StatefulWidget {
-  final String roomId;
-
-  const _LocalModeGameBody({required this.roomId});
-
-  @override
-  State<_LocalModeGameBody> createState() => _LocalModeGameBodyState();
-}
-
-class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
+class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
   String? _isFinalizingVotingRoundId;
   bool _isStartingNextRound = false;
 
@@ -245,8 +223,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
                 onRetry: () {
                   context.read<GameCubit>().loadGameState(
                     roomId: widget.roomId,
-                    currentPlayerId:
-                        sl<AuthSessionService>().currentUserId ?? '',
+                    currentPlayerId: widget.session.currentUserId ?? '',
                   );
                 },
                 onGoBack: () => context.go(AppRoutes.home),

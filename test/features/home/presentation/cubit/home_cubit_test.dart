@@ -5,8 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/features/home/domain/entities/user_info.dart';
 import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
-import 'package:guess_party/features/home/domain/usecases/get_current_user.dart';
-import 'package:guess_party/features/home/domain/usecases/sign_out.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
 
@@ -41,10 +39,7 @@ void main() {
 }
 
 HomeCubit _buildCubit(HomeRepository repository) {
-  return HomeCubit(
-    getCurrentUser: GetCurrentUser(repository),
-    signOut: SignOut(repository),
-  );
+  return HomeCubit(repository: repository);
 }
 
 class _ControlledHomeRepository implements HomeRepository {
