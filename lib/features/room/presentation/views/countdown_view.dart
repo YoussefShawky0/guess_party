@@ -1,29 +1,51 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
 import 'package:guess_party/features/room/domain/usecases/get_room_details.dart';
+import 'package:guess_party/features/room/presentation/cubit/countdown_cubit.dart';
+import 'package:guess_party/l10n/app_localizations.dart';
 
-class CountdownScreen extends StatefulWidget {
+class CountdownScreen extends StatelessWidget {
   final String roomId;
 
   const CountdownScreen({super.key, required this.roomId});
 
   @override
-  State<CountdownScreen> createState() => _CountdownScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => CountdownCubit(
+        gameRepository: sl<GameRepository>(),
+        getRoomDetails: sl<GetRoomDetails>(),
+        roomId: roomId,
+      ),
+      child: _CountdownBody(roomId: roomId),
+    );
+  }
 }
 
-class _CountdownScreenState extends State<CountdownScreen>
+class _CountdownBody extends StatefulWidget {
+  final String roomId;
+
+  const _CountdownBody({required this.roomId});
+
+  @override
+  State<_CountdownBody> createState() => _CountdownBodyState();
+}
+
+class _CountdownBodyState extends State<_CountdownBody>
     with SingleTickerProviderStateMixin {
   int _countdown = 3;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
-  String? _gameMode;
+  Timer? _tickTimer;
+  Timer? _goTimer;
 
   @override
   void initState() {
@@ -37,31 +59,11 @@ class _CountdownScreenState extends State<CountdownScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
     );
 
-    _loadGameMode();
     _startCountdown();
   }
 
-  Future<void> _loadGameMode() async {
-    try {
-      final result = await sl<GetRoomDetails>()(roomId: widget.roomId);
-      if (mounted) {
-        result.fold(
-          (_) => setState(() => _gameMode = GameConstants.gameModeOnline),
-          (room) => setState(() => _gameMode = room.gameMode),
-        );
-      }
-    } catch (e) {
-      // Default to online if error
-      if (mounted) {
-        setState(() {
-          _gameMode = GameConstants.gameModeOnline;
-        });
-      }
-    }
-  }
-
   void _startCountdown() {
-    Timer.periodic(const Duration(seconds: 1), (timer) {
+    _tickTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
@@ -72,61 +74,87 @@ class _CountdownScreenState extends State<CountdownScreen>
         _animationController.forward(from: 0);
       } else {
         timer.cancel();
-        _showGoAndNavigate();
+        _showGoAndResolve();
       }
     });
   }
 
-  void _showGoAndNavigate() {
+  void _showGoAndResolve() {
     setState(() => _countdown = -1);
     _animationController.forward(from: 0);
 
-    // Wait for "GO!" animation, then verify round exists before navigating.
-    Future.delayed(const Duration(milliseconds: 1500), () async {
+    // Wait for the "GO!" animation, then verify the round exists.
+    _goTimer = Timer(const Duration(milliseconds: 1500), () {
       if (!mounted) return;
-
-      // Poll for the round to be created (up to 5 seconds with 1s intervals).
-      // The DB trigger `create_first_round` should have run by now, but on
-      // slow networks there may be a delay.
-      bool roundExists = false;
-      for (var attempt = 0; attempt < 5; attempt++) {
-        try {
-          final result = await sl<GameRepository>().getCurrentRound(
-            roomId: widget.roomId,
-          );
-          if (result.isRight()) {
-            roundExists = true;
-            break;
-          }
-        } catch (_) {
-          // Network error — retry
-        }
-        if (!mounted) return;
-        await Future.delayed(const Duration(seconds: 1));
-      }
-
-      if (!mounted) return;
-
-      if (!roundExists) {
-        debugPrint('First round not found after polling, navigating anyway.');
-      }
-
-      if (_gameMode == GameConstants.gameModeLocal) {
-        context.go(AppRoutes.roomRoleReveal(widget.roomId));
-      } else {
-        context.go(AppRoutes.roomGame(widget.roomId));
-      }
+      context.read<CountdownCubit>().resolveRound();
     });
+  }
+
+  void _navigate(CountdownReady ready) {
+    if (!mounted) return;
+    if (ready.isLocal) {
+      context.go(AppRoutes.roomRoleReveal(widget.roomId));
+    } else {
+      context.go(AppRoutes.roomGame(widget.roomId));
+    }
   }
 
   @override
   void dispose() {
+    _tickTimer?.cancel();
+    _goTimer?.cancel();
     _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return BlocConsumer<CountdownCubit, CountdownState>(
+      listener: (context, state) {
+        if (state is CountdownReady) _navigate(state);
+      },
+      builder: (context, state) {
+        if (state is CountdownRoundUnavailable) {
+          return _buildUnavailable(context, state);
+        }
+        return _buildCountdown(context);
+      },
+    );
+  }
+
+  Widget _buildUnavailable(BuildContext context, CountdownRoundUnavailable s) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      backgroundColor: AppColors.of(context).background,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                localizedErrorMessage(l10n, s.code),
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => context.read<CountdownCubit>().resolveRound(),
+                child: Text(l10n.retry),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => context.go(AppRoutes.home),
+                child: Text(l10n.goBack),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCountdown(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final isTablet = size.width > 600;
 

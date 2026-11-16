@@ -68,24 +68,20 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     required String hostUsername,
     required List<String> localNames,
   }) async {
-    try {
-      final response = await client.rpc(
-        'create_room',
-        params: {
-          'p_request_id': requestId,
-          'p_category': category,
-          'p_max_rounds': maxRounds,
-          'p_max_players': maxPlayers,
-          'p_round_duration': roundDuration,
-          'p_game_mode': gameMode,
-          'p_host_username': hostUsername,
-          'p_local_names': localNames,
-        },
-      );
-      return _parseCreatedSession(Map<String, dynamic>.from(response as Map));
-    } catch (e) {
-      rethrow;
-    }
+    final response = await client.rpc(
+      'create_room',
+      params: {
+        'p_request_id': requestId,
+        'p_category': category,
+        'p_max_rounds': maxRounds,
+        'p_max_players': maxPlayers,
+        'p_round_duration': roundDuration,
+        'p_game_mode': gameMode,
+        'p_host_username': hostUsername,
+        'p_local_names': localNames,
+      },
+    );
+    return _parseCreatedSession(Map<String, dynamic>.from(response as Map));
   }
 
   @override
@@ -109,17 +105,13 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
 
   @override
   Future<Room> getRoomDetails({required String roomId}) async {
-    try {
-      final response = await client
-          .from('rooms')
-          .select()
-          .eq('id', roomId)
-          .single();
+    final response = await client
+        .from('rooms')
+        .select()
+        .eq('id', roomId)
+        .single();
 
-      return RoomModel.fromJson(response);
-    } catch (e) {
-      rethrow;
-    }
+    return RoomModel.fromJson(response);
   }
 
   @override
@@ -185,20 +177,16 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
 
   @override
   Future<List<Player>> getRoomPlayers({required String roomId}) async {
-    try {
-      final response = await client
-          .from('players')
-          .select()
-          .eq('room_id', roomId)
-          .eq('is_online', true)
-          .order('created_at', ascending: true);
+    final response = await client
+        .from('players')
+        .select()
+        .eq('room_id', roomId)
+        .eq('is_online', true)
+        .order('created_at', ascending: true);
 
-      return (response as List)
-          .map((player) => PlayerModel.fromJson(player))
-          .toList();
-    } catch (e) {
-      rethrow;
-    }
+    return (response as List)
+        .map((player) => PlayerModel.fromJson(player))
+        .toList();
   }
 
   @override
@@ -248,15 +236,11 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
 
   @override
   Future<String> startGame(String roomId) async {
-    try {
-      final response = await client.rpc(
-        'start_game',
-        params: {'p_room_id': roomId},
-      );
-      return response as String;
-    } catch (e) {
-      rethrow;
-    }
+    final response = await client.rpc(
+      'start_game',
+      params: {'p_room_id': roomId},
+    );
+    return response as String;
   }
 
   @override
@@ -264,17 +248,13 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     required String playerId,
     required bool isOnline,
   }) async {
-    try {
-      await client
-          .from('players')
-          .update({
-            'is_online': isOnline,
-            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('id', playerId);
-    } catch (e) {
-      rethrow;
-    }
+    await client
+        .from('players')
+        .update({
+          'is_online': isOnline,
+          'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', playerId);
   }
 
   @override
@@ -282,14 +262,10 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     required String roomId,
     required int staleSeconds,
   }) async {
-    try {
-      await client.rpc(
-        'mark_stale_players_offline',
-        params: {'p_room_id': roomId, 'p_stale_seconds': staleSeconds},
-      );
-    } catch (e) {
-      rethrow;
-    }
+    await client.rpc(
+      'mark_stale_players_offline',
+      params: {'p_room_id': roomId, 'p_stale_seconds': staleSeconds},
+    );
   }
 
   @override
@@ -298,20 +274,16 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
     required String roomId,
     required bool isHost,
   }) async {
-    try {
-      // Host migration / empty-room cleanup is handled in database triggers.
-      // Leaving client only marks its own player as offline.
-      final _ = isHost;
-      await client
-          .from('players')
-          .update({
-            'is_online': false,
-            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-          })
-          .eq('id', playerId);
-    } catch (e) {
-      rethrow;
-    }
+    // Host migration / empty-room cleanup is handled in database triggers.
+    // Leaving client only marks its own player as offline.
+    final _ = isHost;
+    await client
+        .from('players')
+        .update({
+          'is_online': false,
+          'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', playerId);
   }
 
   RoomSession _parseCreatedSession(Map<String, dynamic> json) {

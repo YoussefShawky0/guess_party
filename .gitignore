@@ -85,3 +85,4 @@ GEMINI.md
 .sentryclirc
 node_modules/
 .copilot/
+supabase/.temp/

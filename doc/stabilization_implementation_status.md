@@ -28,7 +28,7 @@ next phase begins.
 - Shared-Device Mode remains connected, authenticated pass-and-play on one
   physical device. The database wire value remains `local` for compatibility.
 - Online and Shared-Device presentation and secret-bearing state stay separate.
-- Canonical migrations are the only deployment authority; `doc/schemas/` is
+- Canonical migrations are the only deployment authority; `doc/schemas/legacy/` is
   historical reference material.
 - RPC names and client response shapes remain compatible unless a failing
   contract proves that a versioned change is required.

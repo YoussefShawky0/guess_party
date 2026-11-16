@@ -33,10 +33,11 @@ corrected in the canonical schema:
 | `20260713015743_fix_recursive_secret_state_rls.sql` | Replaces recursive round/vote SELECT policy joins with boolean-only private predicates while preserving the approved visibility rules. |
 | `20261116000100_p0_privilege_hardening.sql` | Revokes direct writes from `anon`/`authenticated` (keeps only `players.is_online`/`last_seen_at` updates and `hints`/`votes` upserts), drops the open create/join and host direct-write policies, stamps `last_seen_at` server-side, and scopes players/rooms/hints SELECT to room members, and fixes hint writes (policies now use the `private.can_write_hint` definer helper because they previously joined RLS-hidden active rounds). Idempotent. |
 | `20261116000200_member_stale_cleanup.sql` | Lets any online room member (not only the host) run both `mark_stale_players_offline` overloads, so a crashed host is marked offline and host migration / empty-room cleanup fire. Non-members get `ROOM_MEMBER_REQUIRED`. Idempotent; grants unchanged. |
+| `20261116000300_timestamptz_columns.sql` | Converts the 7 remaining `timestamp without time zone` columns (`characters.created_at`, `hints.timestamp`, `players.created_at`, `rooms.created_at`, `rounds.phase_end_time`, `rounds.created_at`, `votes.created_at`) to `timestamptz` via `USING col AT TIME ZONE 'UTC'` (values were UTC wall-clock). Redefines the timer functions (`private.create_round_for_room`, `advance_to_voting`, `create_first_round`, `extend_local_role_reveal`, `finalize_voting`) to use `now()` instead of `timezone('utc', now())`, and `get_round_for_player`/`_v2` to return the column directly instead of `at time zone 'UTC'`. Idempotent (only alters columns still `timestamp without time zone`); takes `ACCESS EXCLUSIVE` locks with a 15s `lock_timeout`. |
 
 ## Legacy SQL Mapping
 
-Files under `doc/schemas/` are historical references only and must never be
+Files under `doc/schemas/legacy/` are historical references only and must never be
 applied after the canonical chain.
 
 | Legacy file | Canonical disposition |
@@ -78,6 +79,7 @@ applied after the canonical chain.
   rooms, no anon reads, member-scoped players/rooms/hints reads, and
   regressions for hint/vote upserts and the create_room/join_room RPCs.
 - `supabase/tests/member_stale_cleanup_contracts.test.sql` exercises member-driven stale cleanup: a non-host member marks a crashed host offline, host migrates to the oldest connected player, fresh players stay online, non-members / other-room members / offline former members get `ROOM_MEMBER_REQUIRED`, and the room finishes when the last online member is cleaned up.
+- `supabase/tests/timestamptz_columns_contracts.test.sql` asserts no `timestamp without time zone` column remains in `public` tables, and that phase timers (first round, `advance_to_voting`, `extend_local_role_reveal`, `get_round_for_player_v2`) still yield correct absolute instants under a non-UTC session TimeZone.
 - Production table ACLs (before the P0 hardening migration) grant the Data API roles access to the exposed tables;
   RLS policies remain the row-authorization boundary. `round_participants` and
   `round_revisions` deliberately expose only `SELECT` to `authenticated` and no

@@ -67,7 +67,7 @@ The implementation model must not:
 ### 4.1 Best-case assumptions
 
 - Supabase CLI or authenticated Supabase MCP is available.
-- The live schema mostly matches `doc/schemas/supabase_schema.sql`.
+- The live schema mostly matches `doc/schemas/legacy/supabase_schema.sql`.
 - `rooms.game_mode` already exists with values `online`/`local`.
 - The legacy `get_round_for_player(uuid)` signature matches the app.
 - A compatible mobile release can be deployed before privilege enforcement.
@@ -143,8 +143,8 @@ Read these completely before editing:
 - `lib/features/room/presentation/cubit/room_cubit.dart`
 - `lib/features/room/presentation/views/waiting_room_view.dart`
 - `lib/features/game/presentation/views/game_view.dart`
-- `doc/schemas/supabase_schema.sql`
-- `doc/schemas/fix_host_migration_and_room_cleanup.sql`
+- `doc/schemas/legacy/supabase_schema.sql`
+- `doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql`
 
 ## 7. Phase A — Diagnostics and Canonical Contracts
 

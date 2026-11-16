@@ -25,13 +25,28 @@ class PlayerModel extends Player {
     createdAt: createdAt,
   );
 
+  /// Parses a Postgres timestamp as a UTC instant. Handles `timestamptz`
+  /// values ("...+00:00", "...Z") and legacy offset-less `timestamp` values
+  /// ("2026-11-16T10:00:00"), which are UTC wall-clock and must not be read as
+  /// device-local time.
+  static DateTime? _tryParseUtc(String raw) {
+    final value = raw.trim();
+    final timeStart = value.indexOf(RegExp(r'[T ]'));
+    final hasOffset =
+        timeStart >= 0 &&
+        RegExp(r'(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$')
+            .hasMatch(value.substring(timeStart));
+    final parsed = DateTime.tryParse(hasOffset ? value : '${value}Z');
+    return parsed?.toUtc();
+  }
+
   static DateTime _parseLastSeenAt(dynamic value) {
     if (value == null) {
       return DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     }
 
-    final parsed = DateTime.tryParse(value.toString());
-    return parsed?.toUtc() ??
+    final parsed = _tryParseUtc(value.toString());
+    return parsed ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
   }
 
@@ -47,7 +62,7 @@ class PlayerModel extends Player {
       lastSeenAt: _parseLastSeenAt(json['last_seen_at']),
       createdAt: json['created_at'] == null
           ? null
-          : DateTime.tryParse(json['created_at'].toString())?.toUtc(),
+          : _tryParseUtc(json['created_at'].toString()),
     );
   }
 

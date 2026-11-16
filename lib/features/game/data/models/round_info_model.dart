@@ -27,21 +27,11 @@ class RoundInfoModel extends RoundInfo {
     int submittedVoteCount = 0,
     int requiredVoteCount = 0,
   }) {
-    // Parse UTC timestamp and keep as UTC for comparison
     final phaseEndTimeString = json['phase_end_time'] as String;
-
-    // Parse as UTC - database stores TIMESTAMPTZ which is UTC
-    DateTime phaseEndTime;
-    if (!phaseEndTimeString.endsWith('Z') &&
-        !phaseEndTimeString.contains('+')) {
-      // No timezone marker, treat as UTC
-      phaseEndTime = DateTime.parse('${phaseEndTimeString}Z');
-    } else {
-      phaseEndTime = DateTime.parse(phaseEndTimeString);
+    final phaseEndTime = _tryParseUtc(phaseEndTimeString);
+    if (phaseEndTime == null) {
+      throw FormatException('Invalid phase_end_time: $phaseEndTimeString');
     }
-
-    // Convert to UTC explicitly
-    phaseEndTime = phaseEndTime.toUtc();
 
     return RoundInfoModel(
       id: json['id'] as String,
@@ -58,6 +48,21 @@ class RoundInfoModel extends RoundInfo {
       submittedVoteCount: submittedVoteCount,
       requiredVoteCount: requiredVoteCount,
     );
+  }
+
+  /// Parses a Postgres timestamp as a UTC instant. Handles `timestamptz`
+  /// values ("...+00:00", "...Z") and legacy offset-less `timestamp` values
+  /// ("2026-11-16T10:00:00"), which are UTC wall-clock and must not be read as
+  /// device-local time.
+  static DateTime? _tryParseUtc(String raw) {
+    final value = raw.trim();
+    final timeStart = value.indexOf(RegExp(r'[T ]'));
+    final hasOffset =
+        timeStart >= 0 &&
+        RegExp(r'(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$')
+            .hasMatch(value.substring(timeStart));
+    final parsed = DateTime.tryParse(hasOffset ? value : '${value}Z');
+    return parsed?.toUtc();
   }
 
   static GamePhase _parsePhase(String phase) {
