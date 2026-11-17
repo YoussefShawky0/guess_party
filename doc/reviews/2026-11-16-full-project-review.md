@@ -245,22 +245,28 @@ Verified locally: `flutter analyze` clean, `flutter test` 183 pass,
 1. **Device test (owner).** Nothing above has run on a phone. Test online
    (2+ devices: create/join, hints, votes, results, host leaves mid-round,
    app background/resume) and Shared-Device (role reveal, voting, next round).
-2. **Apply `timestamptz_columns` to live — NOT applied yet.** Apply in a quiet
-   window via MCP `apply_migration` (never `db push`: ledger drift). Takes
-   brief ACCESS EXCLUSIVE locks (15s `lock_timeout`, rolls back on timeout).
-   Ship the app build with the new model parsing together with it.
-3. **Ship a new app build** — host self-heal, inline errors, countdown retry
-   and presence changes are client-side.
-4. **Leaked Password Protection** — advisor still reported it disabled on
-   2026-11-16 after the owner enabled it; re-check in the Auth dashboard
-   (Settings → Password security) that it is saved.
+2. **`timestamptz_columns` — applied to live 2026-11-17** via MCP
+   `apply_migration` (name `timestamptz_columns`) with no waiting/active
+   rooms. Before applying, the 7 replaced live functions were checked to be
+   identical to the repo copies (definition lengths differ exactly by the
+   intended edits). After: 0 `timestamp without time zone` columns in public
+   tables, 0 functions using `timezone('utc', …)`, function ACLs unchanged.
+   Old app builds keep working: `phase_end_time` parsing already accepted
+   `+00:00`; room/player `created_at` become UTC `DateTime`s (display only).
+3. **Ship a new app build** — host self-heal, inline errors, countdown retry,
+   presence changes and robust timestamp parsing are client-side.
+4. **Leaked Password Protection — not available.** Enabling it fails with
+   "available on Pro Plans and up"; the project is on the Free plan.
+   Accepted risk for now. Free-plan mitigations in Auth → Providers →
+   Email: raise minimum password length (≥ 8) and require character
+   classes. Revisit on upgrading to Pro.
 5. Small follow-ups found during the refactor — **fixed 2026-11-17**:
    role reveal now emits a retryable failure for unusable loaded data
    (no endless spinner); countdown "GO!" localized (`countdownGo`);
    `game_view_rules` has 12 unit tests; unused `getRoomByCode` removed.
    `message_reports` RLS-without-policies is intentional (INFO advisor;
    only the definer RPC writes it). `flutter test` 198 pass.
-6. Push the branch and open a PR to `master` (not done; waiting for owner).
+6. Branch pushed and PR opened to `master` on 2026-11-17.
 
 ## Suggested order of work
 
