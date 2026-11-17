@@ -2347,6 +2347,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A player'**
   String get aPlayerFallbackName;
+
+  /// No description provided for @countdownGo.
+  ///
+  /// In en, this message translates to:
+  /// **'GO!'**
+  String get countdownGo;
 }
 
 class _AppLocalizationsDelegate

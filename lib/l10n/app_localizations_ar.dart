@@ -1230,4 +1230,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get aPlayerFallbackName => 'لاعب';
+
+  @override
+  String get countdownGo => 'يلا!';
 }

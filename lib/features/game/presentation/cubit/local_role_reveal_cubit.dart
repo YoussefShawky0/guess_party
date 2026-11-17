@@ -45,10 +45,21 @@ class LocalRoleRevealCubit extends Cubit<LocalRoleRevealState> {
     emit(LocalRoleRevealLoading());
     final result = await _repository.getLocalRoleRevealData(roomId: roomId);
     if (isClosed) return;
-    result.fold(
-      (failure) => emit(LocalRoleRevealFailure(failure.code)),
-      (data) => emit(LocalRoleRevealLoaded(data)),
-    );
+    result.fold((failure) => emit(LocalRoleRevealFailure(failure.code)), (
+      data,
+    ) {
+      // A successful load with unusable data would leave the view spinning.
+      final usable =
+          data.players.isNotEmpty &&
+          data.roundId.isNotEmpty &&
+          data.imposterPlayerId.isNotEmpty &&
+          data.character.id.isNotEmpty;
+      emit(
+        usable
+            ? LocalRoleRevealLoaded(data)
+            : const LocalRoleRevealFailure(AppErrorCode.roundNotFound),
+      );
+    });
   }
 
   Future<bool> extendReveal({

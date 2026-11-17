@@ -292,11 +292,6 @@ class FakeRoomRepository implements RoomRepository {
   }
 
   @override
-  ResultFuture<Room> getRoomByCode({required String roomCode}) async {
-    return Right(currentRoom);
-  }
-
-  @override
   ResultFuture<Room> getRoomDetails({required String roomId}) async {
     detailsCalls++;
     return Right(currentRoom);

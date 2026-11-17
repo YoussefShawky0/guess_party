@@ -33,8 +33,6 @@ abstract class RoomRemoteDataSource {
 
   Future<List<Player>> getRoomPlayers({required String roomId});
 
-  Future<Room> getRoomByCode({required String roomCode});
-
   Future<String> startGame(String roomId);
 
   Future<void> updatePlayerStatus({
@@ -193,27 +191,6 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
   @override
   Stream<List<Player>> watchRoomPlayers({required String roomId}) {
     return watchRoomPlayersStream(client, roomId: roomId, onlineOnly: true);
-  }
-
-  @override
-  Future<Room> getRoomByCode({required String roomCode}) async {
-    try {
-      final response = await client.rpc(
-        'find_joinable_room',
-        params: {'p_room_code': roomCode},
-      );
-      final json = Map<String, dynamic>.from(response as Map);
-      return RoomModel.fromJson(Map<String, dynamic>.from(json['room'] as Map));
-    } catch (e) {
-      // Catch "no rows found" error and provide specific message for room code validation
-      final errorText = e.toString().toLowerCase();
-      if (errorText.contains('no rows') ||
-          errorText.contains('norowsfoundexception') ||
-          errorText.contains('pgrst116')) {
-        throw StateError('ROOM_NOT_FOUND');
-      }
-      rethrow;
-    }
   }
 
   @override

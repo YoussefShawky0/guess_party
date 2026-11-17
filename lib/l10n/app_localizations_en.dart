@@ -1247,4 +1247,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aPlayerFallbackName => 'A player';
+
+  @override
+  String get countdownGo => 'GO!';
 }

@@ -155,7 +155,7 @@ class _CountdownScreenState extends State<CountdownScreen>
                       ),
                     )
                   : Text(
-                      'GO!',
+                      AppLocalizations.of(context).countdownGo,
                       style: TextStyle(
                         fontSize: isTablet ? 120 : 100,
                         fontWeight: FontWeight.bold,

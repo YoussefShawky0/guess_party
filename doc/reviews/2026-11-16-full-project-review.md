@@ -254,14 +254,12 @@ Verified locally: `flutter analyze` clean, `flutter test` 183 pass,
 4. **Leaked Password Protection** — advisor still reported it disabled on
    2026-11-16 after the owner enabled it; re-check in the Auth dashboard
    (Settings → Password security) that it is saved.
-5. Small follow-ups found during the refactor:
-   - Role reveal: a successful load with an empty player list shows the
-     loading spinner forever (pre-existing). Should become an error state.
-   - Countdown "GO!" text is hardcoded (not localized).
-   - `game_view_rules.dart` pure helpers have no unit tests yet.
-   - `RoomRepository.getRoomByCode` is now unused by any cubit.
-   - `message_reports` has RLS with no policies (INFO advisor; fine while
-     only the definer RPC writes it).
+5. Small follow-ups found during the refactor — **fixed 2026-11-17**:
+   role reveal now emits a retryable failure for unusable loaded data
+   (no endless spinner); countdown "GO!" localized (`countdownGo`);
+   `game_view_rules` has 12 unit tests; unused `getRoomByCode` removed.
+   `message_reports` RLS-without-policies is intentional (INFO advisor;
+   only the definer RPC writes it). `flutter test` 198 pass.
 6. Push the branch and open a PR to `master` (not done; waiting for owner).
 
 ## Suggested order of work

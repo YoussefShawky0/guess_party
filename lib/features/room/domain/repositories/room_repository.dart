@@ -28,8 +28,6 @@ abstract class RoomRepository {
 
   ResultFuture<List<Player>> getRoomPlayers({required String roomId});
 
-  ResultFuture<Room> getRoomByCode({required String roomCode});
-
   ResultFuture<String> startGame(String roomId);
 
   ResultFuture<void> updatePlayerStatus({

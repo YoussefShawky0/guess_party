@@ -405,5 +405,6 @@
   "@playersLeftGame": {"placeholders": {"names": {"type": "String"}}},
   "playerIsNowHost": "{name} is now the host",
   "@playerIsNowHost": {"placeholders": {"name": {"type": "String"}}},
-  "aPlayerFallbackName": "A player"
+  "aPlayerFallbackName": "A player",
+  "countdownGo": "GO!"
 }

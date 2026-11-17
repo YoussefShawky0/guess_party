@@ -402,5 +402,6 @@
   "playerLeftGame": "غادر {name} اللعبة",
   "playersLeftGame": "غادر {names} اللعبة",
   "playerIsNowHost": "{name} أصبح المضيف الآن",
-  "aPlayerFallbackName": "لاعب"
+  "aPlayerFallbackName": "لاعب",
+  "countdownGo": "يلا!"
 }

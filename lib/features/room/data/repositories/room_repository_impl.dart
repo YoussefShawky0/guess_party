@@ -86,18 +86,6 @@ class RoomRepositoryImpl implements RoomRepository {
   }
 
   @override
-  Future<Either<Failure, Room>> getRoomByCode({
-    required String roomCode,
-  }) async {
-    try {
-      final room = await remoteDataSource.getRoomByCode(roomCode: roomCode);
-      return Right(room);
-    } catch (e) {
-      return Left(ServerFailure.from(e));
-    }
-  }
-
-  @override
   Future<Either<Failure, String>> startGame(String roomId) async {
     try {
       return Right(await remoteDataSource.startGame(roomId));
