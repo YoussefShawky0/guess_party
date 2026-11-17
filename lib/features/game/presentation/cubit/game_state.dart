@@ -14,13 +14,13 @@ final class GameLoading extends GameState {}
 final class GameLoaded extends GameState {
   final GameStateEntity gameState;
   final bool isReconnecting;
-  final String? nonFatalMessage;
+  final AppErrorCode? nonFatalError;
   final int nonFatalMessageId;
 
   const GameLoaded(
     this.gameState, {
     this.isReconnecting = false,
-    this.nonFatalMessage,
+    this.nonFatalError,
     this.nonFatalMessageId = 0,
   });
 
@@ -28,34 +28,29 @@ final class GameLoaded extends GameState {
   List<Object?> get props => [
     gameState,
     isReconnecting,
-    nonFatalMessage,
+    nonFatalError,
     nonFatalMessageId,
   ];
 }
 
 final class GameEnded extends GameState {
-  final String message;
   final List<Player> players;
   final Map<String, int> playerScores;
 
-  const GameEnded(
-    this.message, {
-    required this.players,
-    required this.playerScores,
-  });
+  const GameEnded({required this.players, required this.playerScores});
 
   @override
-  List<Object> get props => [message, players, playerScores];
+  List<Object> get props => [players, playerScores];
 }
 
 final class GameError extends GameState {
-  final String message;
+  final AppErrorCode code;
 
   /// Monotonically increasing ID to ensure identical error messages
   /// are never deduplicated by Equatable. Each emission is unique.
   final int errorId;
-  const GameError(this.message, {this.errorId = 0});
+  const GameError(this.code, {this.errorId = 0});
 
   @override
-  List<Object> get props => [message, errorId];
+  List<Object> get props => [code, errorId];
 }

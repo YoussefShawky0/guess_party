@@ -4,11 +4,10 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/config/app_config.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/localization/locale_cubit.dart';
 import 'package:guess_party/core/services/update_service.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
-import 'package:guess_party/features/home/domain/usecases/delete_account.dart';
+import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
 import 'package:guess_party/features/home/presentation/views/widgets/settings/account_deletion_dialog.dart';
 import 'package:guess_party/features/home/presentation/views/widgets/settings/how_to_play_dialog.dart';
 import 'package:guess_party/features/home/presentation/views/widgets/settings/settings_picker_sheets.dart';
@@ -20,7 +19,18 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsView extends StatefulWidget {
-  const SettingsView({super.key});
+  const SettingsView({
+    required this.themeCubit,
+    required this.localeCubit,
+    required this.config,
+    required this.homeRepository,
+    super.key,
+  });
+
+  final ThemeCubit themeCubit;
+  final LocaleCubit localeCubit;
+  final AppConfig config;
+  final HomeRepository homeRepository;
 
   @override
   State<SettingsView> createState() => _SettingsViewState();
@@ -99,7 +109,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   Widget _buildAppearanceSection(bool isTablet) {
     return BlocBuilder<ThemeCubit, ThemeMode>(
-      bloc: sl<ThemeCubit>(),
+      bloc: widget.themeCubit,
       builder: (context, themeMode) {
         final themeName = switch (themeMode) {
           ThemeMode.dark => context.l10n.dark,
@@ -119,7 +129,7 @@ class _SettingsViewState extends State<SettingsView> {
               onTap: () => showThemePicker(
                 context: context,
                 current: themeMode,
-                themeCubit: sl<ThemeCubit>(),
+                themeCubit: widget.themeCubit,
                 isTablet: isTablet,
               ),
             ),
@@ -131,7 +141,7 @@ class _SettingsViewState extends State<SettingsView> {
 
   Widget _buildLanguageSection(bool isTablet) {
     return BlocBuilder<LocaleCubit, Locale?>(
-      bloc: sl<LocaleCubit>(),
+      bloc: widget.localeCubit,
       builder: (context, locale) {
         final languageName = switch (locale?.languageCode) {
           'en' => context.l10n.english,
@@ -152,7 +162,7 @@ class _SettingsViewState extends State<SettingsView> {
               onTap: () => showLanguagePicker(
                 context: context,
                 current: locale,
-                localeCubit: sl<LocaleCubit>(),
+                localeCubit: widget.localeCubit,
                 isTablet: isTablet,
               ),
             ),
@@ -176,7 +186,7 @@ class _SettingsViewState extends State<SettingsView> {
           isTablet: isTablet,
           onTap: () => confirmAccountDeletion(
             context: context,
-            deleteAccount: () => sl<DeleteAccount>()(),
+            deleteAccount: widget.homeRepository.deleteAccount,
           ),
         ),
       ],
@@ -184,7 +194,7 @@ class _SettingsViewState extends State<SettingsView> {
   }
 
   Widget _buildAboutSection(BuildContext context, bool isTablet) {
-    final config = sl<AppConfig>();
+    final config = widget.config;
     return SettingsSection(
       icon: FontAwesomeIcons.circleInfo,
       title: context.l10n.about,

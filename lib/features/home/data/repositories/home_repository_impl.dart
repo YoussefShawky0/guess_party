@@ -15,7 +15,7 @@ class HomeRepositoryImpl implements HomeRepository {
       final userInfo = await remoteDataSource.getCurrentUser();
       return Right(userInfo);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -25,7 +25,7 @@ class HomeRepositoryImpl implements HomeRepository {
       await remoteDataSource.signOut();
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -35,7 +35,7 @@ class HomeRepositoryImpl implements HomeRepository {
       await remoteDataSource.deleteAccount();
       return const Right(null);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      return Left(ServerFailure.from(e));
     }
   }
 }

@@ -2,106 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
-import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/game_loading_indicator.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/game_snackbars.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/leave_game_dialog.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/round_header_widget.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/shared_device_skip_phase_button.dart';
+import 'package:guess_party/features/game/presentation/views/widgets/shared_device_vote_target_dialog.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/shared_device_phase_content.dart';
-import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
-class LocalModeGameScreen extends StatelessWidget {
+class LocalModeGameScreen extends StatefulWidget {
   final String roomId;
-  final Map<String, int>? preservedScores;
+  final AuthSessionService session;
 
   const LocalModeGameScreen({
     super.key,
     required this.roomId,
-    this.preservedScores,
+    required this.session,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final currentUserId = sl<AuthSessionService>().currentUserId ?? '';
-
-    return BlocProvider(
-      create: (context) => sl<GameCubit>()
-        ..loadGameState(
-          roomId: roomId,
-          currentPlayerId: currentUserId,
-          preservedScores: preservedScores,
-        ),
-      child: _LocalModeGameBody(roomId: roomId),
-    );
-  }
+  State<LocalModeGameScreen> createState() => _LocalModeGameScreenState();
 }
 
-class _LocalModeGameBody extends StatefulWidget {
-  final String roomId;
-
-  const _LocalModeGameBody({required this.roomId});
-
-  @override
-  State<_LocalModeGameBody> createState() => _LocalModeGameBodyState();
-}
-
-class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
+class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
   String? _isFinalizingVotingRoundId;
   bool _isStartingNextRound = false;
-
-  Future<bool> _showLeaveConfirmation() async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppColors.of(context).surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: AppColors.warning,
-                  size: 28,
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  context.l10n.leaveGameTitle,
-                  style: TextStyle(color: AppColors.of(context).textPrimary),
-                ),
-              ],
-            ),
-            content: Text(
-              context.l10n.leaveGameMessage,
-              style: TextStyle(
-                color: AppColors.of(context).textSecondary,
-                fontSize: 16,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(
-                  context.l10n.stay,
-                  style: TextStyle(color: AppColors.of(context).textMuted),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.error,
-                ),
-                child: Text(context.l10n.leave),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
 
   void _handlePhaseTimeUp(GameLoaded state) {
     final round = state.gameState.currentRound;
@@ -151,7 +83,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final router = GoRouter.of(context);
-        final shouldExit = await _showLeaveConfirmation();
+        final shouldExit = await showLeaveGameDialog(context);
         if (shouldExit && mounted) {
           router.go(AppRoutes.home);
         }
@@ -166,7 +98,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () async {
               final router = GoRouter.of(context);
-              final shouldExit = await _showLeaveConfirmation();
+              final shouldExit = await showLeaveGameDialog(context);
               if (shouldExit && mounted) {
                 router.go(AppRoutes.home);
               }
@@ -179,34 +111,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
           listener: (context, state) {
             if (state is GameError) {
               if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: AppColors.of(context).textPrimary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          state.message,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppColors.of(context).textPrimary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  backgroundColor: AppColors.error,
-                  duration: const Duration(seconds: 4),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              );
+              showGameErrorSnackBar(context, state.code);
             }
             if (state is GameEnded) {
               if (!context.mounted) return;
@@ -221,31 +126,16 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
           },
           builder: (context, state) {
             if (state is GameLoading) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    const SizedBox(height: 16),
-                    Text(
-                      context.l10n.loadingGame,
-                      style: TextStyle(
-                        color: AppColors.of(context).textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              return const GameLoadingIndicator();
             }
 
             if (state is GameError) {
               return ErrorScreen(
-                message: state.message,
+                message: localizedErrorMessage(context.l10n, state.code),
                 onRetry: () {
                   context.read<GameCubit>().loadGameState(
                     roomId: widget.roomId,
-                    currentPlayerId:
-                        sl<AuthSessionService>().currentUserId ?? '',
+                    currentPlayerId: widget.session.currentUserId ?? '',
                   );
                 },
                 onGoBack: () => context.go(AppRoutes.home),
@@ -294,7 +184,10 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
           const SizedBox(height: 16),
           if (round.phase == GamePhase.hints ||
               round.phase == GamePhase.voting) ...[
-            _buildSkipButton(round.phase),
+            SharedDeviceSkipPhaseButton(
+              phase: round.phase,
+              onFinalizeVoting: _finalizeVotingAndProgress,
+            ),
             const SizedBox(height: 16),
           ],
           if (round.phase == GamePhase.hints)
@@ -306,7 +199,7 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
               isTablet: isTablet,
               isFinalizing: _isFinalizingVotingRoundId == round.id,
               onSelectVoter: (playerId) =>
-                  _showLocalTargetSelectionDialog(context, playerId),
+                  showSharedDeviceVoteTargetDialog(context, voterId: playerId),
               onShowResults: () => _finalizeVotingAndProgress(round.id),
             ),
           if (round.phase == GamePhase.results)
@@ -324,177 +217,6 @@ class _LocalModeGameBodyState extends State<_LocalModeGameBody> {
             ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSkipButton(GamePhase phase) {
-    final skipTarget = phase == GamePhase.hints
-        ? context.l10n.votingPhase
-        : context.l10n.resultsPhase;
-    final skipLabel = phase == GamePhase.hints
-        ? context.l10n.skipToVoting
-        : context.l10n.skipToResults;
-
-    return ElevatedButton.icon(
-      onPressed: () async {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(
-              phase == GamePhase.hints
-                  ? context.l10n.skipHints
-                  : context.l10n.skipVoting,
-            ),
-            content: Text(context.l10n.skipPhaseConfirmation(skipTarget)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(context.l10n.cancel),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(context.l10n.skip),
-              ),
-            ],
-          ),
-        );
-        if (confirmed != true || !mounted) return;
-
-        final current = context.read<GameCubit>().state;
-        if (current is! GameLoaded) return;
-        if (phase == GamePhase.hints) {
-          context.read<GameCubit>().progressPhase(
-            current.gameState.currentRound.id,
-          );
-        } else {
-          _finalizeVotingAndProgress(current.gameState.currentRound.id);
-        }
-      },
-      icon: const Icon(Icons.skip_next),
-      label: Text(skipLabel),
-    );
-  }
-
-  void _showLocalTargetSelectionDialog(BuildContext context, String voterId) {
-    final gameCubit = context.read<GameCubit>();
-    final currentState = gameCubit.state;
-    if (currentState is! GameLoaded) return;
-    Player? voter;
-    for (final player in currentState.gameState.players) {
-      if (player.id == voterId) {
-        voter = player;
-        break;
-      }
-    }
-    if (voter == null) return;
-    final resolvedVoter = voter;
-    final theme = AppColors.of(context);
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return BlocBuilder<GameCubit, GameState>(
-          bloc: gameCubit,
-          builder: (_, state) {
-            final players = state is GameLoaded
-                ? state.gameState.players
-                : currentState.gameState.players;
-            final round = state is GameLoaded
-                ? state.gameState.currentRound
-                : currentState.gameState.currentRound;
-
-            return AlertDialog(
-              backgroundColor: theme.surface,
-              title: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.l10n.whoDoYouSuspect(resolvedVoter.username),
-                    style: TextStyle(color: theme.textPrimary),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    context.l10n.voteForPlayerPrompt,
-                    style: TextStyle(
-                      color: theme.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: players.map((player) {
-                    final isVotingForSelf = player.id == voterId;
-
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isVotingForSelf
-                            ? theme.surfaceLight
-                            : AppColors.primary,
-                        child: Text(
-                          player.username[0].toUpperCase(),
-                          style: TextStyle(
-                            color: isVotingForSelf
-                                ? theme.textMuted
-                                : theme.textPrimary,
-                          ),
-                        ),
-                      ),
-                      title: Text(
-                        player.username,
-                        style: TextStyle(
-                          color: isVotingForSelf
-                              ? theme.textMuted
-                              : theme.textPrimary,
-                        ),
-                      ),
-                      subtitle: isVotingForSelf
-                          ? Text(
-                              context.l10n.cannotVoteForSelf,
-                              style: TextStyle(
-                                color: AppColors.error,
-                                fontSize: 12,
-                              ),
-                            )
-                          : null,
-                      onTap: () async {
-                        if (isVotingForSelf) {
-                          if (!context.mounted) return;
-                          ErrorSnackBar.show(
-                            context,
-                            context.l10n.cannotVoteSelf,
-                          );
-                          return;
-                        }
-
-                        Navigator.of(dialogContext).pop();
-                        gameCubit.sendVote(
-                          roundId: round.id,
-                          voterId: voterId,
-                          votedPlayerId: player.id,
-                        );
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(
-                    context.l10n.cancel,
-                    style: TextStyle(color: theme.textMuted),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
     );
   }
 }

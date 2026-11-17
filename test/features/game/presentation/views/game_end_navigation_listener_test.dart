@@ -34,7 +34,7 @@ void main() {
     );
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
 
-    const ended = GameEnded('Game Over', players: [], playerScores: {});
+    const ended = GameEnded(players: [], playerScores: {});
     states.add(ended);
     states.add(ended);
     await tester.pumpAndSettle();

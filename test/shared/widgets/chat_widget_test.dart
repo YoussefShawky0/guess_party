@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_cursor.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_page.dart';
@@ -11,19 +11,13 @@ import 'package:guess_party/features/chat/domain/repositories/chat_repository.da
 import 'package:guess_party/shared/widgets/chat_widget.dart';
 
 void main() {
-  tearDown(() async {
-    await sl.reset();
-  });
-
   testWidgets(
     'renders bounded chat page and sends messages through the cubit',
     (tester) async {
       final repository = WidgetFakeChatRepository(
         pages: const [ChatPage(messages: [], nextCursor: null)],
       );
-      sl.registerSingleton<ChatRepository>(repository);
-
-      await tester.pumpWidget(chatHarness());
+      await tester.pumpWidget(chatHarness(repository));
       await tester.pumpAndSettle();
 
       expect(find.text('No messages yet'), findsOneWidget);
@@ -53,9 +47,7 @@ void main() {
         ),
       ],
     );
-    sl.registerSingleton<ChatRepository>(repository);
-
-    await tester.pumpWidget(chatHarness());
+    await tester.pumpWidget(chatHarness(repository));
     await tester.pumpAndSettle();
     await tester.longPress(find.text('hello'));
     await tester.pumpAndSettle();
@@ -67,16 +59,19 @@ void main() {
   });
 }
 
-Widget chatHarness() {
+Widget chatHarness(ChatRepository repository) {
   return MaterialApp(
     theme: ThemeData(
       extensions: const <ThemeExtension<dynamic>>[AppColorsTheme.dark],
     ),
-    home: const Scaffold(
-      body: ChatWidget(
-        roomId: 'room-1',
-        roundId: 'round-1',
-        currentPlayerId: 'current-player',
+    home: Scaffold(
+      body: RepositoryProvider<ChatRepository>.value(
+        value: repository,
+        child: const ChatWidget(
+          roomId: 'room-1',
+          roundId: 'round-1',
+          currentPlayerId: 'current-player',
+        ),
       ),
     ),
   );

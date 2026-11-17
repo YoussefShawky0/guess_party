@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:guess_party/core/error/failures.dart';
-import 'package:guess_party/core/utils/error_handler.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
@@ -36,9 +35,7 @@ class RoomRepositoryImpl implements RoomRepository {
       );
       return Right(room);
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -52,8 +49,7 @@ class RoomRepositoryImpl implements RoomRepository {
         await remoteDataSource.joinRoom(roomCode: roomCode, username: username),
       );
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      return Left(ServerFailure(ErrorHandler.getUserFriendlyMessage(errorMsg)));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -63,9 +59,7 @@ class RoomRepositoryImpl implements RoomRepository {
       final room = await remoteDataSource.getRoomDetails(roomId: roomId);
       return Right(room);
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -87,23 +81,7 @@ class RoomRepositoryImpl implements RoomRepository {
       final players = await remoteDataSource.getRoomPlayers(roomId: roomId);
       return Right(players);
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
-    }
-  }
-
-  @override
-  Future<Either<Failure, Room>> getRoomByCode({
-    required String roomCode,
-  }) async {
-    try {
-      final room = await remoteDataSource.getRoomByCode(roomCode: roomCode);
-      return Right(room);
-    } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -112,9 +90,7 @@ class RoomRepositoryImpl implements RoomRepository {
     try {
       return Right(await remoteDataSource.startGame(roomId));
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -130,9 +106,7 @@ class RoomRepositoryImpl implements RoomRepository {
       );
       return const Right(null);
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -148,9 +122,7 @@ class RoomRepositoryImpl implements RoomRepository {
       );
       return const Right(null);
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure.from(e));
     }
   }
 
@@ -168,9 +140,7 @@ class RoomRepositoryImpl implements RoomRepository {
       );
       return const Right(null);
     } catch (e) {
-      final errorMsg = ErrorHandler.extractErrorMessage(e);
-      final userFriendlyMsg = ErrorHandler.getUserFriendlyMessage(errorMsg);
-      return Left(ServerFailure(userFriendlyMsg));
+      return Left(ServerFailure.from(e));
     }
   }
 }

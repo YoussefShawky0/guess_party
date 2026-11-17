@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/config/app_config.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/services/update_service.dart';
-import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
 import 'package:in_app_update/in_app_update.dart';
@@ -15,26 +15,16 @@ import 'package:guess_party/l10n/l10n.dart';
 import 'widgets/home_action_buttons.dart';
 import 'widgets/welcome_section.dart';
 
-class HomeView extends StatelessWidget {
-  const HomeView({super.key});
+class HomeView extends StatefulWidget {
+  const HomeView({required this.config, super.key});
+
+  final AppConfig config;
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => di.sl<HomeCubit>()..loadUserInfo(),
-      child: const HomeContent(),
-    );
-  }
+  State<HomeView> createState() => _HomeViewState();
 }
 
-class HomeContent extends StatefulWidget {
-  const HomeContent({super.key});
-
-  @override
-  State<HomeContent> createState() => _HomeContentState();
-}
-
-class _HomeContentState extends State<HomeContent> {
+class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
@@ -46,7 +36,7 @@ class _HomeContentState extends State<HomeContent> {
     // Wait a bit for the UI to settle
     await Future.delayed(const Duration(seconds: 2));
 
-    final updateInfo = await UpdateService.checkForUpdate(di.sl<AppConfig>());
+    final updateInfo = await UpdateService.checkForUpdate(widget.config);
 
     if (!mounted) return;
 
@@ -93,7 +83,7 @@ class _HomeContentState extends State<HomeContent> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              UpdateService.startFlexibleUpdate(di.sl<AppConfig>());
+              UpdateService.startFlexibleUpdate(widget.config);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text(context.l10n.update),
@@ -201,7 +191,9 @@ class _HomeContentState extends State<HomeContent> {
                   if (state is HomeError) {
                     return Center(
                       child: Text(
-                        context.l10n.errorWithMessage(state.message),
+                        context.l10n.errorWithMessage(
+                          localizedErrorMessage(context.l10n, state.code),
+                        ),
                         style: TextStyle(color: AppColors.error),
                       ),
                     );

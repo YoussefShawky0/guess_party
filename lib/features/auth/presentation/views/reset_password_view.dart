@@ -3,26 +3,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
-import '../../../../core/di/injection_container.dart' as di;
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/services/auth_session_service.dart';
 import '../../../../core/utils/validators.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import '../../../../shared/widgets/error_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 
-class ResetPasswordScreen extends StatelessWidget {
-  const ResetPasswordScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => BlocProvider(
-    create: (_) => di.sl<AuthCubit>(),
-    child: const ResetPasswordView(),
-  );
-}
-
 class ResetPasswordView extends StatefulWidget {
-  const ResetPasswordView({super.key});
+  const ResetPasswordView({required this.session, super.key});
+
+  final AuthSessionService session;
 
   @override
   State<ResetPasswordView> createState() => _ResetPasswordViewState();
@@ -42,9 +34,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
 
   @override
   Widget build(BuildContext context) {
-    final recoveryIsValid = di
-        .sl<AuthSessionService>()
-        .hasPasswordRecoverySession;
+    final recoveryIsValid = widget.session.hasPasswordRecoverySession;
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.chooseNewPassword)),
       body: SafeArea(
@@ -57,7 +47,10 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                   ? BlocConsumer<AuthCubit, AuthState>(
                       listener: (context, state) {
                         if (state is AuthError) {
-                          ErrorSnackBar.show(context, state.message);
+                          ErrorSnackBar.show(
+                            context,
+                            localizedErrorMessage(context.l10n, state.code),
+                          );
                         } else if (state is AuthPasswordUpdated) {
                           context.go(AppRoutes.login);
                         }

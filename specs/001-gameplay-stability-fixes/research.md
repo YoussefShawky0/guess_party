@@ -25,7 +25,7 @@ state.
 
 ## Decision: Use database reconciliation for host migration and empty cleanup
 
-**Rationale**: The SQL design in `doc/schemas/fix_host_migration_and_room_cleanup.sql`
+**Rationale**: The SQL design in `doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql`
 keeps host migration deterministic and handles formal leave, offline status,
 and stale players with the same rules. The oldest online player by `created_at`
 becomes host; rooms with zero online players become `finished`.

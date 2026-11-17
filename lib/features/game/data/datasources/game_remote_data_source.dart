@@ -1,3 +1,4 @@
+import 'package:guess_party/core/data/room_players_watcher.dart';
 import 'package:guess_party/features/auth/data/models/player_model.dart';
 import 'package:guess_party/features/game/data/models/character_model.dart';
 import 'package:guess_party/features/game/data/models/finalize_voting_result_model.dart';
@@ -340,26 +341,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
 
   @override
   Stream<List<PlayerModel>> watchPlayersChanges({required String roomId}) {
-    return client
-        .from('players')
-        .stream(primaryKey: ['id'])
-        .eq('room_id', roomId)
-        .map((data) {
-          final rows = data.cast<Map<String, dynamic>>().toList();
-          rows.sort((a, b) {
-            final aCreatedAt = DateTime.tryParse(
-              a['created_at']?.toString() ?? '',
-            );
-            final bCreatedAt = DateTime.tryParse(
-              b['created_at']?.toString() ?? '',
-            );
-            if (aCreatedAt == null && bCreatedAt == null) return 0;
-            if (aCreatedAt == null) return -1;
-            if (bCreatedAt == null) return 1;
-            return aCreatedAt.compareTo(bCreatedAt);
-          });
-          return rows.map(PlayerModel.fromJson).toList(growable: false);
-        });
+    return watchRoomPlayersStream(client, roomId: roomId);
   }
 
   @override

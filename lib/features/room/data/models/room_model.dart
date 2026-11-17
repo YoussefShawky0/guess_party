@@ -17,6 +17,22 @@ class RoomModel extends Room {
     super.createdAt,
   });
 
+  /// Parses a Postgres timestamp as a UTC instant. Handles `timestamptz`
+  /// values ("...+00:00", "...Z") and legacy offset-less `timestamp` values
+  /// ("2026-11-16T10:00:00"), which are UTC wall-clock and must not be read as
+  /// device-local time.
+  static DateTime? _tryParseUtc(String raw) {
+    final value = raw.trim();
+    final timeStart = value.indexOf(RegExp(r'[T ]'));
+    final hasOffset =
+        timeStart >= 0 &&
+        RegExp(
+          r'(?:[zZ]|[+-]\d{2}(?::?\d{2})?)$',
+        ).hasMatch(value.substring(timeStart));
+    final parsed = DateTime.tryParse(hasOffset ? value : '${value}Z');
+    return parsed?.toUtc();
+  }
+
   factory RoomModel.fromJson(Map<String, dynamic> json) {
     return RoomModel(
       id: json['id'] as String,
@@ -35,7 +51,7 @@ class RoomModel extends Room {
       roundDuration: json['round_duration'] as int? ?? 60,
       gameMode: json['game_mode'] as String? ?? GameConstants.gameModeOnline,
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
+          ? _tryParseUtc(json['created_at'] as String)
           : null,
     );
   }

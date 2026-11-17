@@ -26,7 +26,7 @@ implemented and validated independently after foundational tasks are complete.
 - [ ] T003 [P] Create a widget pump helper with MaterialApp, ScaffoldMessenger, and GoRouter-safe defaults in test/shared/widget_test_harness.dart
 - [ ] T004 [P] Create fake GameRepository and fake use case helpers for GameCubit tests in test/features/game/fakes/fake_game_repository.dart
 - [ ] T005 [P] Create fake RoomRepository or RoomCubit helpers for room join tests in test/features/room/fakes/fake_room_repository.dart
-- [ ] T006 Review the Supabase host migration design and keep all schema changes documented in doc/schemas/fix_host_migration_and_room_cleanup.sql
+- [ ] T006 Review the Supabase host migration design and keep all schema changes documented in doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql
 - [ ] T007 Confirm the feature plan paths and artifact references in specs/001-gameplay-stability-fixes/plan.md
 
 **Checkpoint**: Test helpers and feature context are ready.
@@ -126,8 +126,8 @@ implemented and validated independently after foundational tasks are complete.
 
 ### Implementation for User Story 3
 
-- [ ] T047 [US3] Make doc/schemas/fix_host_migration_and_room_cleanup.sql idempotently enforce one online host by clearing other `is_host` values when a new host is selected
-- [ ] T048 [US3] Make doc/schemas/fix_host_migration_and_room_cleanup.sql select the new host by `created_at ASC` among `is_online = true` players only
+- [ ] T047 [US3] Make doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql idempotently enforce one online host by clearing other `is_host` values when a new host is selected
+- [ ] T048 [US3] Make doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql select the new host by `created_at ASC` among `is_online = true` players only
 - [ ] T049 [US3] Make RoomRemoteDataSource.leaveRoom update only the leaving player presence and rely on database reconciliation for host migration in lib/features/room/data/datasources/room_remote_data_source.dart
 - [ ] T050 [US3] Make GameRemoteDataSource.watchPlayersChanges sort by created_at and include `is_host`, `is_online`, and `last_seen_at` in emitted PlayerModel rows in lib/features/game/data/datasources/game_remote_data_source.dart
 - [ ] T051 [US3] Make GameView resolve host controls exclusively from current Player.isHost in GameLoaded.players in lib/features/game/presentation/views/game_view.dart
@@ -152,8 +152,8 @@ implemented and validated independently after foundational tasks are complete.
 
 ### Implementation for User Story 4
 
-- [ ] T057 [US4] Update doc/schemas/fix_host_migration_and_room_cleanup.sql so `reconcile_room_after_presence_change` marks only the target room finished when online count is zero
-- [ ] T058 [US4] Update doc/schemas/fix_host_migration_and_room_cleanup.sql so `mark_stale_players_offline` includes `waiting` and `active` rooms and triggers reconciliation through `is_online` updates
+- [ ] T057 [US4] Update doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql so `reconcile_room_after_presence_change` marks only the target room finished when online count is zero
+- [ ] T058 [US4] Update doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql so `mark_stale_players_offline` includes `waiting` and `active` rooms and triggers reconciliation through `is_online` updates
 - [ ] T059 [US4] Call `markStalePlayersOffline` during online heartbeat or presence refresh without blocking gameplay in lib/features/game/presentation/views/game_view.dart
 - [ ] T060 [US4] Call `markStalePlayersOffline` from waiting-room lifecycle presence handling when applicable in lib/features/room/presentation/views/widgets/room_lifecycle_manager.dart
 - [ ] T061 [US4] Ensure room status listeners navigate away only for finished room updates for the current room in lib/features/room/presentation/views/widgets/room_status_listener.dart

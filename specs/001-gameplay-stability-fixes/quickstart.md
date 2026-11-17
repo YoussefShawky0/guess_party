@@ -4,7 +4,7 @@
 
 - Run the app with Supabase configured.
 - Use at least three test accounts/devices for online host migration checks.
-- Apply or verify the host migration/cleanup SQL described in `doc/schemas/fix_host_migration_and_room_cleanup.sql` before online cleanup validation.
+- Apply or verify the host migration/cleanup SQL described in `doc/schemas/legacy/fix_host_migration_and_room_cleanup.sql` before online cleanup validation.
 
 ## Manual Validation Flows
 

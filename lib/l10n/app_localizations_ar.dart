@@ -1070,4 +1070,167 @@ class AppLocalizationsAr extends AppLocalizations {
   String mostVoted(String name, int count) {
     return 'الأكثر تصويتًا: $name ($count صوتًا)';
   }
+
+  @override
+  String get errUnknown => 'حدث خطأ ما. حاول مرة أخرى.';
+
+  @override
+  String get errNetwork => 'انقطع الاتصال. جارٍ إعادة الاتصال...';
+
+  @override
+  String get errUnauthorized => 'ليس لديك صلاحية للقيام بذلك.';
+
+  @override
+  String get errDuplicateAction => 'لقد قمت بهذا الإجراء بالفعل.';
+
+  @override
+  String get errInvalidInput => 'المدخلات غير صحيحة. تحقق منها وحاول مرة أخرى.';
+
+  @override
+  String get errAuthRequired => 'سجّل الدخول للمتابعة.';
+
+  @override
+  String get errHostRequired => 'هذا الإجراء متاح للمضيف فقط.';
+
+  @override
+  String get errRoomMemberRequired =>
+      'يجب أن تكون داخل هذه الغرفة للقيام بذلك.';
+
+  @override
+  String get errRoomParticipantRequired => 'أنت لست لاعبًا في هذه الغرفة.';
+
+  @override
+  String get errRoundParticipantRequired => 'أنت لا تشارك في هذه الجولة.';
+
+  @override
+  String get errRoundNotFound => 'هذه الجولة لم تعد متاحة.';
+
+  @override
+  String get errPlayerNotFound => 'تعذّر العثور على هذا اللاعب.';
+
+  @override
+  String get errRoomFull => 'هذه الغرفة ممتلئة.';
+
+  @override
+  String get errRoomAlreadyStarted => 'بدأت هذه الغرفة بالفعل.';
+
+  @override
+  String get errRoomNotActive => 'هذه الغرفة لم تعد نشطة.';
+
+  @override
+  String get errNotEnoughPlayers => 'لا يوجد عدد كافٍ من اللاعبين للمتابعة.';
+
+  @override
+  String get errOnlineRoomRequired =>
+      'هذا الإجراء متاح في الغرف عبر الإنترنت فقط.';
+
+  @override
+  String get errInvalidRoomSettings => 'إعدادات الغرفة غير صالحة.';
+
+  @override
+  String get errInvalidStaleSeconds =>
+      'تعذّر تحديث حالة اللاعب. حاول مرة أخرى.';
+
+  @override
+  String get errChatRateLimited => 'تمهّل قليلًا قبل إرسال رسالة أخرى.';
+
+  @override
+  String get errInvalidChatContent => 'يجب ألا تتجاوز الرسالة 500 حرف.';
+
+  @override
+  String get errInvalidReportReason =>
+      'يرجى وصف المشكلة حتى نتمكن من مراجعتها.';
+
+  @override
+  String get errPlayerColumnUpdateForbidden =>
+      'هذا التعديل على اللاعب غير مسموح.';
+
+  @override
+  String get errWrongPhase => 'هذا الإجراء غير متاح في هذه المرحلة.';
+
+  @override
+  String get errVotesIncomplete => 'بانتظار تصويت جميع اللاعبين.';
+
+  @override
+  String get errUsernameTaken => 'هذا الاسم مستخدم بالفعل. جرّب اسمًا آخر.';
+
+  @override
+  String get errInvalidUsername => 'هذا الاسم غير صالح. جرّب اسمًا آخر.';
+
+  @override
+  String get errInvalidCredentials => 'بيانات تسجيل الدخول غير صحيحة';
+
+  @override
+  String get errEmailNotConfirmed =>
+      'يلزم تأكيد البريد الإلكتروني. تحقق من صندوق الوارد.';
+
+  @override
+  String get errWeakPassword => 'كلمة المرور ضعيفة. استخدم 8 أحرف على الأقل.';
+
+  @override
+  String get errEmailAlreadyRegistered =>
+      'يوجد حساب مسجّل بهذا البريد الإلكتروني. جرّب تسجيل الدخول.';
+
+  @override
+  String get errRateLimited => 'محاولات كثيرة. حاول مرة أخرى لاحقًا.';
+
+  @override
+  String get errInvalidEmail => 'عنوان البريد الإلكتروني غير صالح';
+
+  @override
+  String get errAccountAlreadyUpgraded =>
+      'هذا الحساب يستخدم بريدًا إلكترونيًا حقيقيًا بالفعل.';
+
+  @override
+  String get errChatLoadFailed => 'تعذّر تحميل المحادثة. حاول مرة أخرى.';
+
+  @override
+  String get errChatLoadOlderFailed => 'تعذّر تحميل الرسائل الأقدم.';
+
+  @override
+  String get errChatSendFailed => 'تعذّر إرسال الرسالة. حاول مرة أخرى.';
+
+  @override
+  String get errChatMuteFailed => 'تعذّر تحديث إعداد الكتم.';
+
+  @override
+  String get errChatConnectionInterrupted => 'انقطع الاتصال بالمحادثة.';
+
+  @override
+  String get errReportFailed => 'تعذّر إرسال البلاغ.';
+
+  @override
+  String get errEmailVerificationRequired =>
+      'تحقق من بريدك الإلكتروني لتأكيد حسابك، ثم سجّل الدخول.';
+
+  @override
+  String get errPasswordResetRequested =>
+      'إذا كان هناك حساب بهذا البريد الإلكتروني، فقد أرسلنا رابط إعادة تعيين كلمة المرور.';
+
+  @override
+  String get errAccountUpgradeComplete => 'تمت ترقية حسابك بنجاح.';
+
+  @override
+  String get errReportSubmitted => 'تم إرسال البلاغ للمراجعة.';
+
+  @override
+  String playerLeftGame(String name) {
+    return 'غادر $name اللعبة';
+  }
+
+  @override
+  String playersLeftGame(String names) {
+    return 'غادر $names اللعبة';
+  }
+
+  @override
+  String playerIsNowHost(String name) {
+    return '$name أصبح المضيف الآن';
+  }
+
+  @override
+  String get aPlayerFallbackName => 'لاعب';
+
+  @override
+  String get countdownGo => 'يلا!';
 }

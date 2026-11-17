@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/services/server_clock.dart';
 import 'package:guess_party/core/utils/time_sync_service.dart';
@@ -13,14 +14,6 @@ import 'package:guess_party/features/game/domain/entities/local_role_reveal_bund
 import 'package:guess_party/features/game/domain/entities/local_role_reveal_data.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
-import 'package:guess_party/features/game/domain/usecases/advance_to_voting.dart';
-import 'package:guess_party/features/game/domain/usecases/create_next_round.dart';
-import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
-import 'package:guess_party/features/game/domain/usecases/finalize_voting.dart';
-import 'package:guess_party/features/game/domain/usecases/finish_game.dart';
-import 'package:guess_party/features/game/domain/usecases/get_game_state.dart';
-import 'package:guess_party/features/game/domain/usecases/submit_hint.dart';
-import 'package:guess_party/features/game/domain/usecases/submit_vote.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 
 import '../../../../helpers/game_test_fixtures.dart';
@@ -32,14 +25,6 @@ void main() {
   setUp(() {
     repository = CharacterizationGameRepository();
     cubit = GameCubit(
-      getGameState: GetGameState(repository: repository),
-      submitHint: SubmitHint(repository),
-      submitVote: SubmitVote(repository),
-      advanceToVoting: AdvanceToVoting(repository),
-      finalizeVotingUseCase: FinalizeVoting(repository),
-      createNextRound: CreateNextRound(repository),
-      finishGameUseCase: FinishGame(repository),
-      extendLocalRoleReveal: ExtendLocalRoleReveal(repository),
       gameRepository: repository,
       timeSyncService: TimeSyncService(FixedServerClock()),
     );
@@ -118,6 +103,157 @@ void main() {
     await cubit.close();
     expect(cubit.activeOnlineGameSubscriptionCount, 0);
   });
+
+  test(
+    'hint failure while loaded keeps the game with an inline message',
+    () async {
+      repository.hintFailure = const ServerFailure(
+        'hint rejected',
+        code: AppErrorCode.hostRequired,
+      );
+
+      await cubit.sendHint(
+        roundId: 'round-1',
+        playerId: 'host-player',
+        hint: 'striped',
+      );
+
+      expect(cubit.state, isA<GameLoaded>());
+      expect(
+        (cubit.state as GameLoaded).nonFatalError,
+        AppErrorCode.hostRequired,
+      );
+    },
+  );
+
+  test(
+    'vote failure while loaded keeps the game with an inline message',
+    () async {
+      repository.voteFailure = const ServerFailure(
+        'phase already ended',
+        code: AppErrorCode.wrongPhase,
+      );
+
+      await cubit.sendVote(
+        roundId: 'round-1',
+        voterId: 'host-player',
+        votedPlayerId: 'guest-player',
+      );
+
+      expect(cubit.state, isA<GameLoaded>());
+      expect(
+        (cubit.state as GameLoaded).nonFatalError,
+        AppErrorCode.wrongPhase,
+      );
+    },
+  );
+
+  test('self vote is reported by code, locally and from the server', () async {
+    await cubit.sendVote(
+      roundId: 'round-1',
+      voterId: 'host-player',
+      votedPlayerId: 'host-player',
+    );
+    expect((cubit.state as GameLoaded).nonFatalError, AppErrorCode.selfVote);
+
+    repository.voteFailure = const ServerFailure(
+      'votes_check',
+      code: AppErrorCode.selfVote,
+    );
+    await cubit.sendVote(
+      roundId: 'round-1',
+      voterId: 'host-player',
+      votedPlayerId: 'guest-player',
+    );
+    expect(cubit.state, isA<GameLoaded>());
+    expect((cubit.state as GameLoaded).nonFatalError, AppErrorCode.selfVote);
+  });
+
+  test('next round and finish failures keep the loaded game', () async {
+    repository.nextRoundFailure = const ServerFailure(
+      'round rejected',
+      code: AppErrorCode.roundNotFound,
+    );
+    final succeeded = await cubit.createNewRound(
+      roomId: 'room-1',
+      roundNumber: 2,
+    );
+    expect(succeeded, isFalse);
+    expect(cubit.state, isA<GameLoaded>());
+    expect(
+      (cubit.state as GameLoaded).nonFatalError,
+      AppErrorCode.roundNotFound,
+    );
+
+    repository.finishFailure = const ServerFailure(
+      'finish rejected',
+      code: AppErrorCode.hostRequired,
+    );
+    await cubit.finishGame('room-1');
+    expect(cubit.state, isA<GameLoaded>());
+    expect(
+      (cubit.state as GameLoaded).nonFatalError,
+      AppErrorCode.hostRequired,
+    );
+  });
+
+  test(
+    'action failure without a loaded state falls back to GameError',
+    () async {
+      final fresh = GameCubit(
+        gameRepository: repository,
+        timeSyncService: TimeSyncService(FixedServerClock()),
+      );
+      repository.hintFailure = const ServerFailure('hint rejected');
+
+      await fresh.sendHint(roundId: 'r', playerId: 'p', hint: 'h');
+
+      expect(fresh.state, isA<GameError>());
+      await fresh.close();
+    },
+  );
+
+  test(
+    'concurrent load and resume refresh leave one live set of streams',
+    () async {
+      await cubit.loadGameState(roomId: 'room-1', currentPlayerId: 'host-user');
+      await Future<void>.delayed(Duration.zero);
+
+      await Future.wait([
+        cubit.loadGameState(roomId: 'room-1', currentPlayerId: 'host-user'),
+        cubit.refreshGameStateOnResume(roomId: 'room-1', maxRetries: 1),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.activeOnlineGameSubscriptionCount, 3);
+      expect(repository.activePlayersListeners, 1);
+      expect(repository.activeRoundListeners, 1);
+      expect(repository.activeStatusListeners, 1);
+
+      final states = <GameState>[];
+      final subscription = cubit.stream.listen(states.add);
+      repository.playersController.add(const [
+        Player(
+          id: 'host-player',
+          roomId: 'room-1',
+          userId: 'host-user',
+          username: 'Renamed Host',
+          score: 0,
+          isHost: true,
+          isOnline: true,
+        ),
+      ]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(states, hasLength(1));
+      await subscription.cancel();
+
+      await cubit.close();
+      expect(repository.activePlayersListeners, 0);
+      expect(repository.activeRoundListeners, 0);
+      expect(repository.activeStatusListeners, 0);
+    },
+  );
 
   test('repeated finished room updates emit game end exactly once', () async {
     await cubit.loadGameState(roomId: 'room-1', currentPlayerId: 'host-user');
@@ -202,6 +338,13 @@ class CharacterizationGameRepository implements GameRepository {
   int nextRoundCalls = 0;
   int finishCalls = 0;
   Completer<void>? finalizeGate;
+  Failure? hintFailure;
+  Failure? voteFailure;
+  Failure? nextRoundFailure;
+  Failure? finishFailure;
+  int activePlayersListeners = 0;
+  int activeRoundListeners = 0;
+  int activeStatusListeners = 0;
   final playersController = StreamController<List<Player>>.broadcast();
   final roundsController = StreamController<RoundInfo>.broadcast();
   final roomStatusController = StreamController<String>.broadcast();
@@ -219,6 +362,7 @@ class CharacterizationGameRepository implements GameRepository {
     required String hint,
   }) async {
     hintCalls++;
+    if (hintFailure case final failure?) return Left(failure);
     return const Right(null);
   }
 
@@ -229,6 +373,7 @@ class CharacterizationGameRepository implements GameRepository {
     required String votedPlayerId,
   }) async {
     voteCalls++;
+    if (voteFailure case final failure?) return Left(failure);
     return const Right(null);
   }
 
@@ -255,12 +400,14 @@ class CharacterizationGameRepository implements GameRepository {
     required int expectedRoundNumber,
   }) async {
     nextRoundCalls++;
+    if (nextRoundFailure case final failure?) return Left(failure);
     return Right(phase2Round(id: 'round-2', roundNumber: 2));
   }
 
   @override
   Future<Either<Failure, void>> finishGame({required String roomId}) async {
     finishCalls++;
+    if (finishFailure case final failure?) return Left(failure);
     return const Right(null);
   }
 
@@ -292,13 +439,38 @@ class CharacterizationGameRepository implements GameRepository {
   }) async => Left(const ServerFailure('unused'));
   @override
   Stream<List<Player>> watchRoomPlayers({required String roomId}) =>
-      playersController.stream;
+      _counted(playersController, () => activePlayersListeners++, () {
+        activePlayersListeners--;
+      });
   @override
   Stream<RoundInfo> watchRoundUpdates({required String roundId}) =>
-      roundsController.stream;
+      _counted(roundsController, () => activeRoundListeners++, () {
+        activeRoundListeners--;
+      });
   @override
   Stream<String> watchRoomStatus({required String roomId}) =>
-      roomStatusController.stream;
+      _counted(roomStatusController, () => activeStatusListeners++, () {
+        activeStatusListeners--;
+      });
+
+  Stream<T> _counted<T>(
+    StreamController<T> controller,
+    void Function() onListen,
+    void Function() onCancel,
+  ) {
+    return Stream<T>.multi((multi) {
+      onListen();
+      final subscription = controller.stream.listen(
+        multi.add,
+        onError: multi.addError,
+      );
+      multi.onCancel = () {
+        onCancel();
+        return subscription.cancel();
+      };
+    });
+  }
+
   @override
   Future<Either<Failure, void>> updateCurrentPlayerPresence({
     required String roomId,

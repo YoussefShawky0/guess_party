@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 
 abstract class AuthState extends Equatable {
@@ -7,9 +8,6 @@ abstract class AuthState extends Equatable {
   @override
   List<Object?> get props => [];
 }
-
-const passwordResetRequestMessage =
-    'If an account exists for that email, a password reset link has been sent.';
 
 class AuthInitial extends AuthState {}
 
@@ -25,21 +23,22 @@ class AuthSuccess extends AuthState {
 }
 
 class AuthError extends AuthState {
-  final String message;
+  final AppErrorCode code;
 
-  const AuthError(this.message);
+  const AuthError(this.code);
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [code];
 }
 
 class AuthMessage extends AuthState {
-  const AuthMessage(this.message);
+  const AuthMessage(this.code);
 
-  final String message;
+  /// A notice (for example [AppErrorCode.passwordResetRequested]), not an error.
+  final AppErrorCode code;
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [code];
 }
 
 class AuthUpgradePending extends AuthState {

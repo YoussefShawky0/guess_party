@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
@@ -10,29 +9,21 @@ import 'package:guess_party/features/room/presentation/views/widgets/join_room_b
 import 'package:guess_party/features/room/presentation/views/widgets/join_room_header.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/room_code_input.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
-class JoinRoomView extends StatelessWidget {
-  const JoinRoomView({super.key});
+class JoinRoomView extends StatefulWidget {
+  const JoinRoomView({super.key, required this.session});
+
+  final AuthSessionService session;
 
   @override
-  Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => di.sl<RoomCubit>(),
-      child: const JoinRoomContent(),
-    );
-  }
+  State<JoinRoomView> createState() => _JoinRoomViewState();
 }
 
-class JoinRoomContent extends StatefulWidget {
-  const JoinRoomContent({super.key});
-
-  @override
-  State<JoinRoomContent> createState() => _JoinRoomContentState();
-}
-
-class _JoinRoomContentState extends State<JoinRoomContent> {
+class _JoinRoomViewState extends State<JoinRoomView> {
   final _formKey = GlobalKey<FormState>();
   final _roomCodeController = TextEditingController();
   String? _roomCodeErrorMessage;
@@ -52,7 +43,7 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
   void _joinRoom() {
     if (_formKey.currentState!.validate()) {
       setState(() => _roomCodeErrorMessage = null);
-      final username = di.sl<AuthSessionService>().currentUsername;
+      final username = widget.session.currentUsername;
 
       context.read<RoomCubit>().joinRoom(
         roomCode: _roomCodeController.text.trim(),
@@ -76,16 +67,17 @@ class _JoinRoomContentState extends State<JoinRoomContent> {
       body: BlocConsumer<RoomCubit, RoomState>(
         listener: (context, state) {
           if (state is RoomError) {
-            if (state.message.toLowerCase().contains('room not found')) {
+            final message = localizedErrorMessage(context.l10n, state.code);
+            if (state.code == AppErrorCode.roomNotFound) {
               setState(() {
-                _roomCodeErrorMessage = state.message;
+                _roomCodeErrorMessage = message;
               });
               ErrorSnackBar.showRoomCodeError(context);
             } else {
               if (_roomCodeErrorMessage != null) {
                 setState(() => _roomCodeErrorMessage = null);
               }
-              ErrorSnackBar.show(context, state.message);
+              ErrorSnackBar.show(context, message);
             }
           }
 

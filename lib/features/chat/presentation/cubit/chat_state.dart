@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_cursor.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
 
@@ -24,7 +25,7 @@ class ChatLoaded extends ChatState {
     this.nextCursor,
     this.isLoadingOlder = false,
     this.isSending = false,
-    this.errorMessage,
+    this.messageCode,
   });
 
   final List<ChatMessage> messages;
@@ -32,7 +33,9 @@ class ChatLoaded extends ChatState {
   final ChatCursor? nextCursor;
   final bool isLoadingOlder;
   final bool isSending;
-  final String? errorMessage;
+
+  /// Transient notice or error for the view to localize and show once.
+  final AppErrorCode? messageCode;
 
   ChatLoaded copyWith({
     List<ChatMessage>? messages,
@@ -41,7 +44,7 @@ class ChatLoaded extends ChatState {
     bool clearNextCursor = false,
     bool? isLoadingOlder,
     bool? isSending,
-    String? errorMessage,
+    AppErrorCode? messageCode,
     bool clearErrorMessage = false,
   }) {
     return ChatLoaded(
@@ -50,9 +53,7 @@ class ChatLoaded extends ChatState {
       nextCursor: clearNextCursor ? null : nextCursor ?? this.nextCursor,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       isSending: isSending ?? this.isSending,
-      errorMessage: clearErrorMessage
-          ? null
-          : errorMessage ?? this.errorMessage,
+      messageCode: clearErrorMessage ? null : messageCode ?? this.messageCode,
     );
   }
 
@@ -63,15 +64,15 @@ class ChatLoaded extends ChatState {
     nextCursor,
     isLoadingOlder,
     isSending,
-    errorMessage,
+    messageCode,
   ];
 }
 
 class ChatFailure extends ChatState {
-  const ChatFailure(this.message);
+  const ChatFailure(this.code);
 
-  final String message;
+  final AppErrorCode code;
 
   @override
-  List<Object> get props => [message];
+  List<Object> get props => [code];
 }

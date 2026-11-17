@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart' as di;
 import 'package:guess_party/core/router/app_routes.dart';
-import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
@@ -14,64 +13,23 @@ import 'widgets/room_lifecycle_manager.dart';
 import 'widgets/waiting_room_app_bar.dart';
 import 'widgets/waiting_room_body.dart';
 
-class WaitingRoomView extends StatelessWidget {
+class WaitingRoomView extends StatefulWidget {
   final String roomId;
-  final RoomCubit? roomCubit;
-  final String? Function()? currentUserIdResolver;
+  final String? Function() currentUserIdResolver;
   final Widget Function(String roomId)? playersListBuilder;
 
   const WaitingRoomView({
     super.key,
     required this.roomId,
-    this.roomCubit,
-    this.currentUserIdResolver,
+    required this.currentUserIdResolver,
     this.playersListBuilder,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final providedCubit = roomCubit;
-    if (providedCubit != null) {
-      return BlocProvider.value(
-        value: providedCubit,
-        child: WaitingRoomContent(
-          roomId: roomId,
-          currentUserIdResolver: currentUserIdResolver,
-          playersListBuilder: playersListBuilder,
-        ),
-      );
-    }
-
-    return BlocProvider(
-      create: (context) => di.sl<RoomCubit>()
-        ..loadRoomDetails(roomId: roomId)
-        ..watchRoomStatus(roomId: roomId),
-      child: WaitingRoomContent(
-        roomId: roomId,
-        currentUserIdResolver: currentUserIdResolver,
-        playersListBuilder: playersListBuilder,
-      ),
-    );
-  }
+  State<WaitingRoomView> createState() => _WaitingRoomViewState();
 }
 
-class WaitingRoomContent extends StatefulWidget {
-  final String roomId;
-  final String? Function()? currentUserIdResolver;
-  final Widget Function(String roomId)? playersListBuilder;
-
-  const WaitingRoomContent({
-    super.key,
-    required this.roomId,
-    this.currentUserIdResolver,
-    this.playersListBuilder,
-  });
-
-  @override
-  State<WaitingRoomContent> createState() => _WaitingRoomContentState();
-}
-
-class _WaitingRoomContentState extends State<WaitingRoomContent> {
+class _WaitingRoomViewState extends State<WaitingRoomView> {
   String? _currentPlayerId;
   bool? _isHost;
   bool _hasNavigatedToCountdown = false;
@@ -138,7 +96,10 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
       body: BlocConsumer<RoomCubit, RoomState>(
         listener: (context, state) {
           if (state is RoomError) {
-            ErrorSnackBar.show(context, state.message);
+            ErrorSnackBar.show(
+              context,
+              localizedErrorMessage(context.l10n, state.code),
+            );
           }
 
           if (state is RoomDetailsLoaded && state.room.status == 'active') {
@@ -159,9 +120,7 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
           }
 
           if (state is RoomDetailsLoaded) {
-            final currentUserId = widget.currentUserIdResolver != null
-                ? widget.currentUserIdResolver!()
-                : _resolveCurrentUserId();
+            final currentUserId = widget.currentUserIdResolver();
             final players = state.players ?? [];
 
             // Find current player safely - avoid firstWhere type mismatch
@@ -224,13 +183,5 @@ class _WaitingRoomContentState extends State<WaitingRoomContent> {
         },
       ),
     );
-  }
-
-  String? _resolveCurrentUserId() {
-    try {
-      return di.sl<AuthSessionService>().currentUserId;
-    } catch (_) {
-      return null;
-    }
   }
 }

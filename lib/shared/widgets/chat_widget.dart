@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
-import 'package:guess_party/core/di/injection_container.dart';
+import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
 import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
 import 'package:guess_party/features/chat/presentation/cubit/chat_cubit.dart';
@@ -25,8 +25,8 @@ class ChatWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       key: ValueKey('chat-$roomId-$roundId'),
-      create: (_) =>
-          ChatCubit(sl<ChatRepository>())
+      create: (context) =>
+          ChatCubit(context.read<ChatRepository>())
             ..start(roomId: roomId, roundId: roundId),
       child: _ChatPanel(currentPlayerId: currentPlayerId),
     );
@@ -70,7 +70,7 @@ class _ChatPanelState extends State<_ChatPanel> {
     await cubit.send(content);
     if (!mounted) return;
     final state = cubit.state;
-    if (state is ChatLoaded && state.errorMessage == null) {
+    if (state is ChatLoaded && state.messageCode == null) {
       _messageController.clear();
     }
   }
@@ -152,17 +152,22 @@ class _ChatPanelState extends State<_ChatPanel> {
     return BlocConsumer<ChatCubit, ChatState>(
       listenWhen: (previous, current) {
         if (current is! ChatLoaded) return false;
-        return current.errorMessage != null ||
+        return current.messageCode != null ||
             (previous is ChatLoaded &&
                 current.messages.length > previous.messages.length);
       },
       listener: (context, state) {
         if (state is! ChatLoaded) return;
-        if (state.errorMessage != null) {
+        final code = state.messageCode;
+        if (code != null) {
           final messenger = ScaffoldMessenger.of(context);
           messenger
             ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(content: Text(state.errorMessage!)));
+            ..showSnackBar(
+              SnackBar(
+                content: Text(localizedErrorMessage(context.l10n, code)),
+              ),
+            );
           context.read<ChatCubit>().acknowledgeMessage();
         } else {
           _scrollToBottom();
@@ -207,7 +212,7 @@ class _ChatPanelState extends State<_ChatPanel> {
     if (state is ChatFailure) {
       return Center(
         child: Text(
-          state.message,
+          localizedErrorMessage(context.l10n, state.code),
           style: TextStyle(color: AppColors.of(context).textSecondary),
         ),
       );

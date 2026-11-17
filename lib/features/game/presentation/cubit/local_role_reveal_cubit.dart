@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/game/domain/entities/local_role_reveal_data.dart';
-import 'package:guess_party/features/game/domain/usecases/extend_local_role_reveal.dart';
-import 'package:guess_party/features/game/domain/usecases/get_local_role_reveal_data.dart';
+import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
 
 sealed class LocalRoleRevealState extends Equatable {
   const LocalRoleRevealState();
@@ -25,38 +25,48 @@ final class LocalRoleRevealLoaded extends LocalRoleRevealState {
 }
 
 final class LocalRoleRevealFailure extends LocalRoleRevealState {
-  final String message;
+  final AppErrorCode code;
 
-  const LocalRoleRevealFailure(this.message);
+  const LocalRoleRevealFailure(this.code);
 
   @override
-  List<Object> get props => [message];
+  List<Object> get props => [code];
 }
 
 class LocalRoleRevealCubit extends Cubit<LocalRoleRevealState> {
-  final GetLocalRoleRevealData getLocalRoleRevealData;
-  final ExtendLocalRoleReveal extendLocalRoleReveal;
+  final GameRepository _repository;
 
-  LocalRoleRevealCubit({
-    required this.getLocalRoleRevealData,
-    required this.extendLocalRoleReveal,
-  }) : super(LocalRoleRevealInitial());
+  LocalRoleRevealCubit({required GameRepository repository})
+    : _repository = repository,
+      super(LocalRoleRevealInitial());
 
   Future<void> load(String roomId) async {
-    emit(LocalRoleRevealLoading());
-    final result = await getLocalRoleRevealData(roomId: roomId);
     if (isClosed) return;
-    result.fold(
-      (failure) => emit(LocalRoleRevealFailure(failure.message)),
-      (data) => emit(LocalRoleRevealLoaded(data)),
-    );
+    emit(LocalRoleRevealLoading());
+    final result = await _repository.getLocalRoleRevealData(roomId: roomId);
+    if (isClosed) return;
+    result.fold((failure) => emit(LocalRoleRevealFailure(failure.code)), (
+      data,
+    ) {
+      // A successful load with unusable data would leave the view spinning.
+      final usable =
+          data.players.isNotEmpty &&
+          data.roundId.isNotEmpty &&
+          data.imposterPlayerId.isNotEmpty &&
+          data.character.id.isNotEmpty;
+      emit(
+        usable
+            ? LocalRoleRevealLoaded(data)
+            : const LocalRoleRevealFailure(AppErrorCode.roundNotFound),
+      );
+    });
   }
 
   Future<bool> extendReveal({
     required String roundId,
     required int seconds,
   }) async {
-    final result = await extendLocalRoleReveal(
+    final result = await _repository.extendLocalRoleReveal(
       roundId: roundId,
       seconds: seconds.clamp(5, 300).toInt(),
     );

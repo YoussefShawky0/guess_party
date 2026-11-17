@@ -147,7 +147,7 @@ guess_party/
 │   └── shared/                      # Splash, chat, app-bar and error UI
 ├── test/                            # Eight model/Cubit/widget tests
 ├── doc/
-│   ├── schemas/                     # Baseline and incremental Supabase SQL
+│   ├── schemas/legacy/              # Historical SQL (superseded by supabase/migrations)
 │   ├── External privacy policy     # Authoritative policy: https://youssefshawky0.github.io/guess-party-privacy/
 │   └── *.md                         # Security, debugging and refactoring notes
 ├── specs/                           # Spec Kit feature specifications/plans
