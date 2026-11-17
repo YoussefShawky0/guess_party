@@ -32,9 +32,15 @@ jobs:
       - name: Verify clean checkout
         run: git diff --quiet && git diff --cached --quiet
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.44.1
           cache: true
 
       - uses: supabase/setup-cli@v1
