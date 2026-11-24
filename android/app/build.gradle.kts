@@ -43,6 +43,17 @@ android {
         versionName = flutter.versionName
     }
 
+    // Google's public test AdMob app ID. Development and staging always use it;
+    // production reads admobAppId from key.properties (kept out of git).
+    val testAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
+    val productionAdMobAppId = (keystoreProperties["admobAppId"] as String?)
+        ?.takeIf { it.isNotBlank() }
+    if (isProductionReleaseTask && productionAdMobAppId == null) {
+        logger.warn(
+            "admobAppId is not set in key.properties: production uses the AdMob test app ID.",
+        )
+    }
+
     flavorDimensions += "environment"
     productFlavors {
         create("development") {
@@ -50,16 +61,19 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             resValue("string", "app_name", "Guess Party Dev")
+            manifestPlaceholders["admobAppId"] = testAdMobAppId
         }
         create("staging") {
             dimension = "environment"
             applicationIdSuffix = ".staging"
             versionNameSuffix = "-staging"
             resValue("string", "app_name", "Guess Party Staging")
+            manifestPlaceholders["admobAppId"] = testAdMobAppId
         }
         create("production") {
             dimension = "environment"
             resValue("string", "app_name", "Guess Party")
+            manifestPlaceholders["admobAppId"] = productionAdMobAppId ?: testAdMobAppId
         }
     }
 

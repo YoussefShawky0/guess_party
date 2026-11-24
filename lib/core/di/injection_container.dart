@@ -28,11 +28,21 @@ import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/chat/data/repositories/supabase_chat_repository.dart';
 import 'package:guess_party/features/chat/domain/repositories/chat_repository.dart';
 import 'package:guess_party/core/config/app_config.dart';
+import 'package:flutter/foundation.dart';
+import 'package:guess_party/core/data/google_interstitial_ad_service.dart';
+import 'package:guess_party/core/services/interstitial_ad_service.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init({required AppConfig config}) async {
   sl.registerSingleton<AppConfig>(config);
+  // Ads are Android-only for now: iOS has no AdMob app ID configured yet.
+  final adUnitId = config.adMobInterstitialUnitId;
+  sl.registerSingleton<InterstitialAdService>(
+    adUnitId != null && defaultTargetPlatform == TargetPlatform.android
+        ? GoogleInterstitialAdService(adUnitId: adUnitId)
+        : const DisabledInterstitialAdService(),
+  );
   // ============= Theme =============
   final themeCubit = ThemeCubit();
   await themeCubit.loadSavedTheme();

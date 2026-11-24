@@ -34,6 +34,10 @@
                     android:host="login-callback" />
             </intent-filter>
         </activity>
+        <!-- AdMob app ID per flavor; see admobAppId in app/build.gradle.kts. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

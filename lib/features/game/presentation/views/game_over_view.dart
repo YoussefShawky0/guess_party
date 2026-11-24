@@ -2,20 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
+import 'package:guess_party/core/services/interstitial_ad_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'widgets/leaderboard_list_widget.dart';
 import 'widgets/podium_widget.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
-class GameOverView extends StatelessWidget {
+class GameOverView extends StatefulWidget {
   final List<Player> players;
   final Map<String, int> playerScores;
+  final InterstitialAdService adService;
 
   const GameOverView({
     super.key,
     required this.players,
     required this.playerScores,
+    this.adService = const DisabledInterstitialAdService(),
   });
+
+  @override
+  State<GameOverView> createState() => _GameOverViewState();
+}
+
+class _GameOverViewState extends State<GameOverView> {
+  bool _leaving = false;
+
+  List<Player> get players => widget.players;
+  Map<String, int> get playerScores => widget.playerScores;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.adService.preload();
+  }
+
+  /// The game is over, so the ad can't interrupt play in either mode.
+  Future<void> _goHome() async {
+    if (_leaving) return;
+    _leaving = true;
+    await widget.adService.showAfterGameIfReady();
+    if (!mounted) return;
+    context.go(AppRoutes.home);
+  }
 
   List<Player> get _sortedPlayers {
     final sorted = List<Player>.from(players);
@@ -33,7 +61,7 @@ class GameOverView extends StatelessWidget {
 
     return PopScope(
       canPop: false,
-      onPopInvokedWithResult: (_, __) => context.go(AppRoutes.home),
+      onPopInvokedWithResult: (_, __) => _goHome(),
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
         body: SafeArea(
@@ -103,7 +131,7 @@ class GameOverView extends StatelessWidget {
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton.icon(
-                        onPressed: () => context.go(AppRoutes.home),
+                        onPressed: _goHome,
                         icon: const Icon(Icons.home_rounded),
                         label: Text(
                           context.l10n.backToHome,

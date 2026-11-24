@@ -18,6 +18,7 @@ import 'core/localization/locale_cubit.dart';
 import 'core/router/app_routes.dart';
 import 'core/services/auth_navigation_coordinator.dart';
 import 'core/services/auth_session_service.dart';
+import 'core/services/interstitial_ad_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -137,6 +138,10 @@ class _GuessPartyState extends State<GuessParty> {
       onIntentionalSignedOut: () => _navigateAfterFrame(AppRoutes.auth),
       onPasswordRecovery: () => _navigateAfterFrame(AppRoutes.resetPassword),
     )..start();
+    // The consent form needs an attached Activity, so start after first frame.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(di.sl<InterstitialAdService>().initialize()),
+    );
   }
 
   void _navigateAfterFrame(String location) {
