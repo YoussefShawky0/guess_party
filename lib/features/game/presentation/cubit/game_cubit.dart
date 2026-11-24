@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/services/analytics_service.dart';
 import 'package:guess_party/core/utils/time_sync_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/game_state.dart'
@@ -66,8 +67,53 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
   String _currentPlayerId = '';
   String get currentPlayerId => _currentPlayerId;
 
-  GameCubit({required this.gameRepository, required this.timeSyncService})
-    : super(GameInitial());
+  final AnalyticsService _analytics;
+  bool _gameStartedLogged = false;
+
+  GameCubit({
+    required this.gameRepository,
+    required this.timeSyncService,
+    AnalyticsService analytics = const NoopAnalyticsService(),
+  }) : _analytics = analytics,
+       super(GameInitial());
+
+  /// Logged once per cubit, when the first round of a game is loaded.
+  void _trackGameStarted(GameStateEntity game) {
+    if (_gameStartedLogged || game.currentRound.roundNumber != 1) return;
+    _gameStartedLogged = true;
+    _analytics.track(
+      GameStartedEvent(
+        mode: game.gameMode,
+        category: game.category,
+        players: game.players.length,
+        rounds: game.totalRounds,
+      ),
+    );
+  }
+
+  void _trackGameFinished(GameState snapshot) {
+    if (snapshot is! GameLoaded) return;
+    final game = snapshot.gameState;
+    _analytics.track(
+      GameFinishedEvent(
+        mode: game.gameMode,
+        category: game.category,
+        rounds: game.totalRounds,
+      ),
+    );
+  }
+
+  /// Call after the player confirmed the leave-game dialog mid-game.
+  void trackLeftEarly() {
+    final current = state;
+    if (current is! GameLoaded) return;
+    _analytics.track(
+      GameLeftEarlyEvent(
+        mode: current.gameState.gameMode,
+        phase: current.gameState.currentRound.phase.name,
+      ),
+    );
+  }
 
   void _addBreadcrumb(String message, {Map<String, Object?> data = const {}}) {
     Sentry.addBreadcrumb(
@@ -122,6 +168,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
           data: {'roomId': roomId, 'roundId': stateToEmit.currentRound.id},
         );
         emit(GameLoaded(stateToEmit));
+        _trackGameStarted(stateToEmit);
         _subscribeToGameUpdates(
           stateToEmit.currentRound.id,
           roomId: stateToEmit.roomId,
@@ -274,6 +321,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
         .listen((status) {
           if (!isClosed && status == 'finished' && state is GameLoaded) {
             final loaded = state as GameLoaded;
+            _trackGameFinished(loaded);
             emit(
               GameEnded(
                 players: loaded.gameState.players,
@@ -608,6 +656,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
         final scores = snapshot is GameLoaded
             ? snapshot.gameState.playerScores
             : <String, int>{};
+        _trackGameFinished(snapshot);
         emit(GameEnded(players: players, playerScores: scores));
       },
     );

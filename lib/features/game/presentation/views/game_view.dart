@@ -136,6 +136,7 @@ class _GameViewContentState extends State<GameViewContent> {
         leaveForeground: AppColors.of(context).textPrimary,
       );
       if (!shouldLeave || !context.mounted) return;
+      gameCubit.trackLeftEarly();
     }
 
     // Get player info from game state

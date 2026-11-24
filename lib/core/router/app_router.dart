@@ -131,7 +131,9 @@ class AppRouter {
       GoRoute(
         path: AppRoutes.stats,
         builder: (context, state) => BlocProvider(
-          create: (_) => sl<PlayerStatsCubit>()..load(),
+          create: (_) => sl<PlayerStatsCubit>()
+            ..trackViewed()
+            ..load(),
           child: StatsView(isGuest: sl<AuthSessionService>().isAnonymous),
         ),
       ),

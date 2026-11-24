@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:get_it/get_it.dart';
+import 'package:guess_party/core/data/firebase_analytics_service.dart';
+import 'package:guess_party/core/services/analytics_service.dart';
 import 'package:guess_party/core/data/audioplayers_cue_player.dart';
 import 'package:guess_party/core/data/device_game_feedback.dart';
 import 'package:guess_party/core/services/game_feedback.dart';
@@ -65,8 +68,31 @@ Future<GameFeedback> _createGameFeedback() async {
   }
 }
 
+/// Analytics is optional: without Firebase defines, or if initialization
+/// fails or hangs, the app runs with a no-op service.
+Future<AnalyticsService> _createAnalytics(AppConfig config) async {
+  if (!config.hasFirebase) return const NoopAnalyticsService();
+  try {
+    await Firebase.initializeApp(
+      options: FirebaseOptions(
+        apiKey: config.firebaseApiKey!,
+        appId: config.firebaseAppId!,
+        projectId: config.firebaseProjectId!,
+        messagingSenderId: config.firebaseMessagingSenderId!,
+      ),
+    ).timeout(const Duration(seconds: 5));
+    final service = FirebaseAnalyticsService();
+    await service.setCollectionEnabled(config.analyticsCollectionEnabled);
+    return service;
+  } catch (error, stackTrace) {
+    unawaited(Sentry.captureException(error, stackTrace: stackTrace));
+    return const NoopAnalyticsService();
+  }
+}
+
 Future<void> init({required AppConfig config}) async {
   sl.registerSingleton<AppConfig>(config);
+  sl.registerSingleton<AnalyticsService>(await _createAnalytics(config));
   // Ads are Android-only for now: iOS has no AdMob app ID configured yet.
   final adUnitId = config.adMobInterstitialUnitId;
   sl.registerSingleton<InterstitialAdService>(
@@ -136,7 +162,7 @@ Future<void> init({required AppConfig config}) async {
     () => RoomRepositoryImpl(remoteDataSource: sl()),
   );
 
-  sl.registerFactory(() => RoomCubit(repository: sl()));
+  sl.registerFactory(() => RoomCubit(repository: sl(), analytics: sl()));
 
   sl.registerFactoryParam<
     RematchInviteCubit,
@@ -147,6 +173,7 @@ Future<void> init({required AppConfig config}) async {
       repository: sl(),
       previousRoomId: args.previousRoomId,
       userId: args.userId,
+      analytics: sl(),
     ),
   );
 
@@ -167,7 +194,11 @@ Future<void> init({required AppConfig config}) async {
   sl.registerLazySingleton<SeenBadgesStore>(() => SharedPrefsSeenBadgesStore());
 
   sl.registerFactory(
-    () => PlayerStatsCubit(repository: sl(), seenBadgesStore: sl()),
+    () => PlayerStatsCubit(
+      repository: sl(),
+      seenBadgesStore: sl(),
+      analytics: sl(),
+    ),
   );
 
   // ============= Game Feature =============
@@ -182,7 +213,8 @@ Future<void> init({required AppConfig config}) async {
   );
 
   sl.registerFactory(
-    () => GameCubit(gameRepository: sl(), timeSyncService: sl()),
+    () =>
+        GameCubit(gameRepository: sl(), timeSyncService: sl(), analytics: sl()),
   );
 
   sl.registerFactory(() => LocalRoleRevealCubit(repository: sl()));

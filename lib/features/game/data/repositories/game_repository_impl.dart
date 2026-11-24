@@ -210,6 +210,7 @@ class GameRepositoryImpl implements GameRepository {
           roundDuration: room.roundDuration,
           playerScores: scores,
           gameMode: room.gameMode,
+          category: room.category,
         ),
       );
     } catch (error, stackTrace) {

@@ -79,6 +79,15 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
     router.go(AppRoutes.roomRoleReveal(widget.roomId));
   }
 
+  Future<void> _confirmLeave() async {
+    final router = GoRouter.of(context);
+    final gameCubit = context.read<GameCubit>();
+    final shouldExit = await showLeaveGameDialog(context);
+    if (!shouldExit || !mounted) return;
+    gameCubit.trackLeftEarly();
+    router.go(AppRoutes.home);
+  }
+
   @override
   Widget build(BuildContext context) {
     return GameFeedbackListener(
@@ -86,11 +95,7 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
         canPop: false,
         onPopInvokedWithResult: (didPop, result) async {
           if (didPop) return;
-          final router = GoRouter.of(context);
-          final shouldExit = await showLeaveGameDialog(context);
-          if (shouldExit && mounted) {
-            router.go(AppRoutes.home);
-          }
+          await _confirmLeave();
         },
         child: Scaffold(
           backgroundColor: AppColors.of(context).background,
@@ -100,13 +105,7 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
             foregroundColor: AppColors.of(context).textPrimary,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () async {
-                final router = GoRouter.of(context);
-                final shouldExit = await showLeaveGameDialog(context);
-                if (shouldExit && mounted) {
-                  router.go(AppRoutes.home);
-                }
-              },
+              onPressed: _confirmLeave,
             ),
           ),
           body: BlocConsumer<GameCubit, GameState>(

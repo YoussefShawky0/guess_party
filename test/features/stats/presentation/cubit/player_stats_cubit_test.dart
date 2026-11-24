@@ -1,9 +1,11 @@
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/services/analytics_service.dart';
 import 'package:guess_party/features/stats/domain/badges.dart';
 import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
 
+import '../../../../helpers/recording_analytics.dart';
 import '../../../../helpers/stats_fakes.dart';
 
 void main() {
@@ -77,6 +79,39 @@ void main() {
     expect(cubit.state, const StatsLoading());
     await future;
     expect(cubit.state, isA<StatsLoaded>());
+    await cubit.close();
+  });
+
+  test('badge_unlocked is logged once per new badge, not on reload', () async {
+    final analytics = RecordingAnalytics();
+    final cubit = PlayerStatsCubit(
+      repository: FakeStatsRepository(const Right(statsOneGame)),
+      seenBadgesStore: FakeSeenBadgesStore(),
+      analytics: analytics,
+    );
+
+    await cubit.load();
+    await cubit.load();
+
+    expect(analytics.events, hasLength(1));
+    expect(analytics.events.single, isA<BadgeUnlockedEvent>());
+    expect(analytics.events.single.params, {'badge': 'firstGame'});
+    await cubit.close();
+  });
+
+  test('stats_viewed is logged by trackViewed only', () async {
+    final analytics = RecordingAnalytics();
+    final cubit = PlayerStatsCubit(
+      repository: FakeStatsRepository(statsFailure),
+      seenBadgesStore: FakeSeenBadgesStore(),
+      analytics: analytics,
+    );
+
+    await cubit.load();
+    expect(analytics.events, isEmpty);
+
+    cubit.trackViewed();
+    expect(analytics.names, ['stats_viewed']);
     await cubit.close();
   });
 

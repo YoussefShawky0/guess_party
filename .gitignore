@@ -86,3 +86,4 @@ GEMINI.md
 node_modules/
 .copilot/
 supabase/.temp/
+/android/build/

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/services/analytics_service.dart';
 import 'package:guess_party/features/stats/domain/badges.dart';
 import 'package:guess_party/features/stats/domain/entities/player_stats.dart';
 import 'package:guess_party/features/stats/domain/repositories/stats_repository.dart';
@@ -50,9 +51,16 @@ class PlayerStatsCubit extends Cubit<PlayerStatsState> {
   PlayerStatsCubit({
     required StatsRepository repository,
     required SeenBadgesStore seenBadgesStore,
+    AnalyticsService analytics = const NoopAnalyticsService(),
   }) : _repository = repository,
        _seenStore = seenBadgesStore,
+       _analytics = analytics,
        super(const StatsLoading());
+
+  final AnalyticsService _analytics;
+
+  /// Call once when the stats screen opens (not for the Game Over card).
+  void trackViewed() => _analytics.track(const StatsViewedEvent());
 
   /// Fetches the stats, works out which badges are new, then marks them seen.
   /// Reloading while content is shown keeps it on screen.
@@ -75,7 +83,12 @@ class PlayerStatsCubit extends Cubit<PlayerStatsState> {
     try {
       final seen = await _seenStore.read();
       newBadges = newlyUnlocked(seen, badges);
-      if (newBadges.isNotEmpty) await _seenStore.write({...seen, ...newBadges});
+      if (newBadges.isNotEmpty) {
+        await _seenStore.write({...seen, ...newBadges});
+        for (final badge in newBadges) {
+          _analytics.track(BadgeUnlockedEvent(badge: badge.name));
+        }
+      }
     } catch (_) {
       // Storage trouble must not hide the stats; just skip the celebration.
       newBadges = {};

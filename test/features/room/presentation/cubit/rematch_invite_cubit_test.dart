@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/error/failures.dart';
+import 'package:guess_party/core/services/analytics_service.dart';
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/data/models/player_model.dart';
 import 'package:guess_party/features/room/data/models/room_model.dart';
@@ -11,6 +12,8 @@ import 'package:guess_party/features/room/domain/entities/room_invite.dart';
 import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/features/room/presentation/cubit/rematch_invite_cubit.dart';
+
+import '../../../../helpers/recording_analytics.dart';
 
 class _FakeRepo implements RoomRepository {
   final StreamController<List<RoomInvite>> invites =
@@ -190,6 +193,57 @@ void main() {
     repo.invites.addError(StateError('down'));
     await pump();
     expect(cubit.state, RematchInvited(invite()));
+  });
+
+  group('analytics', () {
+    late _FakeRepo arepo;
+    late RecordingAnalytics analytics;
+    late RematchInviteCubit tracked;
+
+    setUp(() async {
+      arepo = _FakeRepo();
+      analytics = RecordingAnalytics();
+      tracked = RematchInviteCubit(
+        repository: arepo,
+        previousRoomId: 'old-room',
+        userId: 'me',
+        analytics: analytics,
+      )..start();
+    });
+
+    tearDown(() async {
+      await tracked.close();
+      await arepo.invites.close();
+    });
+
+    test('accepting logs accepted=true after the server succeeds', () async {
+      arepo.invites.add([invite()]);
+      await pump();
+      await tracked.accept();
+
+      expect(analytics.events.single, isA<RematchInviteAnsweredEvent>());
+      expect(analytics.events.single.params, {'accepted': 'true'});
+    });
+
+    test('declining logs accepted=false', () async {
+      arepo.invites.add([invite()]);
+      await pump();
+      await tracked.decline();
+
+      expect(analytics.events.single.params, {'accepted': 'false'});
+    });
+
+    test('a failed accept logs nothing', () async {
+      arepo.respondFailure = const ServerFailure(
+        'ROOM_FULL',
+        code: AppErrorCode.roomFull,
+      );
+      arepo.invites.add([invite()]);
+      await pump();
+      await tracked.accept();
+
+      expect(analytics.events, isEmpty);
+    });
   });
 
   test('does not emit after close', () async {
