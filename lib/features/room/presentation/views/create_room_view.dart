@@ -13,6 +13,7 @@ import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 import 'widgets/category_selector.dart';
 import 'widgets/create_room_header.dart';
@@ -263,46 +264,13 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                     ),
                     SizedBox(height: isTablet ? 48 : 40),
 
-                    ElevatedButton(
+                    GameButton(
                       onPressed: isLoading || _isCreateDisabled()
                           ? null
                           : _createRoom,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                          vertical: isTablet ? 20 : 18,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: isLoading
-                          ? SizedBox(
-                              height: isTablet ? 28 : 24,
-                              width: isTablet ? 28 : 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.of(context).textPrimary,
-                                ),
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                FaIcon(
-                                  FontAwesomeIcons.plus,
-                                  size: isTablet ? 24 : 20,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  context.l10n.createRoom,
-                                  style: TextStyle(
-                                    fontSize: isTablet ? 20 : 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
+                      isLoading: isLoading,
+                      icon: const FaIcon(FontAwesomeIcons.plus),
+                      label: context.l10n.createRoom,
                     ),
                   ],
                 ),

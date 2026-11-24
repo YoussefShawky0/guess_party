@@ -1384,4 +1384,34 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get badgeDetectiveDescription =>
       'Vote for the impostor correctly 20 times';
+
+  @override
+  String get homeTitle => 'Who\'s the Impostor?';
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String badgeCountSemantics(int unlocked, int total) {
+    return '$unlocked of $total badges';
+  }
+
+  @override
+  String get guestBannerText => 'Secure your account to keep your stats';
+
+  @override
+  String get dismiss => 'Dismiss';
+
+  @override
+  String get guestLogoutWarning =>
+      'You\'re playing as a guest. If you log out, you can\'t get this account or its stats back.';
+
+  @override
+  String get secureAccount => 'Secure account';
+
+  @override
+  String get logoutAnyway => 'Log out anyway';
+
+  @override
+  String get syncingYourPlayer => 'Syncing your player...';
 }

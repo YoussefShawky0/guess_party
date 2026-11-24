@@ -10,6 +10,7 @@ import 'package:guess_party/features/stats/domain/badges.dart';
 import 'package:guess_party/features/stats/presentation/badge_visuals.dart';
 import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/animated_game_background.dart';
 
 /// Lifetime stats and badges. Needs a [PlayerStatsCubit] above it.
 class StatsView extends StatelessWidget {
@@ -45,12 +46,14 @@ class StatsView extends StatelessWidget {
             foregroundColor: AppColors.of(context).textPrimary,
             elevation: 0,
           ),
-          body: switch (state) {
-            StatsLoaded() => _StatsBody(state: state, isGuest: isGuest),
-            _ => Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-          },
+          body: AnimatedGameBackground(
+            child: switch (state) {
+              StatsLoaded() => _StatsBody(state: state, isGuest: isGuest),
+              _ => Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            },
+          ),
         );
       },
     );

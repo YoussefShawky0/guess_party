@@ -19,6 +19,10 @@ abstract class GameFeedback {
   Future<void> setHapticsEnabled(bool value);
 
   Future<void> play(GameCue cue);
+
+  /// A light haptic for a UI tap. No sound. Respects [hapticsEnabled] and
+  /// never throws.
+  Future<void> tapHaptic();
 }
 
 /// No-op feedback used by tests, CI and as the fallback when the platform
@@ -45,4 +49,7 @@ class SilentGameFeedback implements GameFeedback {
 
   @override
   Future<void> play(GameCue cue) async {}
+
+  @override
+  Future<void> tapHaptic() async {}
 }

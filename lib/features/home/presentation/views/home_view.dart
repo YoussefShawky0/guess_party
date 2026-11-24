@@ -1,25 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:guess_party/shared/widgets/directional_fa_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/config/app_config.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/services/update_service.dart';
+import 'package:guess_party/features/home/domain/entities/user_info.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/home/presentation/cubit/home_state.dart';
+import 'package:guess_party/features/stats/data/shared_prefs_badge_summary_store.dart';
+import 'package:guess_party/features/stats/domain/badge_summary.dart';
+import 'package:guess_party/features/stats/presentation/cubit/badge_summary_cubit.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/animated_game_background.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
+import 'widgets/guest_banner.dart';
 import 'widgets/home_action_buttons.dart';
-import 'widgets/welcome_section.dart';
+import 'widgets/home_hero.dart';
+import 'widgets/home_top_bar.dart';
+import 'widgets/profile_sheet.dart';
+
+enum _GuestLogoutChoice { secure, logOut }
 
 class HomeView extends StatefulWidget {
-  const HomeView({required this.config, super.key});
+  const HomeView({
+    required this.config,
+    this.bannerStore = const SharedPrefsBadgeSummaryStore(),
+    super.key,
+  });
 
   final AppConfig config;
+
+  /// Remembers a dismissed "secure your account" banner, per user.
+  final GuestBannerStore bannerStore;
 
   @override
   State<HomeView> createState() => _HomeViewState();
@@ -94,6 +110,82 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
+  Future<void> _openProfile(UserInfo user, BadgeSummary? summary) async {
+    // Capture everything we need from this context before the first await.
+    final homeCubit = context.read<HomeCubit>();
+    final router = GoRouter.of(context);
+
+    final action = await showProfileSheet(
+      context: context,
+      userInfo: user,
+      summary: summary,
+    );
+    if (!mounted || action == null) return;
+
+    switch (action) {
+      case ProfileAction.secureAccount:
+        router.push(AppRoutes.accountUpgrade);
+      case ProfileAction.stats:
+        router.push(AppRoutes.stats);
+      case ProfileAction.logout:
+        await _logout(user, homeCubit, router);
+    }
+  }
+
+  Future<void> _logout(
+    UserInfo user,
+    HomeCubit homeCubit,
+    GoRouter router,
+  ) async {
+    if (!user.isAnonymous) {
+      await homeCubit.signOutUser();
+      return;
+    }
+
+    // A guest cannot get this account back: confirm first. Barrier tap and
+    // back both cancel.
+    final choice = await showDialog<_GuestLogoutChoice>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.of(dialogContext).surface,
+        content: Text(
+          dialogContext.l10n.guestLogoutWarning,
+          style: TextStyle(color: AppColors.of(dialogContext).textPrimary),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsOverflowDirection: VerticalDirection.down,
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: GameButton(
+              key: const Key('guest-logout-secure'),
+              label: dialogContext.l10n.secureAccount,
+              size: GameButtonSize.md,
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_GuestLogoutChoice.secure),
+            ),
+          ),
+          TextButton(
+            key: const Key('guest-logout-anyway'),
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(_GuestLogoutChoice.logOut),
+            child: Text(dialogContext.l10n.logoutAnyway),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+
+    switch (choice) {
+      case _GuestLogoutChoice.secure:
+        router.push(AppRoutes.accountUpgrade);
+      case _GuestLogoutChoice.logOut:
+        await homeCubit.signOutUser();
+      case null:
+        break;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -101,155 +193,102 @@ class _HomeViewState extends State<HomeView> {
 
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    AppColors.of(context).surface,
-                    AppColors.of(context).surface.withValues(alpha: 0.9),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  // Logo
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/images/Front_Imposter_ingroup.png',
-                        height: 28,
-                        fit: BoxFit.contain,
-                        cacheHeight: 78,
-                        cacheWidth: 89,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Title
-                  Expanded(
-                    child: Text(
-                      context.l10n.appName,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.of(context).textPrimary,
-                      ),
-                    ),
-                  ),
-                  // Settings Button
-                  IconButton(
-                    icon: const FaIcon(FontAwesomeIcons.gear, size: 18),
-                    color: AppColors.of(context).textPrimary,
-                    tooltip: context.l10n.settings,
-                    onPressed: () {
-                      context.push(AppRoutes.settings);
-                    },
-                  ),
-                  // Logout Button
-                  IconButton(
-                    icon: const DirectionalFaIcon(
-                      FontAwesomeIcons.rightFromBracket,
-                      size: 18,
-                    ),
-                    color: AppColors.error,
-                    tooltip: context.l10n.logout,
-                    onPressed: () {
-                      context.read<HomeCubit>().signOutUser();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: BlocConsumer<HomeCubit, HomeState>(
-                listener: (context, state) {},
+      body: BlocListener<HomeCubit, HomeState>(
+        listener: (context, state) {
+          // Forget the cached trophy count of the user who just left.
+          if (state is HomeSignedOut) {
+            context.read<BadgeSummaryCubit>().clear();
+          }
+        },
+        child: AnimatedGameBackground(
+          child: SafeArea(
+            child: BlocBuilder<BadgeSummaryCubit, BadgeSummary?>(
+              builder: (context, summary) => BlocBuilder<HomeCubit, HomeState>(
                 builder: (context, state) {
-                  if (state is HomeLoading) {
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
+                  final user = state is HomeLoaded ? state.userInfo : null;
+                  return Column(
+                    children: [
+                      HomeTopBar(
+                        userInfo: user,
+                        summary: summary,
+                        onProfile: () => _openProfile(user!, summary),
+                        onTrophy: () => context.push(AppRoutes.stats),
+                        onSettings: () => context.push(AppRoutes.settings),
                       ),
-                    );
-                  }
-
-                  if (state is HomeError) {
-                    return Center(
-                      child: Text(
-                        context.l10n.errorWithMessage(
-                          localizedErrorMessage(context.l10n, state.code),
-                        ),
-                        style: TextStyle(color: AppColors.error),
-                      ),
-                    );
-                  }
-
-                  if (state is HomeLoaded) {
-                    return Center(
-                      child: SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isTablet ? size.width * 0.15 : 24,
-                          vertical: 24,
-                        ),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 600),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              WelcomeSection(
-                                username: state.userInfo.username,
-                                isTablet: isTablet,
-                              ),
-                              if (state.userInfo.isAnonymous ||
-                                  state.userInfo.isLegacyAccount) ...[
-                                const SizedBox(height: 16),
-                                OutlinedButton.icon(
-                                  key: const Key('secure-account-button'),
-                                  onPressed: () =>
-                                      context.push(AppRoutes.accountUpgrade),
-                                  icon: const Icon(
-                                    Icons.mark_email_read_outlined,
-                                  ),
-                                  label: Text(
-                                    state.userInfo.isAnonymous
-                                        ? context.l10n.secureGuestAccount
-                                        : context.l10n.linkRecoveryEmail,
-                                  ),
-                                ),
-                              ],
-                              SizedBox(height: isTablet ? 48 : 32),
-                              HomeActionButtons(isTablet: isTablet),
-                            ],
-                          ),
+                      Expanded(
+                        child: _buildBody(
+                          context,
+                          state,
+                          summary,
+                          isTablet,
+                          size,
                         ),
                       ),
-                    );
-                  }
-
-                  return const SizedBox.shrink();
+                    ],
+                  );
                 },
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    HomeState state,
+    BadgeSummary? summary,
+    bool isTablet,
+    Size size,
+  ) {
+    if (state is HomeLoading) {
+      return Center(child: CircularProgressIndicator(color: AppColors.primary));
+    }
+
+    if (state is HomeError) {
+      return Center(
+        child: Text(
+          context.l10n.errorWithMessage(
+            localizedErrorMessage(context.l10n, state.code),
+          ),
+          style: TextStyle(color: AppColors.error),
+        ),
+      );
+    }
+
+    if (state is HomeLoaded) {
+      final user = state.userInfo;
+      final showBanner =
+          (user.isAnonymous || user.isLegacyAccount) &&
+          summary != null &&
+          summary.gamesPlayed > 0;
+      return Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? size.width * 0.15 : 24,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (showBanner) ...[
+                  GuestBanner(userId: user.id, store: widget.bannerStore),
+                  const SizedBox(height: 16),
+                ],
+                HomeHero(isTablet: isTablet),
+                SizedBox(height: isTablet ? 48 : 32),
+                HomeActionButtons(isTablet: isTablet),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }

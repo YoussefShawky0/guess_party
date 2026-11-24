@@ -8,6 +8,13 @@ class FakeCuePlayer implements CuePlayer {
   final vibrations = <GameCue>[];
   bool throwOnPlay = false;
   int preloads = 0;
+  int lightTaps = 0;
+
+  @override
+  Future<void> lightTap() async {
+    if (throwOnPlay) throw StateError('no haptics');
+    lightTaps++;
+  }
 
   @override
   Future<void> preload() async => preloads++;
@@ -91,6 +98,25 @@ void main() {
     await feedback.play(GameCue.gameLost);
     await feedback.preload();
     expect(player.preloads, 1);
+  });
+
+  test('tapHaptic is a light haptic only and honours the toggle', () async {
+    final feedback = await build();
+    await feedback.tapHaptic();
+    expect(player.lightTaps, 1);
+    expect(player.sounds, isEmpty);
+    expect(player.vibrations, isEmpty);
+
+    await feedback.setHapticsEnabled(false);
+    await feedback.tapHaptic();
+    expect(player.lightTaps, 1);
+  });
+
+  test('tapHaptic never throws when the platform fails', () async {
+    final feedback = await build();
+    player.throwOnPlay = true;
+    await feedback.tapHaptic();
+    await SilentGameFeedback().tapHaptic();
   });
 
   test('silent feedback keeps toggles in memory and plays nothing', () async {

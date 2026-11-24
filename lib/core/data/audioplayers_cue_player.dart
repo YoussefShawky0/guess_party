@@ -47,6 +47,9 @@ class AudioplayersCuePlayer implements CuePlayer {
   }
 
   @override
+  Future<void> lightTap() => HapticFeedback.lightImpact();
+
+  @override
   Future<void> vibrate(GameCue cue) {
     switch (cue) {
       case GameCue.tick:

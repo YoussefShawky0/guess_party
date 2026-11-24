@@ -445,5 +445,14 @@
   "badgeMasterOfDisguiseName": "أستاذ التخفي",
   "badgeMasterOfDisguiseDescription": "اهرب 5 مرات وإنت المحتال",
   "badgeDetectiveName": "المحقق",
-  "badgeDetectiveDescription": "اكشف المحتال صح 20 مرة"
+  "badgeDetectiveDescription": "اكشف المحتال صح 20 مرة",
+  "homeTitle": "مين الإمبوستر؟",
+  "profileTitle": "الملف الشخصي",
+  "badgeCountSemantics": "{unlocked} من {total} أوسمة",
+  "guestBannerText": "أمّن حسابك عشان إحصائياتك تفضل معاك",
+  "dismiss": "إخفاء",
+  "guestLogoutWarning": "إنت بتلعب كضيف. لو سجلت خروج مش هتقدر ترجّع الحساب ده ولا إحصائياته.",
+  "secureAccount": "أمّن الحساب",
+  "logoutAnyway": "سجّل خروج برضه",
+  "syncingYourPlayer": "بنزامن بيانات لاعبك..."
 }

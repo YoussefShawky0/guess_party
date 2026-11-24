@@ -32,7 +32,10 @@ import 'package:guess_party/features/room/presentation/cubit/room_invites_cubit.
 import 'package:guess_party/features/stats/data/datasources/stats_remote_data_source.dart';
 import 'package:guess_party/features/stats/data/repositories/stats_repository_impl.dart';
 import 'package:guess_party/features/stats/data/shared_prefs_seen_badges_store.dart';
+import 'package:guess_party/features/stats/data/shared_prefs_badge_summary_store.dart';
+import 'package:guess_party/features/stats/domain/badge_summary.dart';
 import 'package:guess_party/features/stats/domain/repositories/stats_repository.dart';
+import 'package:guess_party/features/stats/presentation/cubit/badge_summary_cubit.dart';
 import 'package:guess_party/features/stats/domain/seen_badges_store.dart';
 import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
@@ -192,6 +195,21 @@ Future<void> init({required AppConfig config}) async {
   );
 
   sl.registerLazySingleton<SeenBadgesStore>(() => SharedPrefsSeenBadgesStore());
+
+  sl.registerLazySingleton<SharedPrefsBadgeSummaryStore>(
+    () => const SharedPrefsBadgeSummaryStore(),
+  );
+  sl.registerLazySingleton<BadgeSummaryStore>(
+    () => sl<SharedPrefsBadgeSummaryStore>(),
+  );
+  sl.registerLazySingleton<GuestBannerStore>(
+    () => sl<SharedPrefsBadgeSummaryStore>(),
+  );
+
+  sl.registerFactoryParam<BadgeSummaryCubit, String, void>(
+    (userId, _) =>
+        BadgeSummaryCubit(repository: sl(), store: sl(), userId: userId),
+  );
 
   sl.registerFactory(
     () => PlayerStatsCubit(

@@ -47,6 +47,10 @@ flutter:
     - assets/icons/
     - assets/images/
     - assets/sounds/
+  fonts:
+    - family: BalooBhaijaan2
+      fonts:
+        - asset: assets/fonts/BalooBhaijaan2-Variable.ttf
 
 # App Icon Configuration
 flutter_launcher_icons:

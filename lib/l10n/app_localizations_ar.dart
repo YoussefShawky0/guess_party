@@ -1364,4 +1364,34 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get badgeDetectiveDescription => 'اكشف المحتال صح 20 مرة';
+
+  @override
+  String get homeTitle => 'مين الإمبوستر؟';
+
+  @override
+  String get profileTitle => 'الملف الشخصي';
+
+  @override
+  String badgeCountSemantics(int unlocked, int total) {
+    return '$unlocked من $total أوسمة';
+  }
+
+  @override
+  String get guestBannerText => 'أمّن حسابك عشان إحصائياتك تفضل معاك';
+
+  @override
+  String get dismiss => 'إخفاء';
+
+  @override
+  String get guestLogoutWarning =>
+      'إنت بتلعب كضيف. لو سجلت خروج مش هتقدر ترجّع الحساب ده ولا إحصائياته.';
+
+  @override
+  String get secureAccount => 'أمّن الحساب';
+
+  @override
+  String get logoutAnyway => 'سجّل خروج برضه';
+
+  @override
+  String get syncingYourPlayer => 'بنزامن بيانات لاعبك...';
 }

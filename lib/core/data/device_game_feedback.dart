@@ -11,6 +11,9 @@ abstract class CuePlayer {
   Future<void> preload();
   Future<void> playSound(GameCue cue);
   Future<void> vibrate(GameCue cue);
+
+  /// Light haptic for a UI tap.
+  Future<void> lightTap();
 }
 
 /// Real feedback: sound and haptics gated by two persisted toggles.
@@ -59,6 +62,11 @@ class DeviceGameFeedback implements GameFeedback {
   Future<void> play(GameCue cue) async {
     if (_soundEnabled) await _guard('sound', () => _player.playSound(cue));
     if (_hapticsEnabled) await _guard('haptic', () => _player.vibrate(cue));
+  }
+
+  @override
+  Future<void> tapHaptic() async {
+    if (_hapticsEnabled) await _guard('tapHaptic', _player.lightTap);
   }
 
   Future<void> _guard(String step, Future<Object?> Function() action) async {

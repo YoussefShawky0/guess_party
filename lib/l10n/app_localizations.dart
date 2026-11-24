@@ -2611,6 +2611,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Vote for the impostor correctly 20 times'**
   String get badgeDetectiveDescription;
+
+  /// No description provided for @homeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Who\'s the Impostor?'**
+  String get homeTitle;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @badgeCountSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{unlocked} of {total} badges'**
+  String badgeCountSemantics(int unlocked, int total);
+
+  /// No description provided for @guestBannerText.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure your account to keep your stats'**
+  String get guestBannerText;
+
+  /// No description provided for @dismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
+
+  /// No description provided for @guestLogoutWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re playing as a guest. If you log out, you can\'t get this account or its stats back.'**
+  String get guestLogoutWarning;
+
+  /// No description provided for @secureAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure account'**
+  String get secureAccount;
+
+  /// No description provided for @logoutAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out anyway'**
+  String get logoutAnyway;
+
+  /// No description provided for @syncingYourPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing your player...'**
+  String get syncingYourPlayer;
 }
 
 class _AppLocalizationsDelegate
