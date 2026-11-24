@@ -52,13 +52,20 @@ class RoomCodeCard extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Text(
-                roomCode,
-                style: TextStyle(
-                  fontSize: isTablet ? 56 : 48,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: isTablet ? 12 : 8,
-                  color: AppColors.primaryLight,
+              // Shrink rather than wrap: a code split across two lines
+              // ("3191 / 58") is easy to misread on narrow screens.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  roomCode,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: TextStyle(
+                    fontSize: isTablet ? 56 : 48,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: isTablet ? 12 : 8,
+                    color: AppColors.primaryLight,
+                  ),
                 ),
               ),
             ),
