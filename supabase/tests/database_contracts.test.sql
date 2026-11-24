@@ -142,7 +142,7 @@ select is(
       and ppt.schemaname = 'public'
   ),
   array[
-    'characters', 'hints', 'messages', 'players', 'rooms',
+    'characters', 'hints', 'messages', 'players', 'room_invites', 'rooms',
     'round_revisions', 'rounds', 'votes'
   ]::name[],
   'Realtime publication membership matches production exactly'
