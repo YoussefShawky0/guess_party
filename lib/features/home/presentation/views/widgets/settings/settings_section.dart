@@ -27,12 +27,14 @@ class SettingsSection extends StatelessWidget {
             children: [
               FaIcon(icon, size: isTablet ? 20 : 18, color: AppColors.primary),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: isTablet ? 20 : 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.of(context).textPrimary,
+              Flexible(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: isTablet ? 20 : 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.of(context).textPrimary,
+                  ),
                 ),
               ),
             ],

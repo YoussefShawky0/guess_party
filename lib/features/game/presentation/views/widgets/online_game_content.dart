@@ -4,6 +4,7 @@ import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/features/game/presentation/feedback/game_feedback_listener.dart';
 import 'package:guess_party/shared/widgets/chat_widget.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
@@ -67,6 +68,7 @@ class OnlineGameContent extends StatelessWidget {
             totalRounds: gameState.totalRounds,
             roundDuration: gameState.roundDuration,
             onTimeUp: onPhaseTimeUp,
+            onSecond: (seconds) => playTickIfDue(context, seconds),
           ),
           const SizedBox(height: 16),
           if (identityUnresolved)

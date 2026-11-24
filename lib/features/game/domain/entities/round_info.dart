@@ -3,6 +3,20 @@ import 'package:guess_party/features/game/domain/entities/character.dart';
 
 enum GamePhase { hints, voting, results }
 
+/// The single player with strictly the most votes, or null when nobody voted
+/// or the top spot is tied.
+String? uniqueMostVotedPlayerId(Map<String, int> voteCounts) {
+  var maxVotes = 0;
+  for (final count in voteCounts.values) {
+    if (count > maxVotes) maxVotes = count;
+  }
+  if (maxVotes == 0) return null;
+  final top = voteCounts.entries
+      .where((entry) => entry.value == maxVotes)
+      .toList(growable: false);
+  return top.length == 1 ? top.single.key : null;
+}
+
 class RoundInfo extends Equatable {
   static const Object _unset = Object();
 
@@ -39,6 +53,11 @@ class RoundInfo extends Equatable {
   bool isImposter(String playerId) => playerId == imposterPlayerId;
 
   bool get hasVisibleImposter => imposterPlayerId != null;
+
+  /// True when the group's unique top-voted player is the imposter.
+  bool get imposterCaught =>
+      imposterPlayerId != null &&
+      uniqueMostVotedPlayerId(voteCounts) == imposterPlayerId;
 
   bool get hasVisibleCharacter => character != null;
 

@@ -30,6 +30,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get appearance => 'المظهر';
 
   @override
+  String get soundAndHaptics => 'الصوت والاهتزاز';
+
+  @override
+  String get soundEffects => 'المؤثرات الصوتية';
+
+  @override
+  String get soundEffectsSubtitle => 'تشغيل أصوات قصيرة أثناء اللعبة';
+
+  @override
+  String get vibration => 'الاهتزاز';
+
+  @override
+  String get vibrationSubtitle => 'اهتزاز الجهاز في اللحظات المهمة من اللعبة';
+
+  @override
   String get language => 'اللغة';
 
   @override

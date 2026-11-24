@@ -9,6 +9,7 @@ import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/features/game/presentation/feedback/game_feedback_listener.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/game_loading_indicator.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/game_snackbars.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/leave_game_dialog.dart';
@@ -80,77 +81,79 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final router = GoRouter.of(context);
-        final shouldExit = await showLeaveGameDialog(context);
-        if (shouldExit && mounted) {
-          router.go(AppRoutes.home);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.of(context).background,
-        appBar: AppBar(
-          title: Text(context.l10n.sharedDeviceGame),
-          backgroundColor: AppColors.of(context).surface,
-          foregroundColor: AppColors.of(context).textPrimary,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () async {
-              final router = GoRouter.of(context);
-              final shouldExit = await showLeaveGameDialog(context);
-              if (shouldExit && mounted) {
-                router.go(AppRoutes.home);
+    return GameFeedbackListener(
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          final router = GoRouter.of(context);
+          final shouldExit = await showLeaveGameDialog(context);
+          if (shouldExit && mounted) {
+            router.go(AppRoutes.home);
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.of(context).background,
+          appBar: AppBar(
+            title: Text(context.l10n.sharedDeviceGame),
+            backgroundColor: AppColors.of(context).surface,
+            foregroundColor: AppColors.of(context).textPrimary,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () async {
+                final router = GoRouter.of(context);
+                final shouldExit = await showLeaveGameDialog(context);
+                if (shouldExit && mounted) {
+                  router.go(AppRoutes.home);
+                }
+              },
+            ),
+          ),
+          body: BlocConsumer<GameCubit, GameState>(
+            listenWhen: (previous, current) =>
+                current is GameError || current is GameEnded,
+            listener: (context, state) {
+              if (state is GameError) {
+                if (!context.mounted) return;
+                showGameErrorSnackBar(context, state.code);
+              }
+              if (state is GameEnded) {
+                if (!context.mounted) return;
+                context.go(
+                  AppRoutes.roomGameOver(widget.roomId),
+                  extra: {
+                    'players': state.players,
+                    'playerScores': state.playerScores,
+                    'gameMode': GameConstants.gameModeLocal,
+                  },
+                );
               }
             },
+            builder: (context, state) {
+              if (state is GameLoading) {
+                return const GameLoadingIndicator();
+              }
+
+              if (state is GameError) {
+                return ErrorScreen(
+                  message: localizedErrorMessage(context.l10n, state.code),
+                  onRetry: () {
+                    context.read<GameCubit>().loadGameState(
+                      roomId: widget.roomId,
+                      currentPlayerId: widget.session.currentUserId ?? '',
+                    );
+                  },
+                  onGoBack: () => context.go(AppRoutes.home),
+                );
+              }
+
+              if (state is GameLoaded) {
+                return _buildGameContent(state);
+              }
+
+              return Center(child: Text(context.l10n.preparing));
+            },
           ),
-        ),
-        body: BlocConsumer<GameCubit, GameState>(
-          listenWhen: (previous, current) =>
-              current is GameError || current is GameEnded,
-          listener: (context, state) {
-            if (state is GameError) {
-              if (!context.mounted) return;
-              showGameErrorSnackBar(context, state.code);
-            }
-            if (state is GameEnded) {
-              if (!context.mounted) return;
-              context.go(
-                AppRoutes.roomGameOver(widget.roomId),
-                extra: {
-                  'players': state.players,
-                  'playerScores': state.playerScores,
-                  'gameMode': GameConstants.gameModeLocal,
-                },
-              );
-            }
-          },
-          builder: (context, state) {
-            if (state is GameLoading) {
-              return const GameLoadingIndicator();
-            }
-
-            if (state is GameError) {
-              return ErrorScreen(
-                message: localizedErrorMessage(context.l10n, state.code),
-                onRetry: () {
-                  context.read<GameCubit>().loadGameState(
-                    roomId: widget.roomId,
-                    currentPlayerId: widget.session.currentUserId ?? '',
-                  );
-                },
-                onGoBack: () => context.go(AppRoutes.home),
-              );
-            }
-
-            if (state is GameLoaded) {
-              return _buildGameContent(state);
-            }
-
-            return Center(child: Text(context.l10n.preparing));
-          },
         ),
       ),
     );
@@ -181,6 +184,7 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
             totalRounds: gameState.totalRounds,
             roundDuration: gameState.roundDuration,
             onTimeUp: () => _handlePhaseTimeUp(state),
+            onSecond: (seconds) => playTickIfDue(context, seconds),
           ),
           const SizedBox(height: 16),
           SharedDeviceIntroCard(isTablet: isTablet),

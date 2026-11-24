@@ -3,6 +3,7 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/features/game/presentation/feedback/game_feedback_listener.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/hints_phase_content.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/results_phase_content.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/round_header_widget.dart';
@@ -57,6 +58,7 @@ class LocalModeGameContent extends StatelessWidget {
             totalRounds: gameState.totalRounds,
             roundDuration: gameState.roundDuration,
             onTimeUp: onTimeUp,
+            onSecond: (seconds) => playTickIfDue(context, seconds),
           ),
           const SizedBox(height: 16),
           const _LocalSharedCharacterCard(),

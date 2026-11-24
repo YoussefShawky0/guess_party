@@ -30,6 +30,13 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
   late final SubmitHint _submitHint = SubmitHint(gameRepository);
   late final SubmitVote _submitVote = SubmitVote(gameRepository);
 
+  final StreamController<void> _voteAcceptedController =
+      StreamController<void>.broadcast();
+
+  /// Fires after the server accepted the current player's vote (for feedback
+  /// cues only; never carries game state).
+  Stream<void> get voteAccepted => _voteAcceptedController.stream;
+
   /// Server-synchronized current time, used by phase timers.
   DateTime get serverNow => timeSyncService.serverTime;
 
@@ -358,29 +365,36 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
     );
 
     if (isClosed) return;
-    result.fold((failure) {
-      if (failure.code == AppErrorCode.selfVote) {
-        _addBreadcrumb(
-          'sendVote:selfVoteValidation',
-          data: {'roundId': roundId, 'voterId': voterId},
-        );
-        final latestState = state;
-        if (latestState is GameLoaded) {
-          _emitInlineValidationMessage(latestState, AppErrorCode.selfVote);
+    result.fold(
+      (failure) {
+        if (failure.code == AppErrorCode.selfVote) {
+          _addBreadcrumb(
+            'sendVote:selfVoteValidation',
+            data: {'roundId': roundId, 'voterId': voterId},
+          );
+          final latestState = state;
+          if (latestState is GameLoaded) {
+            _emitInlineValidationMessage(latestState, AppErrorCode.selfVote);
+          }
+          return;
         }
-        return;
-      }
 
-      _addBreadcrumb(
-        'sendVote:failure',
-        data: {
-          'roundId': roundId,
-          'voterId': voterId,
-          'error': failure.message,
-        },
-      );
-      _emitActionFailure(failure.code);
-    }, (_) {});
+        _addBreadcrumb(
+          'sendVote:failure',
+          data: {
+            'roundId': roundId,
+            'voterId': voterId,
+            'error': failure.message,
+          },
+        );
+        _emitActionFailure(failure.code);
+      },
+      (_) {
+        if (!_voteAcceptedController.isClosed) {
+          _voteAcceptedController.add(null);
+        }
+      },
+    );
   }
 
   // Advance to next phase (Host only)
@@ -654,6 +668,7 @@ class GameCubit extends Cubit<GameState> implements OnlineGameCoordinator {
     _roundSubscription = null;
     _playersSubscription = null;
     _roomStatusSubscription = null;
+    await _voteAcceptedController.close();
     await super.close();
   }
 }

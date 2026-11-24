@@ -10,6 +10,7 @@ import 'package:guess_party/core/widgets/error_screen.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
+import 'package:guess_party/features/game/presentation/feedback/game_feedback_listener.dart';
 import 'package:guess_party/features/game/presentation/reconnect_notice_gate.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
@@ -162,30 +163,32 @@ class _GameViewContentState extends State<GameViewContent> {
 
   @override
   Widget build(BuildContext context) {
-    return GameEndNavigationListener(
-      roomId: widget.roomId,
-      states: context.read<GameCubit>().stream,
-      child: PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
-          await _handleLeaveGame(context);
-        },
-        child: Scaffold(
-          backgroundColor: AppColors.of(context).background,
-          appBar: AppBar(
-            title: Text(context.l10n.game),
-            backgroundColor: AppColors.of(context).surface,
-            foregroundColor: AppColors.of(context).textPrimary,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => _handleLeaveGame(context),
+    return GameFeedbackListener(
+      child: GameEndNavigationListener(
+        roomId: widget.roomId,
+        states: context.read<GameCubit>().stream,
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+            await _handleLeaveGame(context);
+          },
+          child: Scaffold(
+            backgroundColor: AppColors.of(context).background,
+            appBar: AppBar(
+              title: Text(context.l10n.game),
+              backgroundColor: AppColors.of(context).surface,
+              foregroundColor: AppColors.of(context).textPrimary,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => _handleLeaveGame(context),
+              ),
             ),
-          ),
-          body: BlocConsumer<GameCubit, GameState>(
-            listenWhen: _shouldListen,
-            listener: _onStateChanged,
-            builder: _buildForState,
+            body: BlocConsumer<GameCubit, GameState>(
+              listenWhen: _shouldListen,
+              listener: _onStateChanged,
+              builder: _buildForState,
+            ),
           ),
         ),
       ),

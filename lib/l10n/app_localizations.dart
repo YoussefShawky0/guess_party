@@ -140,6 +140,36 @@ abstract class AppLocalizations {
   /// **'Appearance'**
   String get appearance;
 
+  /// No description provided for @soundAndHaptics.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound and vibration'**
+  String get soundAndHaptics;
+
+  /// No description provided for @soundEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get soundEffects;
+
+  /// No description provided for @soundEffectsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play short sounds during the game'**
+  String get soundEffectsSubtitle;
+
+  /// No description provided for @vibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get vibration;
+
+  /// No description provided for @vibrationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibrate at key moments in the game'**
+  String get vibrationSubtitle;
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:

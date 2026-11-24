@@ -18,6 +18,7 @@ import 'core/localization/locale_cubit.dart';
 import 'core/router/app_routes.dart';
 import 'core/services/auth_navigation_coordinator.dart';
 import 'core/services/auth_session_service.dart';
+import 'core/services/game_feedback.dart';
 import 'core/services/interstitial_ad_service.dart';
 
 void main() async {
@@ -158,25 +159,28 @@ class _GuessPartyState extends State<GuessParty> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: di.sl<ThemeCubit>(),
-      child: BlocBuilder<ThemeCubit, ThemeMode>(
-        builder: (context, themeMode) {
-          return BlocBuilder<LocaleCubit, Locale?>(
-            bloc: di.sl<LocaleCubit>(),
-            builder: (context, locale) => MaterialApp.router(
-              locale: locale,
-              onGenerateTitle: (context) => context.l10n.appName,
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              themeMode: themeMode,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              routerConfig: AppRouter.router,
-              debugShowCheckedModeBanner: false,
-            ),
-          );
-        },
+    return RepositoryProvider<GameFeedback>.value(
+      value: di.sl<GameFeedback>(),
+      child: BlocProvider.value(
+        value: di.sl<ThemeCubit>(),
+        child: BlocBuilder<ThemeCubit, ThemeMode>(
+          builder: (context, themeMode) {
+            return BlocBuilder<LocaleCubit, Locale?>(
+              bloc: di.sl<LocaleCubit>(),
+              builder: (context, locale) => MaterialApp.router(
+                locale: locale,
+                onGenerateTitle: (context) => context.l10n.appName,
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                themeMode: themeMode,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                routerConfig: AppRouter.router,
+                debugShowCheckedModeBanner: false,
+              ),
+            );
+          },
+        ),
       ),
     );
   }

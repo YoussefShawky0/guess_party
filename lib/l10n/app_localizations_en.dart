@@ -30,6 +30,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearance => 'Appearance';
 
   @override
+  String get soundAndHaptics => 'Sound and vibration';
+
+  @override
+  String get soundEffects => 'Sound effects';
+
+  @override
+  String get soundEffectsSubtitle => 'Play short sounds during the game';
+
+  @override
+  String get vibration => 'Vibration';
+
+  @override
+  String get vibrationSubtitle => 'Vibrate at key moments in the game';
+
+  @override
   String get language => 'Language';
 
   @override

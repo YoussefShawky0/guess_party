@@ -55,14 +55,7 @@ class ResultsPhaseContent extends StatelessWidget {
       0,
       (max, count) => count > max ? count : max,
     );
-    final topEntries = maxVotes == 0
-        ? const <MapEntry<String, int>>[]
-        : voteCounts.entries
-              .where((entry) => entry.value == maxVotes)
-              .toList(growable: false);
-    final mostVotedPlayerId = topEntries.length == 1
-        ? topEntries.single.key
-        : null;
+    final mostVotedPlayerId = uniqueMostVotedPlayerId(voteCounts);
     final imposterCaught = mostVotedPlayerId == imposterPlayerId;
 
     Player? mostVotedPlayer;

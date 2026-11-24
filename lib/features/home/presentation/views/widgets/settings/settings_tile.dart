@@ -10,6 +10,7 @@ class SettingsTile extends StatelessWidget {
     required this.subtitle,
     required this.isTablet,
     this.onTap,
+    this.trailing,
     super.key,
   });
 
@@ -18,6 +19,9 @@ class SettingsTile extends StatelessWidget {
   final String subtitle;
   final bool isTablet;
   final VoidCallback? onTap;
+
+  /// Replaces the chevron, e.g. with a [Switch].
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +70,9 @@ class SettingsTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onTap != null)
+              if (trailing != null)
+                trailing!
+              else if (onTap != null)
                 DirectionalFaIcon(
                   FontAwesomeIcons.chevronRight,
                   size: isTablet ? 18 : 16,

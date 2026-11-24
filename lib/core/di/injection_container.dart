@@ -1,4 +1,11 @@
+import 'dart:async';
+
 import 'package:get_it/get_it.dart';
+import 'package:guess_party/core/data/audioplayers_cue_player.dart';
+import 'package:guess_party/core/data/device_game_feedback.dart';
+import 'package:guess_party/core/services/game_feedback.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:guess_party/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:guess_party/features/auth/data/datasources/auth_api_client.dart';
 import 'package:guess_party/features/auth/data/repositories/auth_repository_impl.dart';
@@ -36,6 +43,22 @@ import 'package:guess_party/core/services/interstitial_ad_service.dart';
 
 final sl = GetIt.instance;
 
+/// Sounds and haptics must never stop the app from starting: any failure
+/// falls back to silent feedback.
+Future<GameFeedback> _createGameFeedback() async {
+  try {
+    final feedback = DeviceGameFeedback(
+      preferences: await SharedPreferences.getInstance(),
+      player: AudioplayersCuePlayer(),
+    );
+    unawaited(feedback.preload());
+    return feedback;
+  } catch (error, stackTrace) {
+    unawaited(Sentry.captureException(error, stackTrace: stackTrace));
+    return SilentGameFeedback();
+  }
+}
+
 Future<void> init({required AppConfig config}) async {
   sl.registerSingleton<AppConfig>(config);
   // Ads are Android-only for now: iOS has no AdMob app ID configured yet.
@@ -45,6 +68,7 @@ Future<void> init({required AppConfig config}) async {
         ? GoogleInterstitialAdService(adUnitId: adUnitId)
         : const DisabledInterstitialAdService(),
   );
+  sl.registerSingleton<GameFeedback>(await _createGameFeedback());
   // ============= Theme =============
   final themeCubit = ThemeCubit();
   await themeCubit.loadSavedTheme();
