@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/shared/widgets/directional_fa_icon.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/features/chat/domain/entities/chat_message.dart';
@@ -348,7 +349,10 @@ class _ChatInput extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const FaIcon(FontAwesomeIcons.paperPlane, size: 18),
+                : const DirectionalFaIcon(
+                    FontAwesomeIcons.paperPlane,
+                    size: 18,
+                  ),
             style: IconButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.of(context).textPrimary,
@@ -378,7 +382,9 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: isCurrentUser
+          ? AlignmentDirectional.centerEnd
+          : AlignmentDirectional.centerStart,
       child: GestureDetector(
         onLongPress: onLongPress,
         child: Container(

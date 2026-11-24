@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/shared/widgets/directional_fa_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
@@ -54,7 +55,10 @@ class HomeActionButtons extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              FaIcon(FontAwesomeIcons.rightToBracket, size: isTablet ? 24 : 20),
+              DirectionalFaIcon(
+                FontAwesomeIcons.rightToBracket,
+                size: isTablet ? 24 : 20,
+              ),
               SizedBox(width: isTablet ? 16 : 12),
               Text(
                 context.l10n.joinRoom,

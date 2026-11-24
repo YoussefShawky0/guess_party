@@ -136,7 +136,7 @@ class _VoteResultRow extends StatelessWidget {
               ),
               if (isImposter)
                 Padding(
-                  padding: EdgeInsets.only(left: isTablet ? 12 : 8),
+                  padding: EdgeInsetsDirectional.only(start: isTablet ? 12 : 8),
                   child: Icon(
                     Icons.star,
                     size: isTablet ? 20 : 16,
