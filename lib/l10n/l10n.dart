@@ -16,6 +16,12 @@ extension CategoryLocalizations on AppLocalizations {
     'islamic_figures' => categoryIslamicFigures,
     'daily_products' => categoryDailyProducts,
     'foods' => categoryFoods,
+    'professions' => categoryProfessions,
+    'sports' => categorySports,
+    'transport' => categoryTransport,
+    'fruits_vegetables' => categoryFruitsVegetables,
+    'countries' => categoryCountries,
+    'clothes' => categoryClothes,
     _ => fallback,
   };
 }

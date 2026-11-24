@@ -1442,6 +1442,42 @@ abstract class AppLocalizations {
   /// **'Foods'**
   String get categoryFoods;
 
+  /// No description provided for @categoryProfessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Professions'**
+  String get categoryProfessions;
+
+  /// No description provided for @categorySports.
+  ///
+  /// In en, this message translates to:
+  /// **'Sports'**
+  String get categorySports;
+
+  /// No description provided for @categoryTransport.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport'**
+  String get categoryTransport;
+
+  /// No description provided for @categoryFruitsVegetables.
+  ///
+  /// In en, this message translates to:
+  /// **'Fruits & Vegetables'**
+  String get categoryFruitsVegetables;
+
+  /// No description provided for @categoryCountries.
+  ///
+  /// In en, this message translates to:
+  /// **'Countries'**
+  String get categoryCountries;
+
+  /// No description provided for @categoryClothes.
+  ///
+  /// In en, this message translates to:
+  /// **'Clothes'**
+  String get categoryClothes;
+
   /// No description provided for @leaveGameTitle.
   ///
   /// In en, this message translates to:
