@@ -4,6 +4,7 @@ class CharacterModel extends Character {
   const CharacterModel({
     required super.id,
     required super.name,
+    super.nameEn,
     required super.emoji,
     required super.category,
     required super.difficulty,
@@ -14,6 +15,7 @@ class CharacterModel extends Character {
     return CharacterModel(
       id: json['id'] as String,
       name: json['name'] as String,
+      nameEn: json['name_en'] as String?,
       emoji: json['emoji'] as String? ?? '❓',
       category: json['category'] as String,
       difficulty: json['difficulty'] as String? ?? 'medium',
@@ -25,6 +27,7 @@ class CharacterModel extends Character {
     return {
       'id': id,
       'name': name,
+      'name_en': nameEn,
       'emoji': emoji,
       'category': category,
       'difficulty': difficulty,
@@ -36,6 +39,7 @@ class CharacterModel extends Character {
     return Character(
       id: id,
       name: name,
+      nameEn: nameEn,
       emoji: emoji,
       category: category,
       difficulty: difficulty,

@@ -390,9 +390,9 @@ class SharedDeviceVotePlayerTile extends StatelessWidget {
                   ),
                 ),
                 if (voteCount > 0)
-                  Positioned(
+                  PositionedDirectional(
                     top: -4,
-                    right: -4,
+                    end: -4,
                     child: Container(
                       width: isTablet ? 22 : 18,
                       height: isTablet ? 22 : 18,

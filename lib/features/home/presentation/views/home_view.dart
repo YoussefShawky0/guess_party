@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/shared/widgets/directional_fa_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
@@ -163,7 +164,7 @@ class _HomeViewState extends State<HomeView> {
                   ),
                   // Logout Button
                   IconButton(
-                    icon: const FaIcon(
+                    icon: const DirectionalFaIcon(
                       FontAwesomeIcons.rightFromBracket,
                       size: 18,
                     ),

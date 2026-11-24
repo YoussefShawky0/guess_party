@@ -86,7 +86,9 @@ class CharacterCard extends StatelessWidget {
             ),
             SizedBox(height: isTablet ? 12 : 8),
             Text(
-              visibleCharacter.name,
+              visibleCharacter.displayName(
+                Localizations.localeOf(context).languageCode,
+              ),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -116,7 +118,10 @@ class CharacterCard extends StatelessWidget {
                   ),
                   SizedBox(width: isTablet ? 10 : 8),
                   Text(
-                    _formatCategoryLabel(visibleCharacter.category),
+                    context.l10n.categoryName(
+                      visibleCharacter.category,
+                      _formatCategoryLabel(visibleCharacter.category),
+                    ),
                     style: TextStyle(
                       color: AppColors.of(context).characterCardSubtext,
                       fontSize: isTablet ? 16 : 14,

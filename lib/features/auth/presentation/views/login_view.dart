@@ -192,7 +192,7 @@ class _LoginViewState extends State<LoginView> {
                     ),
                     if (_mode == _AuthFormMode.signIn)
                       Align(
-                        alignment: Alignment.centerRight,
+                        alignment: AlignmentDirectional.centerEnd,
                         child: TextButton(
                           onPressed: state is AuthLoading
                               ? null

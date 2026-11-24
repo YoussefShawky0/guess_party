@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/shared/widgets/directional_fa_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
@@ -42,7 +43,7 @@ class WaitingRoomAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: AppBarTitle(title: context.l10n.waitingRoom),
       centerTitle: true,
       leading: IconButton(
-        icon: FaIcon(
+        icon: DirectionalFaIcon(
           FontAwesomeIcons.arrowLeftLong,
           color: AppColors.of(context).textPrimary,
           size: 20,

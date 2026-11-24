@@ -104,7 +104,9 @@ class RoleRevealCard extends StatelessWidget {
                   const SizedBox(width: 12),
                   Flexible(
                     child: Text(
-                      character.name,
+                      character.displayName(
+                        Localizations.localeOf(context).languageCode,
+                      ),
                       style: TextStyle(
                         color: accent,
                         fontSize: isTablet ? 18 : 16,

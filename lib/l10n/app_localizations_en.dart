@@ -746,6 +746,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryFoods => 'Foods';
 
   @override
+  String get categoryProfessions => 'Professions';
+
+  @override
+  String get categorySports => 'Sports';
+
+  @override
+  String get categoryTransport => 'Transport';
+
+  @override
+  String get categoryFruitsVegetables => 'Fruits & Vegetables';
+
+  @override
+  String get categoryCountries => 'Countries';
+
+  @override
+  String get categoryClothes => 'Clothes';
+
+  @override
   String get leaveGameTitle => 'Leave Game?';
 
   @override

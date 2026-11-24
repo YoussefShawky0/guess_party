@@ -736,6 +736,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String get categoryFoods => 'أطعمة';
 
   @override
+  String get categoryProfessions => 'مهن';
+
+  @override
+  String get categorySports => 'رياضات';
+
+  @override
+  String get categoryTransport => 'مواصلات';
+
+  @override
+  String get categoryFruitsVegetables => 'خضار وفاكهة';
+
+  @override
+  String get categoryCountries => 'دول';
+
+  @override
+  String get categoryClothes => 'لبس';
+
+  @override
   String get leaveGameTitle => 'مغادرة اللعبة؟';
 
   @override

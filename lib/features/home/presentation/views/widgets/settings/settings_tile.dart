@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guess_party/shared/widgets/directional_fa_icon.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 
 class SettingsTile extends StatelessWidget {
@@ -66,7 +67,7 @@ class SettingsTile extends StatelessWidget {
                 ),
               ),
               if (onTap != null)
-                FaIcon(
+                DirectionalFaIcon(
                   FontAwesomeIcons.chevronRight,
                   size: isTablet ? 18 : 16,
                   color: AppColors.of(context).textMuted,
