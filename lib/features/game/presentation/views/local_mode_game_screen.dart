@@ -52,14 +52,15 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
     }
   }
 
-  void _finalizeVotingAndProgress(String roundId) {
+  /// [reason] must match what the server checks: 'all_votes' is rejected
+  /// with VOTES_INCOMPLETE until every participant voted; a host skipping
+  /// early must send 'host_skip' (same as Online Mode).
+  void _finalizeVotingAndProgress(String roundId, {required String reason}) {
     if (_isFinalizingVotingRoundId == roundId) return;
     _isFinalizingVotingRoundId = roundId;
-    context.read<GameCubit>().finalizeVoting(roundId, 'all_votes').whenComplete(
-      () {
-        if (mounted) _isFinalizingVotingRoundId = null;
-      },
-    );
+    context.read<GameCubit>().finalizeVoting(roundId, reason).whenComplete(() {
+      if (mounted) _isFinalizingVotingRoundId = null;
+    });
   }
 
   Future<void> _startNextRound(GameLoaded state) async {
@@ -186,7 +187,8 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
               round.phase == GamePhase.voting) ...[
             SharedDeviceSkipPhaseButton(
               phase: round.phase,
-              onFinalizeVoting: _finalizeVotingAndProgress,
+              onFinalizeVoting: (roundId) =>
+                  _finalizeVotingAndProgress(roundId, reason: 'host_skip'),
             ),
             const SizedBox(height: 16),
           ],
@@ -200,7 +202,8 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
               isFinalizing: _isFinalizingVotingRoundId == round.id,
               onSelectVoter: (playerId) =>
                   showSharedDeviceVoteTargetDialog(context, voterId: playerId),
-              onShowResults: () => _finalizeVotingAndProgress(round.id),
+              onShowResults: () =>
+                  _finalizeVotingAndProgress(round.id, reason: 'all_votes'),
             ),
           if (round.phase == GamePhase.results)
             SharedDeviceResultsContent(

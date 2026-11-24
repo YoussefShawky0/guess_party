@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/di/injection_container.dart';
 import 'package:guess_party/core/services/auth_session_service.dart';
+import 'package:guess_party/core/services/interstitial_ad_service.dart';
 import 'package:guess_party/core/services/room_query_service.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/router/app_routes.dart';
@@ -282,7 +283,11 @@ class AppRouter {
               ),
             );
           }
-          return GameOverView(players: players, playerScores: playerScores);
+          return GameOverView(
+            players: players,
+            playerScores: playerScores,
+            adService: sl<InterstitialAdService>(),
+          );
         },
       ),
     ],

@@ -50,7 +50,14 @@ class AppConfig {
     required this.sentryTracesSampleRate,
     required this.sentryRelease,
     required this.sentryDist,
+    this.adMobInterstitialUnitId,
   });
+
+  /// Google's public test interstitial unit. Non-production builds always use
+  /// it: tapping real ads in your own builds can get the AdMob account banned.
+  static const testInterstitialUnitId =
+      'ca-app-pub-3940256099942544/1033173712';
+  static const _googleTestPublisher = 'ca-app-pub-3940256099942544';
 
   final AppEnvironment environment;
   final AppDistribution distribution;
@@ -60,6 +67,9 @@ class AppConfig {
   final double sentryTracesSampleRate;
   final String? sentryRelease;
   final String? sentryDist;
+
+  /// Null means ads are off (production without ADMOB_INTERSTITIAL_ID).
+  final String? adMobInterstitialUnitId;
 
   bool get isSentryEnabled => sentryDsn != null;
 
@@ -78,6 +88,7 @@ class AppConfig {
     ),
     'SENTRY_RELEASE': String.fromEnvironment('SENTRY_RELEASE'),
     'SENTRY_DIST': String.fromEnvironment('SENTRY_DIST'),
+    'ADMOB_INTERSTITIAL_ID': String.fromEnvironment('ADMOB_INTERSTITIAL_ID'),
   });
 
   static AppConfig fromMap(Map<String, String> values) {
@@ -122,7 +133,32 @@ class AppConfig {
       sentryTracesSampleRate: sampleRate,
       sentryRelease: sentryRelease,
       sentryDist: sentryDist,
+      adMobInterstitialUnitId: _resolveInterstitialUnitId(
+        appEnvironment,
+        _optional(values, 'ADMOB_INTERSTITIAL_ID'),
+      ),
     );
+  }
+
+  static String? _resolveInterstitialUnitId(
+    AppEnvironment environment,
+    String? configured,
+  ) {
+    if (environment != AppEnvironment.production) {
+      return testInterstitialUnitId;
+    }
+    if (configured == null) return null;
+    if (!RegExp(r'^ca-app-pub-\d+/\d+$').hasMatch(configured)) {
+      throw const AppConfigException(
+        'ADMOB_INTERSTITIAL_ID must look like ca-app-pub-<publisher>/<unit>.',
+      );
+    }
+    if (configured.startsWith(_googleTestPublisher)) {
+      throw const AppConfigException(
+        'Production builds cannot use Google test ad units.',
+      );
+    }
+    return configured;
   }
 
   static String _required(Map<String, String> values, String key) {

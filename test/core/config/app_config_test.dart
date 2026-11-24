@@ -160,6 +160,53 @@ void main() {
       );
     });
 
+    test('non-production builds always use the Google test ad unit', () {
+      final config = AppConfig.fromMap({
+        ..._baseConfig(),
+        'ADMOB_INTERSTITIAL_ID': 'ca-app-pub-1111111111111111/2222222222',
+      });
+      expect(config.adMobInterstitialUnitId, AppConfig.testInterstitialUnitId);
+    });
+
+    group('production ad unit', () {
+      Map<String, String> production([String? unitId]) => {
+        ..._baseConfig(
+          environment: 'production',
+          distribution: 'play',
+          url: 'https://abcd.supabase.co',
+          release: 'guess-party@1.0.4',
+          dist: '5',
+        ),
+        if (unitId != null) 'ADMOB_INTERSTITIAL_ID': unitId,
+      };
+
+      test('is off when not configured', () {
+        expect(AppConfig.fromMap(production()).adMobInterstitialUnitId, isNull);
+      });
+
+      test('uses the configured real unit', () {
+        const unit = 'ca-app-pub-1111111111111111/2222222222';
+        expect(
+          AppConfig.fromMap(production(unit)).adMobInterstitialUnitId,
+          unit,
+        );
+      });
+
+      test('rejects Google test units and malformed ids', () {
+        for (final bad in [
+          AppConfig.testInterstitialUnitId,
+          'ca-app-pub-1111111111111111~2222222222',
+          'banana',
+        ]) {
+          expect(
+            () => AppConfig.fromMap(production(bad)),
+            throwsA(isA<AppConfigException>()),
+            reason: bad,
+          );
+        }
+      });
+    });
+
     test('requires release and dist metadata outside development', () {
       expect(
         () => AppConfig.fromMap(

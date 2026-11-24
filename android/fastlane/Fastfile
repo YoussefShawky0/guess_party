@@ -1,0 +1,37 @@
+opt_out_usage
+default_platform(:android)
+
+PROJECT_ROOT = File.expand_path("../..", __dir__)
+DEV_DEFINES = File.join(PROJECT_ROOT, "config", "development.online.local.json")
+DEV_APK = File.join(PROJECT_ROOT, "build", "app", "outputs", "flutter-apk", "app-development-release.apk")
+
+platform :android do
+  desc "Build the development flavor (live Supabase) and send it to Firebase App Distribution testers"
+  lane :dev_distribute do |options|
+    # Firebase project guess-party-ys, app "Guess Party Dev". App IDs are public
+    # identifiers (they ship inside every client), so a default here is safe.
+    app_id = ENV.fetch("FIREBASE_DEV_APP_ID", "1:629455957828:android:59109527e6e03460e03111")
+    UI.user_error!("Missing #{DEV_DEFINES}") unless File.exist?(DEV_DEFINES)
+
+    Dir.chdir(PROJECT_ROOT) do
+      sh("flutter", "build", "apk", "--release", "--flavor", "development",
+         "--dart-define-from-file=#{DEV_DEFINES}")
+    end
+
+    firebase_app_distribution(
+      app: app_id,
+      android_artifact_type: "APK",
+      android_artifact_path: DEV_APK,
+      groups: options[:groups] || ENV.fetch("FIREBASE_DEV_TESTER_GROUPS", "testers"),
+      release_notes: options[:notes] || dev_release_notes,
+      # CI: point this at a service-account JSON. Locally the plugin falls back
+      # to your `firebase login` session.
+      service_credentials_file: ENV["FIREBASE_SERVICE_ACCOUNT_JSON_PATH"]
+    )
+  end
+end
+
+# Text testers see in the App Tester app for this build.
+def dev_release_notes
+  # TODO(human)
+end
