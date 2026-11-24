@@ -8,10 +8,14 @@ class LocalPlayersInput extends StatefulWidget {
   final int maxPlayers;
   final ValueChanged<List<String>> onPlayersChanged;
 
+  /// Names to pre-fill, in field order (used by Play Again).
+  final List<String> initialNames;
+
   const LocalPlayersInput({
     super.key,
     required this.maxPlayers,
     required this.onPlayersChanged,
+    this.initialNames = const [],
   });
 
   @override
@@ -26,6 +30,11 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
   void initState() {
     super.initState();
     _initializeControllers(widget.maxPlayers);
+    if (widget.initialNames.isNotEmpty) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _notifyPlayersChanged();
+      });
+    }
   }
 
   @override
@@ -72,10 +81,13 @@ class _LocalPlayersInputState extends State<LocalPlayersInput> {
     _playerNames.clear();
 
     for (int i = 0; i < count; i++) {
-      final controller = TextEditingController();
+      final initial = i < widget.initialNames.length
+          ? widget.initialNames[i].trim()
+          : '';
+      final controller = TextEditingController(text: initial);
       controller.addListener(() => _updatePlayerNames());
       _controllers.add(controller);
-      _playerNames.add('');
+      _playerNames.add(initial);
     }
   }
 

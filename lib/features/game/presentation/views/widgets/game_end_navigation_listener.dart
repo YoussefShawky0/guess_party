@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 
@@ -49,7 +50,11 @@ class _GameEndNavigationListenerState extends State<GameEndNavigationListener> {
       _hasNavigated = true;
       context.go(
         AppRoutes.roomGameOver(widget.roomId),
-        extra: {'players': state.players, 'playerScores': state.playerScores},
+        extra: {
+          'players': state.players,
+          'playerScores': state.playerScores,
+          'gameMode': GameConstants.gameModeOnline,
+        },
       );
     });
   }

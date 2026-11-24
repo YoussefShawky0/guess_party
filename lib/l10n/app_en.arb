@@ -272,7 +272,6 @@
   "@ofTotalRounds": {"placeholders": {"total": {"type": "int"}}},
   "viewFinalLeaderboard": "View Final Leaderboard",
   "waitingForHostLeaderboard": "Waiting for the host to show the leaderboard...",
-  "startNextRound": "Start Next Round",
   "waitingForHostNextRound": "Waiting for the host to start the next round...",
   "finalLeaderboard": "Final Leaderboard",
   "backToHome": "Back to Home",
@@ -412,5 +411,16 @@
   "playerIsNowHost": "{name} is now the host",
   "@playerIsNowHost": {"placeholders": {"name": {"type": "String"}}},
   "aPlayerFallbackName": "A player",
-  "countdownGo": "GO!"
+  "countdownGo": "GO!",
+  "rematchInviteTitle": "{host} wants to play again",
+  "@rematchInviteTitle": {"placeholders": {"host": {"type": "String"}}},
+  "rematchInviteBody": "Join a new game with the same group.",
+  "rematchJoin": "Join",
+  "rematchDecline": "No thanks",
+  "invitedPlayers": "Invited players",
+  "inviteStatusAccepted": "Joined",
+  "inviteStatusPending": "Waiting…",
+  "inviteStatusDeclined": "Declined",
+  "errRoomNotFinished": "This game hasn't finished yet.",
+  "errInviteNotFound": "This invite is no longer available."
 }

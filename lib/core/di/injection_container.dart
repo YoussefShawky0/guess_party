@@ -16,7 +16,9 @@ import 'package:guess_party/features/home/presentation/cubit/home_cubit.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
 import 'package:guess_party/features/room/data/repositories/room_repository_impl.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
+import 'package:guess_party/features/room/presentation/cubit/rematch_invite_cubit.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:guess_party/features/room/presentation/cubit/room_invites_cubit.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:guess_party/core/localization/locale_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -105,6 +107,22 @@ Future<void> init({required AppConfig config}) async {
   );
 
   sl.registerFactory(() => RoomCubit(repository: sl()));
+
+  sl.registerFactoryParam<
+    RematchInviteCubit,
+    ({String previousRoomId, String userId}),
+    void
+  >(
+    (args, _) => RematchInviteCubit(
+      repository: sl(),
+      previousRoomId: args.previousRoomId,
+      userId: args.userId,
+    ),
+  );
+
+  sl.registerFactoryParam<RoomInvitesCubit, String, void>(
+    (roomId, _) => RoomInvitesCubit(repository: sl(), roomId: roomId),
+  );
 
   // ============= Game Feature =============
 

@@ -3,6 +3,7 @@ import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/data/datasources/room_remote_data_source.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_invite.dart';
 import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 
@@ -51,6 +52,68 @@ class RoomRepositoryImpl implements RoomRepository {
     } catch (e) {
       return Left(ServerFailure.from(e));
     }
+  }
+
+  @override
+  Future<Either<Failure, RoomSession>> createRematch({
+    required String requestId,
+    required String previousRoomId,
+    required String category,
+    required int maxRounds,
+    required int maxPlayers,
+    required int roundDuration,
+    required String hostUsername,
+    required List<String> localNames,
+  }) async {
+    try {
+      return Right(
+        await remoteDataSource.createRematch(
+          requestId: requestId,
+          previousRoomId: previousRoomId,
+          category: category,
+          maxRounds: maxRounds,
+          maxPlayers: maxPlayers,
+          roundDuration: roundDuration,
+          hostUsername: hostUsername,
+          localNames: localNames,
+        ),
+      );
+    } catch (e) {
+      return Left(ServerFailure.from(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, RoomSession?>> respondToRematchInvite({
+    required String roomId,
+    required bool accept,
+  }) async {
+    try {
+      return Right(
+        await remoteDataSource.respondToRematchInvite(
+          roomId: roomId,
+          accept: accept,
+        ),
+      );
+    } catch (e) {
+      return Left(ServerFailure.from(e));
+    }
+  }
+
+  @override
+  Stream<List<RoomInvite>> watchRoomInvites({required String roomId}) {
+    return remoteDataSource.watchRoomInvites(roomId: roomId);
+  }
+
+  @override
+  Stream<List<RoomInvite>> watchMyRematchInvites({
+    required String previousRoomId,
+    required String userId,
+  }) {
+    return remoteDataSource.watchMyRematchInvites(
+      previousRoomId: previousRoomId,
+      userId: userId,
+    );
   }
 
   @override

@@ -35,6 +35,8 @@ String localizedErrorMessage(
   AppErrorCode.votesIncomplete => l10n.errVotesIncomplete,
   AppErrorCode.usernameTaken => l10n.errUsernameTaken,
   AppErrorCode.invalidUsername => l10n.errInvalidUsername,
+  AppErrorCode.roomNotFinished => l10n.errRoomNotFinished,
+  AppErrorCode.inviteNotFound => l10n.errInviteNotFound,
   AppErrorCode.selfVote => l10n.cannotVoteSelf,
   AppErrorCode.notEnoughPlayersToAdvance => l10n.connectedPlayersRequired(
     minConnectedPlayersToAdvance,

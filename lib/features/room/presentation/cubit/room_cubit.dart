@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/features/room/domain/entities/rematch_seed.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:uuid/uuid.dart';
@@ -22,6 +23,11 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
   bool _playersStreamHealthy = true;
   String? _createRequestId;
   String? _createRequestFingerprint;
+
+  /// Last roster from the players stream. The stream can emit before the room
+  /// details load; without this the roster is dropped and the waiting room
+  /// stays on "Syncing your player..." until the next players change.
+  List<Player>? _latestPlayers;
 
   @override
   int get activeSessionSubscriptionCount =>
@@ -93,6 +99,68 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     );
   }
 
+  /// Creates the next room after a finished game ("Play Again").
+  ///
+  /// The game mode comes from [seed] (the server reads it from the previous
+  /// room too). Shared-Device mode sends the first local name as the host and
+  /// the rest as `localNames`; Online Mode sends [username] and no names.
+  Future<void> createRematch({
+    required RematchSeed seed,
+    required String category,
+    required int maxRounds,
+    required int maxPlayers,
+    required int roundDuration,
+    required String username,
+    List<String>? localPlayerNames,
+  }) async {
+    if (isClosed) return;
+    emit(RoomLoading());
+
+    final localNames = seed.gameMode == GameConstants.gameModeLocal
+        ? (localPlayerNames ?? const <String>[])
+        : const <String>[];
+    final hostUsername = localNames.isNotEmpty ? localNames.first : username;
+    final fingerprint = [
+      'rematch',
+      seed.previousRoomId,
+      category,
+      maxRounds,
+      maxPlayers,
+      roundDuration,
+      hostUsername,
+      ...localNames,
+    ].join('|');
+    if (_createRequestFingerprint != fingerprint) {
+      _createRequestId = const Uuid().v4();
+      _createRequestFingerprint = fingerprint;
+    }
+    _createRequestId ??= const Uuid().v4();
+
+    final result = await _repository.createRematch(
+      requestId: _createRequestId!,
+      previousRoomId: seed.previousRoomId,
+      category: category,
+      maxRounds: maxRounds,
+      maxPlayers: maxPlayers,
+      roundDuration: roundDuration,
+      hostUsername: hostUsername,
+      localNames: localNames.length > 1 ? localNames.sublist(1) : const [],
+    );
+
+    if (isClosed) return;
+
+    if (result.isLeft()) {
+      emit(RoomError(result.fold((f) => f.code, (_) => AppErrorCode.unknown)));
+      return;
+    }
+    final session = result.getOrElse(() => throw StateError('unreachable'));
+    _createRequestId = null;
+    _createRequestFingerprint = null;
+    emit(
+      RoomWithPlayerCreated(room: session.room, player: session.currentPlayer),
+    );
+  }
+
   Future<void> loadRoomDetails({required String roomId}) async {
     if (isClosed) return;
     emit(RoomLoading());
@@ -103,7 +171,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
 
     result.fold(
       (failure) => emit(RoomError(failure.code)),
-      (room) => emit(RoomDetailsLoaded(room)),
+      (room) => emit(RoomDetailsLoaded(room, players: _latestPlayers)),
     );
   }
 
@@ -191,14 +259,15 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
       RoomDetailsLoaded(
         room,
         players: currentState is RoomDetailsLoaded
-            ? currentState.players
-            : null,
+            ? currentState.players ?? _latestPlayers
+            : _latestPlayers,
       ),
     );
   }
 
   void _emitWatchedPlayers(List<Player> players) {
     if (isClosed) return;
+    _latestPlayers = players;
     final current = state;
     if (current is RoomDetailsLoaded) {
       emit(current.copyWith(players: players));

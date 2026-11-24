@@ -7,6 +7,7 @@ import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/core/theme/app_theme.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_invite.dart';
 import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
@@ -81,6 +82,34 @@ class TestRoomCubit extends RoomCubit {
 }
 
 class FakeRoomRepository implements RoomRepository {
+  @override
+  ResultFuture<RoomSession> createRematch({
+    required String requestId,
+    required String previousRoomId,
+    required String category,
+    required int maxRounds,
+    required int maxPlayers,
+    required int roundDuration,
+    required String hostUsername,
+    required List<String> localNames,
+  }) async => throw UnimplementedError();
+
+  @override
+  ResultFuture<RoomSession?> respondToRematchInvite({
+    required String roomId,
+    required bool accept,
+  }) async => const Right(null);
+
+  @override
+  Stream<List<RoomInvite>> watchRoomInvites({required String roomId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<List<RoomInvite>> watchMyRematchInvites({
+    required String previousRoomId,
+    required String userId,
+  }) => const Stream.empty();
+
   @override
   ResultFuture<RoomSession> createRoom({
     required String requestId,

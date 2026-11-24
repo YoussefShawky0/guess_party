@@ -844,9 +844,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Waiting for the host to show the leaderboard...';
 
   @override
-  String get startNextRound => 'Start Next Round';
-
-  @override
   String get waitingForHostNextRound =>
       'Waiting for the host to start the next round...';
 
@@ -1082,6 +1079,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatingRound => 'Creating Round...';
 
   @override
+  String get startNextRound => 'Start Next Round';
+
+  @override
   String get imposterCaughtTitle => 'Imposter Caught';
 
   @override
@@ -1268,4 +1268,36 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get countdownGo => 'GO!';
+
+  @override
+  String rematchInviteTitle(String host) {
+    return '$host wants to play again';
+  }
+
+  @override
+  String get rematchInviteBody => 'Join a new game with the same group.';
+
+  @override
+  String get rematchJoin => 'Join';
+
+  @override
+  String get rematchDecline => 'No thanks';
+
+  @override
+  String get invitedPlayers => 'Invited players';
+
+  @override
+  String get inviteStatusAccepted => 'Joined';
+
+  @override
+  String get inviteStatusPending => 'Waiting…';
+
+  @override
+  String get inviteStatusDeclined => 'Declined';
+
+  @override
+  String get errRoomNotFinished => 'This game hasn\'t finished yet.';
+
+  @override
+  String get errInviteNotFound => 'This invite is no longer available.';
 }

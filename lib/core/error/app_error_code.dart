@@ -45,6 +45,8 @@ enum AppErrorCode {
   votesIncomplete,
   usernameTaken,
   invalidUsername,
+  roomNotFinished,
+  inviteNotFound,
 
   // Client-side and constraint-derived gameplay codes.
   selfVote,
@@ -103,6 +105,8 @@ const _dbCodes = <String, AppErrorCode>{
   'USERNAME_TAKEN': AppErrorCode.usernameTaken,
   'DUPLICATE_LOCAL_USERNAME': AppErrorCode.usernameTaken,
   'INVALID_USERNAME': AppErrorCode.invalidUsername,
+  'ROOM_NOT_FINISHED': AppErrorCode.roomNotFinished,
+  'INVITE_NOT_FOUND': AppErrorCode.inviteNotFound,
   'INVALID_CATEGORY': AppErrorCode.invalidInput,
   'INVALID_GAME_MODE': AppErrorCode.invalidInput,
   'INVALID_LOCAL_PLAYER_COUNT': AppErrorCode.invalidInput,

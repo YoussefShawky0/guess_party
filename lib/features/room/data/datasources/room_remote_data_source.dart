@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:guess_party/core/data/room_players_watcher.dart';
 import 'package:guess_party/features/auth/data/models/player_model.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/features/room/data/models/room_invite_model.dart';
 import 'package:guess_party/features/room/data/models/room_model.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_invite.dart';
 import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -23,6 +25,30 @@ abstract class RoomRemoteDataSource {
   Future<RoomSession> joinRoom({
     required String roomCode,
     required String username,
+  });
+
+  Future<RoomSession> createRematch({
+    required String requestId,
+    required String previousRoomId,
+    required String category,
+    required int maxRounds,
+    required int maxPlayers,
+    required int roundDuration,
+    required String hostUsername,
+    required List<String> localNames,
+  });
+
+  /// Returns `null` when the invite is declined.
+  Future<RoomSession?> respondToRematchInvite({
+    required String roomId,
+    required bool accept,
+  });
+
+  Stream<List<RoomInvite>> watchRoomInvites({required String roomId});
+
+  Stream<List<RoomInvite>> watchMyRematchInvites({
+    required String previousRoomId,
+    required String userId,
   });
 
   Future<Room> getRoomDetails({required String roomId});
@@ -92,14 +118,73 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
       'join_room',
       params: {'p_room_code': roomCode, 'p_username': username},
     );
-    final json = Map<String, dynamic>.from(response as Map);
-    final room = RoomModel.fromJson(
-      Map<String, dynamic>.from(json['room'] as Map),
+    return _parseJoinedSession(Map<String, dynamic>.from(response as Map));
+  }
+
+  @override
+  Future<RoomSession> createRematch({
+    required String requestId,
+    required String previousRoomId,
+    required String category,
+    required int maxRounds,
+    required int maxPlayers,
+    required int roundDuration,
+    required String hostUsername,
+    required List<String> localNames,
+  }) async {
+    final response = await client.rpc(
+      'create_rematch',
+      params: {
+        'p_previous_room_id': previousRoomId,
+        'p_request_id': requestId,
+        'p_category': category,
+        'p_max_rounds': maxRounds,
+        'p_max_players': maxPlayers,
+        'p_round_duration': roundDuration,
+        'p_host_username': hostUsername,
+        'p_local_names': localNames,
+      },
     );
-    final player = PlayerModel.fromJson(
-      Map<String, dynamic>.from(json['player'] as Map),
+    return _parseCreatedSession(Map<String, dynamic>.from(response as Map));
+  }
+
+  @override
+  Future<RoomSession?> respondToRematchInvite({
+    required String roomId,
+    required bool accept,
+  }) async {
+    final response = await client.rpc(
+      'respond_rematch_invite',
+      params: {'p_room_id': roomId, 'p_accept': accept},
     );
-    return RoomSession(room: room, currentPlayer: player, players: [player]);
+    if (!accept || response == null) return null;
+    return _parseJoinedSession(Map<String, dynamic>.from(response as Map));
+  }
+
+  @override
+  Stream<List<RoomInvite>> watchRoomInvites({required String roomId}) {
+    return client
+        .from('room_invites')
+        .stream(primaryKey: ['room_id', 'user_id'])
+        .eq('room_id', roomId)
+        .map((rows) => roomInvitesFromRows(rows.cast<Map<String, dynamic>>()));
+  }
+
+  @override
+  Stream<List<RoomInvite>> watchMyRematchInvites({
+    required String previousRoomId,
+    required String userId,
+  }) {
+    return client
+        .from('room_invites')
+        .stream(primaryKey: ['room_id', 'user_id'])
+        .eq('user_id', userId)
+        .map(
+          (rows) => myRematchInvitesFromRows(
+            rows.cast<Map<String, dynamic>>(),
+            previousRoomId: previousRoomId,
+          ),
+        );
   }
 
   @override
@@ -243,6 +328,16 @@ class RoomRemoteDataSourceImpl implements RoomRemoteDataSource {
           'last_seen_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', playerId);
+  }
+
+  RoomSession _parseJoinedSession(Map<String, dynamic> json) {
+    final room = RoomModel.fromJson(
+      Map<String, dynamic>.from(json['room'] as Map),
+    );
+    final player = PlayerModel.fromJson(
+      Map<String, dynamic>.from(json['player'] as Map),
+    );
+    return RoomSession(room: room, currentPlayer: player, players: [player]);
   }
 
   RoomSession _parseCreatedSession(Map<String, dynamic> json) {

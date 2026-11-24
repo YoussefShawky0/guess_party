@@ -8,6 +8,7 @@ import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/services/room_query_service.dart';
+import 'package:guess_party/features/room/domain/entities/rematch_seed.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/shared/widgets/app_bar_title.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
@@ -25,10 +26,14 @@ class CreateRoomView extends StatefulWidget {
   final String username;
   final RoomQueryService roomQueryService;
 
+  /// Settings of the finished room when opened from "Play Again".
+  final RematchSeed? rematch;
+
   const CreateRoomView({
     super.key,
     required this.username,
     required this.roomQueryService,
+    this.rematch,
   });
 
   @override
@@ -49,6 +54,13 @@ class _CreateRoomViewState extends State<CreateRoomView> {
   @override
   void initState() {
     super.initState();
+    final seed = widget.rematch;
+    if (seed != null) {
+      _selectedRounds = seed.maxRounds;
+      _selectedMaxPlayers = seed.maxPlayers;
+      _selectedRoundDuration = seed.roundDuration;
+      _selectedGameMode = seed.gameMode;
+    }
     _loadCategories();
   }
 
@@ -59,7 +71,11 @@ class _CreateRoomViewState extends State<CreateRoomView> {
       if (mounted && fetched.isNotEmpty) {
         setState(() {
           _categories = fetched;
-          _selectedCategory = fetched.keys.first;
+          final seedCategory = widget.rematch?.category;
+          _selectedCategory =
+              seedCategory != null && fetched.containsKey(seedCategory)
+              ? seedCategory
+              : fetched.keys.first;
           _isLoadingCategories = false;
         });
       }
@@ -105,6 +121,22 @@ class _CreateRoomViewState extends State<CreateRoomView> {
   void _createRoom() {
     if (_selectedCategory == null) return;
 
+    final seed = widget.rematch;
+    if (seed != null) {
+      context.read<RoomCubit>().createRematch(
+        seed: seed,
+        category: _selectedCategory!,
+        maxRounds: _selectedRounds,
+        maxPlayers: _selectedMaxPlayers,
+        roundDuration: _selectedRoundDuration,
+        username: widget.username,
+        localPlayerNames: seed.gameMode == GameConstants.gameModeLocal
+            ? _localPlayerNames
+            : null,
+      );
+      return;
+    }
+
     context.read<RoomCubit>().createNewRoom(
       category: _selectedCategory!,
       maxRounds: _selectedRounds,
@@ -127,7 +159,11 @@ class _CreateRoomViewState extends State<CreateRoomView> {
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         backgroundColor: AppColors.of(context).surface,
-        title: AppBarTitle(title: context.l10n.createRoom),
+        title: AppBarTitle(
+          title: widget.rematch != null
+              ? context.l10n.playAgain
+              : context.l10n.createRoom,
+        ),
         centerTitle: true,
       ),
       body: BlocConsumer<RoomCubit, RoomState>(
@@ -164,6 +200,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
 
                     GameModeSelector(
                       selectedMode: _selectedGameMode,
+                      enabled: widget.rematch == null,
                       onModeChanged: (mode) =>
                           setState(() => _selectedGameMode = mode),
                     ),
@@ -212,6 +249,7 @@ class _CreateRoomViewState extends State<CreateRoomView> {
                     if (_selectedGameMode == GameConstants.gameModeLocal)
                       LocalPlayersInput(
                         maxPlayers: _selectedMaxPlayers,
+                        initialNames: widget.rematch?.localNames ?? const [],
                         onPlayersChanged: (names) =>
                             setState(() => _localPlayerNames = names),
                       ),

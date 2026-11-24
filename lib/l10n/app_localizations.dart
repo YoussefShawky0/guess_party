@@ -1616,12 +1616,6 @@ abstract class AppLocalizations {
   /// **'Waiting for the host to show the leaderboard...'**
   String get waitingForHostLeaderboard;
 
-  /// No description provided for @startNextRound.
-  ///
-  /// In en, this message translates to:
-  /// **'Start Next Round'**
-  String get startNextRound;
-
   /// No description provided for @waitingForHostNextRound.
   ///
   /// In en, this message translates to:
@@ -2054,6 +2048,12 @@ abstract class AppLocalizations {
   /// **'Creating Round...'**
   String get creatingRound;
 
+  /// No description provided for @startNextRound.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Next Round'**
+  String get startNextRound;
+
   /// No description provided for @imposterCaughtTitle.
   ///
   /// In en, this message translates to:
@@ -2389,6 +2389,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'GO!'**
   String get countdownGo;
+
+  /// No description provided for @rematchInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{host} wants to play again'**
+  String rematchInviteTitle(String host);
+
+  /// No description provided for @rematchInviteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a new game with the same group.'**
+  String get rematchInviteBody;
+
+  /// No description provided for @rematchJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get rematchJoin;
+
+  /// No description provided for @rematchDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'No thanks'**
+  String get rematchDecline;
+
+  /// No description provided for @invitedPlayers.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited players'**
+  String get invitedPlayers;
+
+  /// No description provided for @inviteStatusAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined'**
+  String get inviteStatusAccepted;
+
+  /// No description provided for @inviteStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting…'**
+  String get inviteStatusPending;
+
+  /// No description provided for @inviteStatusDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get inviteStatusDeclined;
+
+  /// No description provided for @errRoomNotFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'This game hasn\'t finished yet.'**
+  String get errRoomNotFinished;
+
+  /// No description provided for @errInviteNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This invite is no longer available.'**
+  String get errInviteNotFound;
 }
 
 class _AppLocalizationsDelegate
