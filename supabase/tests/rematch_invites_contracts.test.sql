@@ -24,7 +24,9 @@ values
   ('a3000000-0000-4000-8000-000000000004', 'a2000000-0000-4000-8000-000000000001', 'a1000000-0000-4000-8000-000000000004', 'Four', false, true, '2026-01-04 00:00:00', now()),
   ('a3100000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000002', 'a1000000-0000-4000-8000-000000000006', 'Ali', true, true, '2026-01-01 00:00:00', now());
 
-update public.rooms set status = 'active' where id in ('a2000000-0000-4000-8000-000000000001', 'a2000000-0000-4000-8000-000000000002');
+-- Only the online room goes through 'active': trigger_create_first_round
+-- needs 4 players, and the local fixture only has to end up 'finished'.
+update public.rooms set status = 'active' where id = 'a2000000-0000-4000-8000-000000000001';
 
 -- As the host, while the game is still running.
 set local role authenticated;
