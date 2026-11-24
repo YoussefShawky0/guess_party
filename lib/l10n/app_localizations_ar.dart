@@ -1298,4 +1298,70 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get errInviteNotFound => 'الدعوة دي مبقتش متاحة.';
+
+  @override
+  String get statsTitle => 'إحصائياتي';
+
+  @override
+  String get statsGames => 'الجيمات اللي لعبتها';
+
+  @override
+  String get statsWins => 'مرات الفوز';
+
+  @override
+  String get statsRounds => 'الجولات اللي لعبتها';
+
+  @override
+  String get statsAsImposter => 'مرات كنت المحتال';
+
+  @override
+  String get statsEscapes => 'مرات نجاة المحتال';
+
+  @override
+  String get statsCorrectVotes => 'تصويتات صح';
+
+  @override
+  String get badgesTitle => 'الأوسمة';
+
+  @override
+  String get statsGuestCardTitle => 'اعمل حساب عشان إحصائياتك تفضل معاك للأبد';
+
+  @override
+  String get newBadgeUnlocked => 'وسام جديد اتفتح!';
+
+  @override
+  String get badgeFirstGameName => 'أول جيم';
+
+  @override
+  String get badgeFirstGameDescription => 'العب أول جيم ليك';
+
+  @override
+  String get badgeRegularName => 'لاعب منتظم';
+
+  @override
+  String get badgeRegularDescription => 'العب 10 جيمات';
+
+  @override
+  String get badgeVeteranName => 'المحترف';
+
+  @override
+  String get badgeVeteranDescription => 'العب 50 جيم';
+
+  @override
+  String get badgeChampionName => 'البطل';
+
+  @override
+  String get badgeChampionDescription => 'فوز في 10 جيمات';
+
+  @override
+  String get badgeMasterOfDisguiseName => 'أستاذ التخفي';
+
+  @override
+  String get badgeMasterOfDisguiseDescription => 'اهرب 5 مرات وإنت المحتال';
+
+  @override
+  String get badgeDetectiveName => 'المحقق';
+
+  @override
+  String get badgeDetectiveDescription => 'اكشف المحتال صح 20 مرة';
 }

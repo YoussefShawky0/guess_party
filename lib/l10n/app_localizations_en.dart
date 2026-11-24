@@ -1315,4 +1315,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errInviteNotFound => 'This invite is no longer available.';
+
+  @override
+  String get statsTitle => 'My Stats';
+
+  @override
+  String get statsGames => 'Games played';
+
+  @override
+  String get statsWins => 'Wins';
+
+  @override
+  String get statsRounds => 'Rounds played';
+
+  @override
+  String get statsAsImposter => 'Times as impostor';
+
+  @override
+  String get statsEscapes => 'Impostor escapes';
+
+  @override
+  String get statsCorrectVotes => 'Correct votes';
+
+  @override
+  String get badgesTitle => 'Badges';
+
+  @override
+  String get statsGuestCardTitle =>
+      'Create an account to keep your stats forever';
+
+  @override
+  String get newBadgeUnlocked => 'New badge unlocked!';
+
+  @override
+  String get badgeFirstGameName => 'First Game';
+
+  @override
+  String get badgeFirstGameDescription => 'Play your first game';
+
+  @override
+  String get badgeRegularName => 'Regular';
+
+  @override
+  String get badgeRegularDescription => 'Play 10 games';
+
+  @override
+  String get badgeVeteranName => 'Veteran';
+
+  @override
+  String get badgeVeteranDescription => 'Play 50 games';
+
+  @override
+  String get badgeChampionName => 'Champion';
+
+  @override
+  String get badgeChampionDescription => 'Win 10 games';
+
+  @override
+  String get badgeMasterOfDisguiseName => 'Master of Disguise';
+
+  @override
+  String get badgeMasterOfDisguiseDescription =>
+      'Escape as the impostor 5 times';
+
+  @override
+  String get badgeDetectiveName => 'Detective';
+
+  @override
+  String get badgeDetectiveDescription =>
+      'Vote for the impostor correctly 20 times';
 }

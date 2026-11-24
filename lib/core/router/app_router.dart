@@ -40,6 +40,8 @@ import 'package:guess_party/features/room/presentation/views/countdown_view.dart
 import 'package:guess_party/features/room/presentation/views/create_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/join_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/waiting_room_view.dart';
+import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
+import 'package:guess_party/features/stats/presentation/views/stats_view.dart';
 import 'package:guess_party/shared/presentation/views/splash_screen.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
@@ -124,6 +126,13 @@ class AppRouter {
           localeCubit: sl<LocaleCubit>(),
           config: sl<AppConfig>(),
           homeRepository: sl<HomeRepository>(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.stats,
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<PlayerStatsCubit>()..load(),
+          child: StatsView(isGuest: sl<AuthSessionService>().isAnonymous),
         ),
       ),
       //room flow
@@ -309,6 +318,7 @@ class AppRouter {
                 : GameConstants.gameModeOnline,
             currentUserId: currentUserId,
             roomRepository: sl<RoomRepository>(),
+            createPlayerStatsCubit: () => sl<PlayerStatsCubit>(),
             createRematchInviteCubit: currentUserId == null
                 ? null
                 : () => sl<RematchInviteCubit>(

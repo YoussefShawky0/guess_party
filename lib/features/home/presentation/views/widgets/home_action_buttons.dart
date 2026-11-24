@@ -70,6 +70,23 @@ class HomeActionButtons extends StatelessWidget {
             ],
           ),
         ),
+        SizedBox(height: isTablet ? 16 : 12),
+        TextButton.icon(
+          key: const Key('home-stats-button'),
+          onPressed: () => context.push(AppRoutes.stats),
+          icon: FaIcon(FontAwesomeIcons.chartSimple, size: isTablet ? 20 : 18),
+          label: Text(
+            context.l10n.statsTitle,
+            style: TextStyle(
+              fontSize: isTablet ? 18 : 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.of(context).textSecondary,
+            padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 12),
+          ),
+        ),
       ],
     );
   }

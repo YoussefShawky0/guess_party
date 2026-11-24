@@ -11,6 +11,8 @@ import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/rematch_seed.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/features/room/presentation/cubit/rematch_invite_cubit.dart';
+import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
+import 'package:guess_party/features/stats/presentation/views/widgets/new_badges_card.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'widgets/leaderboard_list_widget.dart';
 import 'widgets/rematch_invite_card.dart';
@@ -33,6 +35,10 @@ class GameOverView extends StatefulWidget {
   /// starts and closes it.
   final RematchInviteCubit Function()? createRematchInviteCubit;
 
+  /// Builds the stats cubit used to announce new badges (Online Mode only).
+  /// The view loads and closes it; failures stay silent.
+  final PlayerStatsCubit Function()? createPlayerStatsCubit;
+
   const GameOverView({
     super.key,
     required this.players,
@@ -43,6 +49,7 @@ class GameOverView extends StatefulWidget {
     this.currentUserId,
     this.roomRepository,
     this.createRematchInviteCubit,
+    this.createPlayerStatsCubit,
   });
 
   @override
@@ -54,6 +61,7 @@ class _GameOverViewState extends State<GameOverView> {
   bool _leaving = false;
   bool _preparingRematch = false;
   RematchInviteCubit? _inviteCubit;
+  PlayerStatsCubit? _statsCubit;
 
   List<Player> get players => widget.players;
   Map<String, int> get playerScores => widget.playerScores;
@@ -65,11 +73,18 @@ class _GameOverViewState extends State<GameOverView> {
     if (_canInvite) {
       _inviteCubit = widget.createRematchInviteCubit!()..start();
     }
+    final createStats = widget.createPlayerStatsCubit;
+    if (createStats != null &&
+        widget.gameMode == GameConstants.gameModeOnline) {
+      // Fire and forget: the buttons never wait for the stats.
+      _statsCubit = createStats()..load();
+    }
   }
 
   @override
   void dispose() {
     _inviteCubit?.close();
+    _statsCubit?.close();
     super.dispose();
   }
 
@@ -173,6 +188,21 @@ class _GameOverViewState extends State<GameOverView> {
     );
   }
 
+  Widget _buildNewBadgesCard() {
+    return BlocBuilder<PlayerStatsCubit, PlayerStatsState>(
+      bloc: _statsCubit,
+      builder: (context, state) {
+        if (state is! StatsLoaded || state.newBadges.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsetsDirectional.only(bottom: 16),
+          child: NewBadgesCard(badges: state.newBadges),
+        );
+      },
+    );
+  }
+
   /// The game is over, so the ad can't interrupt play in either mode.
   Future<void> _goHome() async {
     if (_leaving) return;
@@ -268,6 +298,7 @@ class _GameOverViewState extends State<GameOverView> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_statsCubit != null) _buildNewBadgesCard(),
                         if (_inviteCubit != null) _buildInviteCard(),
                         if (_canPlayAgain) ...[
                           SizedBox(

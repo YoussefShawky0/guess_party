@@ -26,6 +26,12 @@ import 'package:guess_party/features/room/domain/repositories/room_repository.da
 import 'package:guess_party/features/room/presentation/cubit/rematch_invite_cubit.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_invites_cubit.dart';
+import 'package:guess_party/features/stats/data/datasources/stats_remote_data_source.dart';
+import 'package:guess_party/features/stats/data/repositories/stats_repository_impl.dart';
+import 'package:guess_party/features/stats/data/shared_prefs_seen_badges_store.dart';
+import 'package:guess_party/features/stats/domain/repositories/stats_repository.dart';
+import 'package:guess_party/features/stats/domain/seen_badges_store.dart';
+import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:guess_party/core/localization/locale_cubit.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -146,6 +152,22 @@ Future<void> init({required AppConfig config}) async {
 
   sl.registerFactoryParam<RoomInvitesCubit, String, void>(
     (roomId, _) => RoomInvitesCubit(repository: sl(), roomId: roomId),
+  );
+
+  // ============= Stats Feature =============
+
+  sl.registerLazySingleton<StatsRemoteDataSource>(
+    () => StatsRemoteDataSourceImpl(client: sl()),
+  );
+
+  sl.registerLazySingleton<StatsRepository>(
+    () => StatsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<SeenBadgesStore>(() => SharedPrefsSeenBadgesStore());
+
+  sl.registerFactory(
+    () => PlayerStatsCubit(repository: sl(), seenBadgesStore: sl()),
   );
 
   // ============= Game Feature =============

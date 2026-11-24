@@ -2479,6 +2479,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This invite is no longer available.'**
   String get errInviteNotFound;
+
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Stats'**
+  String get statsTitle;
+
+  /// No description provided for @statsGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Games played'**
+  String get statsGames;
+
+  /// No description provided for @statsWins.
+  ///
+  /// In en, this message translates to:
+  /// **'Wins'**
+  String get statsWins;
+
+  /// No description provided for @statsRounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Rounds played'**
+  String get statsRounds;
+
+  /// No description provided for @statsAsImposter.
+  ///
+  /// In en, this message translates to:
+  /// **'Times as impostor'**
+  String get statsAsImposter;
+
+  /// No description provided for @statsEscapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Impostor escapes'**
+  String get statsEscapes;
+
+  /// No description provided for @statsCorrectVotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct votes'**
+  String get statsCorrectVotes;
+
+  /// No description provided for @badgesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Badges'**
+  String get badgesTitle;
+
+  /// No description provided for @statsGuestCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account to keep your stats forever'**
+  String get statsGuestCardTitle;
+
+  /// No description provided for @newBadgeUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'New badge unlocked!'**
+  String get newBadgeUnlocked;
+
+  /// No description provided for @badgeFirstGameName.
+  ///
+  /// In en, this message translates to:
+  /// **'First Game'**
+  String get badgeFirstGameName;
+
+  /// No description provided for @badgeFirstGameDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play your first game'**
+  String get badgeFirstGameDescription;
+
+  /// No description provided for @badgeRegularName.
+  ///
+  /// In en, this message translates to:
+  /// **'Regular'**
+  String get badgeRegularName;
+
+  /// No description provided for @badgeRegularDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play 10 games'**
+  String get badgeRegularDescription;
+
+  /// No description provided for @badgeVeteranName.
+  ///
+  /// In en, this message translates to:
+  /// **'Veteran'**
+  String get badgeVeteranName;
+
+  /// No description provided for @badgeVeteranDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play 50 games'**
+  String get badgeVeteranDescription;
+
+  /// No description provided for @badgeChampionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Champion'**
+  String get badgeChampionName;
+
+  /// No description provided for @badgeChampionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Win 10 games'**
+  String get badgeChampionDescription;
+
+  /// No description provided for @badgeMasterOfDisguiseName.
+  ///
+  /// In en, this message translates to:
+  /// **'Master of Disguise'**
+  String get badgeMasterOfDisguiseName;
+
+  /// No description provided for @badgeMasterOfDisguiseDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Escape as the impostor 5 times'**
+  String get badgeMasterOfDisguiseDescription;
+
+  /// No description provided for @badgeDetectiveName.
+  ///
+  /// In en, this message translates to:
+  /// **'Detective'**
+  String get badgeDetectiveName;
+
+  /// No description provided for @badgeDetectiveDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote for the impostor correctly 20 times'**
+  String get badgeDetectiveDescription;
 }
 
 class _AppLocalizationsDelegate
