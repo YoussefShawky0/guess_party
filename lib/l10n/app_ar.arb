@@ -255,7 +255,6 @@
   "ofTotalRounds": "من {total}",
   "viewFinalLeaderboard": "عرض لوحة الصدارة النهائية",
   "waitingForHostLeaderboard": "في انتظار المضيف لعرض لوحة الصدارة...",
-  "startNextRound": "بدء الجولة التالية",
   "waitingForHostNextRound": "في انتظار المضيف لبدء الجولة التالية...",
   "finalLeaderboard": "لوحة الصدارة النهائية",
   "backToHome": "العودة إلى الرئيسية",
@@ -409,5 +408,15 @@
   "playersLeftGame": "غادر {names} اللعبة",
   "playerIsNowHost": "{name} أصبح المضيف الآن",
   "aPlayerFallbackName": "لاعب",
-  "countdownGo": "يلا!"
+  "countdownGo": "يلا!",
+  "rematchInviteTitle": "{host} عايز يلعب تاني",
+  "rematchInviteBody": "انضم لجيم جديد مع نفس الشلة.",
+  "rematchJoin": "انضم",
+  "rematchDecline": "لا شكراً",
+  "invitedPlayers": "اللاعيبة المدعوين",
+  "inviteStatusAccepted": "انضم",
+  "inviteStatusPending": "مستني…",
+  "inviteStatusDeclined": "رفض",
+  "errRoomNotFinished": "الجيم ده لسه مخلصش.",
+  "errInviteNotFound": "الدعوة دي مبقتش متاحة."
 }

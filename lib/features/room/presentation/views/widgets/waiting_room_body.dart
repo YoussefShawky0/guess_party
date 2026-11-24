@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guess_party/features/room/presentation/views/widgets/invited_players_section.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/players_list.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/room_code_card.dart';
 import 'package:guess_party/features/room/presentation/views/widgets/share_room_button.dart';
@@ -66,6 +67,7 @@ class _WaitingRoomBodyState extends State<WaitingRoomBody> {
             SizedBox(height: isTablet ? 24 : 20),
             ShareRoomButton(roomCode: widget.roomCode),
             SizedBox(height: isTablet ? 32 : 24),
+            if (widget.isHost) const InvitedPlayersScope(),
             Expanded(
               child: widget.playersListBuilder != null
                   ? widget.playersListBuilder!(widget.roomId)

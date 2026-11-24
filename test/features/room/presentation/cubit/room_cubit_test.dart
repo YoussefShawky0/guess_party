@@ -6,7 +6,9 @@ import 'package:guess_party/core/error/app_error_code.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/utils/typedef.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
+import 'package:guess_party/features/room/domain/entities/rematch_seed.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
+import 'package:guess_party/features/room/domain/entities/room_invite.dart';
 import 'package:guess_party/features/room/domain/entities/room_session.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
@@ -27,6 +29,24 @@ void main() {
     await cubit.close();
     await repository.dispose();
   });
+
+  test(
+    'roster that arrives before the room details is not lost (stuck "Syncing your player")',
+    () async {
+      final players = [player()];
+      repository.currentPlayers = players;
+
+      // Same order as the waiting-room route: load starts, the watch starts,
+      // and the players stream answers before the room details request.
+      cubit.emit(RoomLoading());
+      await cubit.watchRoomStatus(roomId: 'room-1');
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      await cubit.loadRoomDetails(roomId: 'room-1');
+
+      final loaded = cubit.state as RoomDetailsLoaded;
+      expect(loaded.players, players);
+    },
+  );
 
   test('watchRoomStatus emits active room and preserves players', () async {
     final waitingRoom = roomWithStatus('waiting');
@@ -159,6 +179,86 @@ void main() {
     },
   );
 
+  RematchSeed rematchSeed({
+    String gameMode = 'online',
+    List<String> localNames = const [],
+  }) => RematchSeed(
+    previousRoomId: 'room-0',
+    gameMode: gameMode,
+    category: 'movies',
+    maxRounds: 5,
+    maxPlayers: 6,
+    roundDuration: 60,
+    localNames: localNames,
+  );
+
+  test('createRematch online emits session and sends the username', () async {
+    final states = <RoomState>[];
+    final sub = cubit.stream.listen(states.add);
+
+    await cubit.createRematch(
+      seed: rematchSeed(),
+      category: 'animals',
+      maxRounds: 3,
+      maxPlayers: 4,
+      roundDuration: 30,
+      username: 'Host',
+      localPlayerNames: const ['ignored'],
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(repository.rematchCalls, 1);
+    expect(repository.lastRematchPreviousRoomId, 'room-0');
+    expect(repository.lastRematchHost, 'Host');
+    expect(repository.lastRematchLocalNames, isEmpty);
+    expect(states.first, isA<RoomLoading>());
+    expect(states.last, isA<RoomWithPlayerCreated>());
+    await sub.cancel();
+  });
+
+  test('createRematch local sends first name as host and the rest', () async {
+    await cubit.createRematch(
+      seed: rematchSeed(gameMode: 'local'),
+      category: 'movies',
+      maxRounds: 5,
+      maxPlayers: 6,
+      roundDuration: 60,
+      username: 'Ignored',
+      localPlayerNames: const ['Ann', 'Bob', 'Cy'],
+    );
+
+    expect(repository.lastRematchHost, 'Ann');
+    expect(repository.lastRematchLocalNames, ['Bob', 'Cy']);
+    expect(cubit.state, isA<RoomWithPlayerCreated>());
+  });
+
+  test('createRematch failure emits RoomError and retry reuses id', () async {
+    repository.rematchFailure = const ServerFailure(
+      'ROOM_NOT_FINISHED',
+      code: AppErrorCode.roomNotFinished,
+    );
+    Future<void> create() => cubit.createRematch(
+      seed: rematchSeed(),
+      category: 'movies',
+      maxRounds: 5,
+      maxPlayers: 6,
+      roundDuration: 60,
+      username: 'Host',
+    );
+
+    await create();
+    expect(cubit.state, const RoomError(AppErrorCode.roomNotFinished));
+    final firstId = repository.lastRematchRequestId;
+
+    await create();
+    expect(repository.lastRematchRequestId, firstId);
+
+    repository.rematchFailure = null;
+    await create();
+    expect(repository.lastRematchRequestId, firstId);
+    expect(cubit.state, isA<RoomWithPlayerCreated>());
+  });
+
   test('start validation failure currently becomes RoomError', () async {
     repository.startFailure = const ServerFailure(
       'NOT_ENOUGH_PLAYERS',
@@ -233,6 +333,12 @@ class FakeRoomRepository implements RoomRepository {
   int startCalls = 0;
   String? lastCreateCategory;
   String? lastCreateGameMode;
+  int rematchCalls = 0;
+  String? lastRematchRequestId;
+  String? lastRematchPreviousRoomId;
+  String? lastRematchHost;
+  List<String>? lastRematchLocalNames;
+  Failure? rematchFailure;
   Failure? startFailure;
   int cleanupCalls = 0;
   int leaveCalls = 0;
@@ -275,6 +381,49 @@ class FakeRoomRepository implements RoomRepository {
       ),
     );
   }
+
+  @override
+  ResultFuture<RoomSession> createRematch({
+    required String requestId,
+    required String previousRoomId,
+    required String category,
+    required int maxRounds,
+    required int maxPlayers,
+    required int roundDuration,
+    required String hostUsername,
+    required List<String> localNames,
+  }) async {
+    rematchCalls++;
+    lastRematchRequestId = requestId;
+    lastRematchPreviousRoomId = previousRoomId;
+    lastRematchHost = hostUsername;
+    lastRematchLocalNames = localNames;
+    if (rematchFailure case final failure?) return Left(failure);
+    final currentPlayer = player();
+    return Right(
+      RoomSession(
+        room: currentRoom,
+        currentPlayer: currentPlayer,
+        players: [currentPlayer],
+      ),
+    );
+  }
+
+  @override
+  ResultFuture<RoomSession?> respondToRematchInvite({
+    required String roomId,
+    required bool accept,
+  }) async => const Right(null);
+
+  @override
+  Stream<List<RoomInvite>> watchRoomInvites({required String roomId}) =>
+      const Stream.empty();
+
+  @override
+  Stream<List<RoomInvite>> watchMyRematchInvites({
+    required String previousRoomId,
+    required String userId,
+  }) => const Stream.empty();
 
   @override
   ResultFuture<RoomSession> joinRoom({

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/core/widgets/error_screen.dart';
@@ -121,6 +122,7 @@ class _LocalModeGameScreenState extends State<LocalModeGameScreen> {
                 extra: {
                   'players': state.players,
                   'playerScores': state.playerScores,
+                  'gameMode': GameConstants.gameModeLocal,
                 },
               );
             }

@@ -107,8 +107,10 @@ class _LocalRoleRevealScreenState extends State<LocalRoleRevealScreen> {
     if (state is LocalRoleRevealFailure) {
       return ErrorScreen(
         message: localizedErrorMessage(context.l10n, state.code),
-        onGoBack: () =>
-            context.read<LocalRoleRevealCubit>().load(widget.roomId),
+        // A dropped connection is usually brief: Retry reloads the same
+        // round; Go Back really leaves instead of silently retrying.
+        onRetry: () => context.read<LocalRoleRevealCubit>().load(widget.roomId),
+        onGoBack: () => context.go(AppRoutes.home),
       );
     }
     if (!_hasRevealData) {

@@ -8,10 +8,14 @@ class GameModeSelector extends StatelessWidget {
   final String selectedMode;
   final ValueChanged<String> onModeChanged;
 
+  /// When false the cards are shown but cannot be changed (Play Again).
+  final bool enabled;
+
   const GameModeSelector({
     super.key,
     required this.selectedMode,
     required this.onModeChanged,
+    this.enabled = true,
   });
 
   @override
@@ -22,7 +26,7 @@ class GameModeSelector extends StatelessWidget {
         ? Duration.zero
         : const Duration(milliseconds: 200);
 
-    return Column(
+    final selector = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
@@ -65,6 +69,9 @@ class GameModeSelector extends StatelessWidget {
         ),
       ],
     );
+
+    if (enabled) return selector;
+    return IgnorePointer(child: Opacity(opacity: 0.6, child: selector));
   }
 
   Widget _buildModeCard({

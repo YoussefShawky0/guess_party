@@ -831,9 +831,6 @@ class AppLocalizationsAr extends AppLocalizations {
       'في انتظار المضيف لعرض لوحة الصدارة...';
 
   @override
-  String get startNextRound => 'ابدأ الجولة التالية';
-
-  @override
   String get waitingForHostNextRound =>
       'في انتظار المضيف لبدء الجولة التالية...';
 
@@ -1067,6 +1064,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get creatingRound => 'جارٍ إنشاء الجولة...';
 
   @override
+  String get startNextRound => 'ابدأ الجولة التالية';
+
+  @override
   String get imposterCaughtTitle => 'تم اكتشاف المحتال';
 
   @override
@@ -1251,4 +1251,36 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get countdownGo => 'يلا!';
+
+  @override
+  String rematchInviteTitle(String host) {
+    return '$host عايز يلعب تاني';
+  }
+
+  @override
+  String get rematchInviteBody => 'انضم لجيم جديد مع نفس الشلة.';
+
+  @override
+  String get rematchJoin => 'انضم';
+
+  @override
+  String get rematchDecline => 'لا شكراً';
+
+  @override
+  String get invitedPlayers => 'اللاعيبة المدعوين';
+
+  @override
+  String get inviteStatusAccepted => 'انضم';
+
+  @override
+  String get inviteStatusPending => 'مستني…';
+
+  @override
+  String get inviteStatusDeclined => 'رفض';
+
+  @override
+  String get errRoomNotFinished => 'الجيم ده لسه مخلصش.';
+
+  @override
+  String get errInviteNotFound => 'الدعوة دي مبقتش متاحة.';
 }

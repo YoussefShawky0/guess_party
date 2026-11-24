@@ -7,6 +7,7 @@ import 'package:guess_party/core/services/auth_session_service.dart';
 import 'package:guess_party/core/services/interstitial_ad_service.dart';
 import 'package:guess_party/core/services/room_query_service.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/router/app_routes.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/auth/presentation/cubit/auth_cubit.dart';
@@ -31,7 +32,10 @@ import 'package:guess_party/features/chat/domain/repositories/chat_repository.da
 import 'package:guess_party/features/game/domain/repositories/game_repository.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 import 'package:guess_party/features/room/presentation/cubit/countdown_cubit.dart';
+import 'package:guess_party/features/room/domain/entities/rematch_seed.dart';
+import 'package:guess_party/features/room/presentation/cubit/rematch_invite_cubit.dart';
 import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
+import 'package:guess_party/features/room/presentation/cubit/room_invites_cubit.dart';
 import 'package:guess_party/features/room/presentation/views/countdown_view.dart';
 import 'package:guess_party/features/room/presentation/views/create_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/join_room_view.dart';
@@ -133,11 +137,13 @@ class AppRouter {
               body: Center(child: Text(context.l10n.userNotAuthenticated)),
             );
           }
+          final extra = state.extra;
           return BlocProvider(
             create: (_) => sl<RoomCubit>(),
             child: CreateRoomView(
               username: session.currentUsername,
               roomQueryService: sl<RoomQueryService>(),
+              rematch: extra is RematchSeed ? extra : null,
             ),
           );
         },
@@ -153,10 +159,17 @@ class AppRouter {
         path: AppRoutes.roomWaitingTemplate,
         builder: (context, state) {
           final roomId = state.pathParameters['roomId']!;
-          return BlocProvider(
-            create: (_) => sl<RoomCubit>()
-              ..loadRoomDetails(roomId: roomId)
-              ..watchRoomStatus(roomId: roomId),
+          return MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => sl<RoomCubit>()
+                  ..loadRoomDetails(roomId: roomId)
+                  ..watchRoomStatus(roomId: roomId),
+              ),
+              BlocProvider(
+                create: (_) => sl<RoomInvitesCubit>(param1: roomId)..start(),
+              ),
+            ],
             child: WaitingRoomView(
               roomId: roomId,
               currentUserIdResolver: () =>
@@ -283,10 +296,24 @@ class AppRouter {
               ),
             );
           }
+          final roomId = state.pathParameters['roomId']!;
+          final gameMode = extra['gameMode'];
+          final currentUserId = sl<AuthSessionService>().currentUserId;
           return GameOverView(
             players: players,
             playerScores: playerScores,
             adService: sl<InterstitialAdService>(),
+            roomId: roomId,
+            gameMode: gameMode is String
+                ? gameMode
+                : GameConstants.gameModeOnline,
+            currentUserId: currentUserId,
+            roomRepository: sl<RoomRepository>(),
+            createRematchInviteCubit: currentUserId == null
+                ? null
+                : () => sl<RematchInviteCubit>(
+                    param1: (previousRoomId: roomId, userId: currentUserId),
+                  ),
           );
         },
       ),
