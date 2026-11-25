@@ -51,14 +51,14 @@ class HomeTopBar extends StatelessWidget {
               child: Align(
                 alignment: AlignmentDirectional.centerStart,
                 child: GameChip(
-                key: const Key('home-profile-chip'),
-                onTap: onProfile,
-                semanticLabel: '${l10n.profileTitle}: ${user.username}',
-                icon: PlayerAvatar(
-                  name: user.username,
-                  size: 28,
-                  showDot: user.isAnonymous || user.isLegacyAccount,
-                ),
+                  key: const Key('home-profile-chip'),
+                  onTap: onProfile,
+                  semanticLabel: '${l10n.profileTitle}: ${user.username}',
+                  icon: PlayerAvatar(
+                    name: user.username,
+                    size: 28,
+                    showDot: user.isAnonymous || user.isLegacyAccount,
+                  ),
                   label: user.username,
                 ),
               ),
