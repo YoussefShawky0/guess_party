@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -263,26 +265,38 @@ class _HomeViewState extends State<HomeView> {
           (user.isAnonymous || user.isLegacyAccount) &&
           summary != null &&
           summary.gamesPlayed > 0;
-      return Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: isTablet ? size.width * 0.15 : 24,
-            vertical: 24,
-          ),
+      final horizontal = isTablet ? size.width * 0.15 : 24.0;
+      // Fill the screen: the banner sits under the top bar, the hero takes
+      // the free space in the middle, and the buttons stay low within thumb
+      // reach. On short screens (or large text) it scrolls instead.
+      return LayoutBuilder(
+        builder: (context, constraints) => SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(horizontal, 16, horizontal, 24),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (showBanner) ...[
-                  GuestBanner(userId: user.id, store: widget.bannerStore),
-                  const SizedBox(height: 16),
-                ],
-                HomeHero(isTablet: isTablet),
-                SizedBox(height: isTablet ? 48 : 32),
-                HomeActionButtons(isTablet: isTablet),
-              ],
+            constraints: BoxConstraints(
+              minHeight: math.max(0, constraints.maxHeight - 40),
+            ),
+            child: IntrinsicHeight(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (showBanner)
+                        GuestBanner(userId: user.id, store: widget.bannerStore),
+                      // 3:2 keeps the hero a little closer to the buttons
+                      // than to the top bar on tall phones.
+                      const Spacer(flex: 3),
+                      SizedBox(height: isTablet ? 24 : 16),
+                      HomeHero(isTablet: isTablet),
+                      SizedBox(height: isTablet ? 24 : 16),
+                      const Spacer(flex: 2),
+                      HomeActionButtons(isTablet: isTablet),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
         ),

@@ -45,8 +45,12 @@ class HomeTopBar extends StatelessWidget {
       child: Row(
         children: [
           if (user != null) ...[
-            Flexible(
-              child: GameChip(
+            // The profile chip takes all the free width, so a username is
+            // truncated only when it really doesn't fit.
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: GameChip(
                 key: const Key('home-profile-chip'),
                 onTap: onProfile,
                 semanticLabel: '${l10n.profileTitle}: ${user.username}',
@@ -55,7 +59,8 @@ class HomeTopBar extends StatelessWidget {
                   size: 28,
                   showDot: user.isAnonymous || user.isLegacyAccount,
                 ),
-                label: user.username,
+                  label: user.username,
+                ),
               ),
             ),
             SizedBox(width: tokens.spacing.sm),
@@ -73,8 +78,9 @@ class HomeTopBar extends StatelessWidget {
                   ? l10n.statsTitle
                   : l10n.badgeCountSemantics(summary.unlocked, summary.total),
             ),
-          ],
-          const Spacer(),
+            SizedBox(width: tokens.spacing.sm),
+          ] else
+            const Spacer(),
           GameIconButton(
             key: const Key('home-settings-button'),
             icon: const FaIcon(FontAwesomeIcons.gear),

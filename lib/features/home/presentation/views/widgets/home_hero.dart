@@ -43,9 +43,9 @@ class _HomeHeroState extends State<HomeHero>
   Widget build(BuildContext context) {
     final tokens = GameTokens.of(context);
     final isTablet = widget.isTablet;
-    final width = isTablet ? 80.0 : 60.0;
-    final height = isTablet ? 100.0 : 75.0;
-    final gap = SizedBox(width: isTablet ? 16 : 12);
+    final width = isTablet ? 120.0 : 84.0;
+    final height = isTablet ? 150.0 : 105.0;
+    final gap = SizedBox(width: isTablet ? 20 : 14);
 
     Widget character(double phase, {bool impostor = false}) {
       final image = Image.asset(
