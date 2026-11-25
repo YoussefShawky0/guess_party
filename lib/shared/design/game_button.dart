@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/design/game_tokens.dart';
 import 'package:guess_party/features/game/presentation/feedback/game_feedback_listener.dart'
     show gameFeedbackOf;
 
-enum GameButtonVariant { primary, secondary }
+/// `reward` is gold, for the one celebratory action on a screen (for example
+/// "View final leaderboard"). Use it instead of `primary`, never next to it.
+enum GameButtonVariant { primary, secondary, reward }
 
 enum GameButtonSize { lg, md }
 
@@ -68,16 +71,26 @@ class _GameButtonState extends State<GameButton> {
   Widget build(BuildContext context) {
     final tokens = GameTokens.of(context);
     final interactive = _interactive;
-    final isPrimary = widget.variant == GameButtonVariant.primary;
-    final face = !widget.isLoading && widget.onPressed == null
-        ? tokens.disabledFace
-        : (isPrimary ? tokens.primaryFace : tokens.secondaryFace);
-    final edge = !widget.isLoading && widget.onPressed == null
-        ? tokens.disabledEdge
-        : (isPrimary ? tokens.primaryEdge : tokens.secondaryEdge);
-    final on = !widget.isLoading && widget.onPressed == null
-        ? tokens.disabledOn
-        : (isPrimary ? tokens.primaryOn : tokens.secondaryOn);
+    final disabled = !widget.isLoading && widget.onPressed == null;
+    final (Color face, Color edge, Color on) = disabled
+        ? (tokens.disabledFace, tokens.disabledEdge, tokens.disabledOn)
+        : switch (widget.variant) {
+            GameButtonVariant.primary => (
+              tokens.primaryFace,
+              tokens.primaryEdge,
+              tokens.primaryOn,
+            ),
+            GameButtonVariant.secondary => (
+              tokens.secondaryFace,
+              tokens.secondaryEdge,
+              tokens.secondaryOn,
+            ),
+            GameButtonVariant.reward => (
+              tokens.reward.gold,
+              tokens.reward.edge,
+              AppColors.textDark,
+            ),
+          };
 
     final isLg = widget.size == GameButtonSize.lg;
     final depth = tokens.button.depth;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 /// "{host} wants to play again" card shown on Game Over to invited players.
 class RematchInviteCard extends StatelessWidget {
@@ -50,29 +51,22 @@ class RematchInviteCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: GameButton(
+                  key: const Key('rematch-decline'),
+                  label: context.l10n.rematchDecline,
+                  variant: GameButtonVariant.secondary,
+                  size: GameButtonSize.md,
                   onPressed: isJoining ? null : onDecline,
-                  child: Text(context.l10n.rematchDecline),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: ElevatedButton(
+                child: GameButton(
+                  key: const Key('rematch-join'),
+                  label: context.l10n.rematchJoin,
+                  size: GameButtonSize.md,
+                  isLoading: isJoining,
                   onPressed: isJoining ? null : onJoin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.buttonPrimary,
-                    foregroundColor: colors.textPrimary,
-                  ),
-                  child: isJoining
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: colors.textPrimary,
-                          ),
-                        )
-                      : Text(context.l10n.rematchJoin),
                 ),
               ),
             ],

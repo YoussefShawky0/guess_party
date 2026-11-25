@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 /// Shown once every required vote is in: host gets the "show results" button,
 /// everyone else sees a waiting-for-host notice.
@@ -21,22 +22,13 @@ class VotingShowResultsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isHost) {
-      return ElevatedButton.icon(
-        onPressed: isFinalizingVoting ? null : onShowResults,
+      return GameButton(
+        key: const Key('voting-show-results'),
+        label: isFinalizingVoting
+            ? context.l10n.finalizingResults
+            : context.l10n.showResultsNow,
         icon: const Icon(Icons.check_circle_outline),
-        label: Text(
-          isFinalizingVoting
-              ? context.l10n.finalizingResults
-              : context.l10n.showResultsNow,
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.success,
-          foregroundColor: AppColors.of(context).textPrimary,
-          minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+        onPressed: isFinalizingVoting ? null : onShowResults,
       );
     }
     return Container(

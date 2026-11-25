@@ -7,6 +7,7 @@ import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/game/presentation/feedback/game_feedback_listener.dart';
 import 'package:guess_party/shared/widgets/chat_widget.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 import 'character_card.dart';
 import 'results_phase_content.dart';
@@ -182,8 +183,12 @@ class OnlineHostControls extends StatelessWidget {
     }
 
     final isHints = phase == GamePhase.hints;
-    return ElevatedButton.icon(
+    return GameButton(
       key: const Key('online-host-skip-control'),
+      variant: GameButtonVariant.secondary,
+      size: GameButtonSize.md,
+      icon: const Icon(Icons.skip_next),
+      label: isHints ? context.l10n.skipToVoting : context.l10n.skipToResults,
       onPressed: () async {
         final confirmed = await showDialog<bool>(
           context: context,
@@ -215,10 +220,6 @@ class OnlineHostControls extends StatelessWidget {
           onSkipVoting();
         }
       },
-      icon: const Icon(Icons.skip_next),
-      label: Text(
-        isHints ? context.l10n.skipToVoting : context.l10n.skipToResults,
-      ),
     );
   }
 }

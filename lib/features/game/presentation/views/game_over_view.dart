@@ -13,6 +13,8 @@ import 'package:guess_party/features/room/domain/repositories/room_repository.da
 import 'package:guess_party/features/room/presentation/cubit/rematch_invite_cubit.dart';
 import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
 import 'package:guess_party/features/stats/presentation/views/widgets/new_badges_card.dart';
+import 'package:guess_party/shared/design/animated_game_background.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'widgets/leaderboard_list_widget.dart';
 import 'widgets/rematch_invite_card.dart';
@@ -231,126 +233,114 @@ class _GameOverViewState extends State<GameOverView> {
       onPopInvokedWithResult: (_, __) => _goHome(),
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
-        body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
-              // ─── Header ───────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-                  child: Column(
-                    children: [
-                      Text('🏆', style: const TextStyle(fontSize: 48)),
-                      const SizedBox(height: 8),
-                      Text(
-                        context.l10n.gameOver,
-                        style: Theme.of(context).textTheme.headlineMedium
-                            ?.copyWith(
-                              color: AppColors.of(context).textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        context.l10n.finalLeaderboard,
-                        style: TextStyle(
-                          color: AppColors.of(context).textMuted,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ─── Podium (top 3) ───────────────────────────────────────
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-                  child: PodiumWidget(
-                    topPlayers: top3,
-                    playerScores: playerScores,
-                  ),
-                ),
-              ),
-
-              // ─── Rest of the players list ─────────────────────────────
-              if (rest.isNotEmpty)
+        // The game is over, so the background is allowed here (never during
+        // rounds).
+        body: AnimatedGameBackground(
+          child: SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                // ─── Header ───────────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                    child: LeaderboardListWidget(
-                      players: rest,
-                      playerScores: playerScores,
-                      startRank: 4,
-                    ),
-                  ),
-                ),
-
-              // ─── Back to Home button ──────────────────────────────────
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_statsCubit != null) _buildNewBadgesCard(),
-                        if (_inviteCubit != null) _buildInviteCard(),
-                        if (_canPlayAgain) ...[
-                          SizedBox(
-                            height: 54,
-                            child: ElevatedButton.icon(
-                              onPressed: _leaving ? null : _playAgain,
-                              icon: _preparingRematch
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.of(
-                                          context,
-                                        ).textPrimary,
-                                      ),
-                                    )
-                                  : const Icon(Icons.replay_rounded),
-                              label: Text(
-                                context.l10n.playAgain,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        Text('🏆', style: const TextStyle(fontSize: 48)),
+                        const SizedBox(height: 8),
+                        Text(
+                          context.l10n.gameOver,
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                color: AppColors.of(context).textPrimary,
                               ),
-                              style: _buttonStyle(filled: true),
-                            ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          context.l10n.finalLeaderboard,
+                          style: TextStyle(
+                            color: AppColors.of(context).textMuted,
+                            fontSize: 16,
                           ),
-                          const SizedBox(height: 12),
-                        ],
-                        SizedBox(
-                          height: 54,
-                          child: _canPlayAgain
-                              ? OutlinedButton.icon(
-                                  onPressed: _goHome,
-                                  icon: const Icon(Icons.home_rounded),
-                                  label: _homeLabel(),
-                                  style: _buttonStyle(filled: false),
-                                )
-                              : ElevatedButton.icon(
-                                  onPressed: _goHome,
-                                  icon: const Icon(Icons.home_rounded),
-                                  label: _homeLabel(),
-                                  style: _buttonStyle(filled: true),
-                                ),
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
-            ],
+
+                // ─── Podium (top 3) ───────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+                    child: PodiumWidget(
+                      topPlayers: top3,
+                      playerScores: playerScores,
+                    ),
+                  ),
+                ),
+
+                // ─── Rest of the players list ─────────────────────────────
+                if (rest.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                      child: LeaderboardListWidget(
+                        players: rest,
+                        playerScores: playerScores,
+                        startRank: 4,
+                      ),
+                    ),
+                  ),
+
+                // ─── Back to Home button ──────────────────────────────────
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (_statsCubit != null) _buildNewBadgesCard(),
+                          if (_inviteCubit != null) _buildInviteCard(),
+                          if (_canPlayAgain) ...[
+                            GameButton(
+                              key: const Key('game-over-play-again'),
+                              label: context.l10n.playAgain,
+                              // The spinner replaces the icon (not the
+                              // label), as before the redesign.
+                              icon: _preparingRematch
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.replay_rounded),
+                              onPressed: _leaving ? null : _playAgain,
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          // One primary per screen: Home is secondary when the
+                          // host has Play Again.
+                          GameButton(
+                            key: const Key('game-over-home'),
+                            label: context.l10n.backToHome,
+                            icon: const Icon(Icons.home_rounded),
+                            variant: _canPlayAgain
+                                ? GameButtonVariant.secondary
+                                : GameButtonVariant.primary,
+                            onPressed: _goHome,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -363,28 +353,5 @@ class _GameOverViewState extends State<GameOverView> {
       listener: _onInviteState,
       child: content,
     );
-  }
-
-  Widget _homeLabel() => Text(
-    context.l10n.backToHome,
-    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-  );
-
-  ButtonStyle _buttonStyle({required bool filled}) {
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
-    );
-    final text = AppColors.of(context).textPrimary;
-    return filled
-        ? ElevatedButton.styleFrom(
-            backgroundColor: AppColors.buttonPrimary,
-            foregroundColor: text,
-            shape: shape,
-          )
-        : OutlinedButton.styleFrom(
-            foregroundColor: text,
-            side: const BorderSide(color: AppColors.primary),
-            shape: shape,
-          );
   }
 }

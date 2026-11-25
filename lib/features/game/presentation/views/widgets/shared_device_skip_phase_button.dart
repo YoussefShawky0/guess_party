@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 /// Shared-Device host control: confirm, then skip hints -> voting or
 /// voting -> results.
@@ -25,7 +26,11 @@ class SharedDeviceSkipPhaseButton extends StatelessWidget {
         ? context.l10n.skipToVoting
         : context.l10n.skipToResults;
 
-    return ElevatedButton.icon(
+    return GameButton(
+      variant: GameButtonVariant.secondary,
+      size: GameButtonSize.md,
+      icon: const Icon(Icons.skip_next),
+      label: skipLabel,
       onPressed: () async {
         final confirmed = await showDialog<bool>(
           context: context,
@@ -60,8 +65,6 @@ class SharedDeviceSkipPhaseButton extends StatelessWidget {
           onFinalizeVoting(current.gameState.currentRound.id);
         }
       },
-      icon: const Icon(Icons.skip_next),
-      label: Text(skipLabel),
     );
   }
 }

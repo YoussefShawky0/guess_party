@@ -33,7 +33,9 @@ never rename existing ones.
 ## Components
 
 - **`GameButton`**: chunky button with a darker bottom edge. `variant`
-  primary or secondary, `size` lg or md, optional `icon`, `isLoading`.
+  primary, secondary or reward (gold, for the one celebratory action such as
+  "View final leaderboard"; it takes the place of primary), `size` lg or md,
+  optional `icon`, `isLoading`.
   `onPressed: null` is the disabled look. Fills the available width; the
   height is a minimum, so the label wraps and the button grows with the text
   scale. Calls `GameFeedback.tapHaptic()` on tap. Has a focus ring and a
@@ -61,7 +63,12 @@ never rename existing ones.
 ## Don't
 
 - Do not show `AnimatedGameBackground` during gameplay rounds (hints, voting,
-  results, role reveal, pass device). It is for Home, Stats, Waiting Room.
+  results, role reveal, pass device). It is for Home, Create/Join room,
+  Waiting Room, Stats and Game Over. Rounds use `GameButton` only.
+- Do not use `GameButton` for per-row actions in lists (the vote buttons) or
+  in a dialog's `actions` bar; it fills the width. Keep those as Material
+  buttons. A dialog that needs one big choice puts it in its content column
+  (see the guest logout dialog on Home).
 - Do not change logic in a visual swap. Every `onPressed` condition, loading
   state and navigation call must stay exactly as it was; the existing tests
   for the screen must pass unchanged.

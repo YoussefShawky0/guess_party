@@ -5,6 +5,7 @@ import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 import 'current_scores_card.dart';
 import 'imposter_reveal_card.dart';
@@ -226,19 +227,13 @@ class SharedDeviceVotingContent extends StatelessWidget {
         ),
         if (round.allRequiredVotesSubmitted) ...[
           SizedBox(height: isTablet ? 16 : 12),
-          ElevatedButton.icon(
-            onPressed: isFinalizing ? null : onShowResults,
+          GameButton(
+            key: const Key('shared-device-show-results'),
+            label: isFinalizing
+                ? context.l10n.finalizingResults
+                : context.l10n.showResultsNow,
             icon: const Icon(Icons.check_circle_outline),
-            label: Text(
-              isFinalizing
-                  ? context.l10n.finalizingResults
-                  : context.l10n.showResultsNow,
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              foregroundColor: AppColors.of(context).textPrimary,
-              minimumSize: const Size.fromHeight(50),
-            ),
+            onPressed: isFinalizing ? null : onShowResults,
           ),
         ],
       ],
@@ -312,7 +307,11 @@ class SharedDeviceResultsContent extends StatelessWidget {
           imposterPlayerId: imposterId,
         ),
         SizedBox(height: isTablet ? 32 : 24),
-        ElevatedButton.icon(
+        GameButton(
+          key: const Key('shared-device-results-action'),
+          variant: gameState.isLastRound
+              ? GameButtonVariant.reward
+              : GameButtonVariant.primary,
           onPressed: gameState.isLastRound
               ? onFinishGame
               : (isStartingNextRound ? null : onStartNextRound),
@@ -321,13 +320,11 @@ class SharedDeviceResultsContent extends StatelessWidget {
                 ? Icons.leaderboard_rounded
                 : Icons.navigate_next,
           ),
-          label: Text(
-            gameState.isLastRound
-                ? context.l10n.viewFinalLeaderboard
-                : (isStartingNextRound
-                      ? context.l10n.creatingRound
-                      : context.l10n.startNextRound),
-          ),
+          label: gameState.isLastRound
+              ? context.l10n.viewFinalLeaderboard
+              : (isStartingNextRound
+                    ? context.l10n.creatingRound
+                    : context.l10n.startNextRound),
         ),
       ],
     );

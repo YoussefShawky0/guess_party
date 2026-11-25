@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/failures.dart';
 import 'package:guess_party/core/theme/app_theme.dart';
@@ -122,11 +123,8 @@ void main() {
     await _pump(tester, gameMode: GameConstants.gameModeOnline, repo: repo);
 
     expect(repo.calls, 1);
-    final home = tester.widget<ElevatedButton>(
-      find.ancestor(
-        of: find.text('Back to Home'),
-        matching: find.bySubtype<ElevatedButton>(),
-      ),
+    final home = tester.widget<GameButton>(
+      find.byKey(const Key('game-over-home')),
     );
     expect(home.onPressed, isNotNull);
     expect(find.byKey(const Key('new-badges-card')), findsNothing);
