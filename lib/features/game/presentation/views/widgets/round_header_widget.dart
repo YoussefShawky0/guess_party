@@ -11,6 +11,7 @@ class RoundHeaderWidget extends StatelessWidget {
   final int totalRounds;
   final int roundDuration;
   final VoidCallback onTimeUp;
+  final ValueChanged<int>? onSecond;
 
   const RoundHeaderWidget({
     super.key,
@@ -18,6 +19,7 @@ class RoundHeaderWidget extends StatelessWidget {
     required this.totalRounds,
     required this.roundDuration,
     required this.onTimeUp,
+    this.onSecond,
   });
 
   String get _durationText {
@@ -138,6 +140,7 @@ class RoundHeaderWidget extends StatelessWidget {
                   PhaseTimerWidget(
                     phaseEndTime: round.phaseEndTime,
                     onTimeUp: onTimeUp,
+                    onSecond: onSecond,
                   ),
                 ],
               ),

@@ -51,6 +51,11 @@ class AppConfig {
     required this.sentryRelease,
     required this.sentryDist,
     this.adMobInterstitialUnitId,
+    this.firebaseApiKey,
+    this.firebaseAppId,
+    this.firebaseProjectId,
+    this.firebaseMessagingSenderId,
+    this.analyticsDebug = false,
   });
 
   /// Google's public test interstitial unit. Non-production builds always use
@@ -71,7 +76,27 @@ class AppConfig {
   /// Null means ads are off (production without ADMOB_INTERSTITIAL_ID).
   final String? adMobInterstitialUnitId;
 
+  /// Optional Firebase options, read from dart-defines (no google-services
+  /// file). Analytics falls back to a no-op unless all four are set.
+  final String? firebaseApiKey;
+  final String? firebaseAppId;
+  final String? firebaseProjectId;
+  final String? firebaseMessagingSenderId;
+
+  /// Lets development builds send analytics (off by default there).
+  final bool analyticsDebug;
+
   bool get isSentryEnabled => sentryDsn != null;
+
+  bool get hasFirebase =>
+      firebaseApiKey != null &&
+      firebaseAppId != null &&
+      firebaseProjectId != null &&
+      firebaseMessagingSenderId != null;
+
+  /// Development builds stay out of the analytics data unless opted in.
+  bool get analyticsCollectionEnabled =>
+      environment != AppEnvironment.development || analyticsDebug;
 
   static AppConfig fromEnvironment() => fromCompileTime();
 
@@ -89,6 +114,13 @@ class AppConfig {
     'SENTRY_RELEASE': String.fromEnvironment('SENTRY_RELEASE'),
     'SENTRY_DIST': String.fromEnvironment('SENTRY_DIST'),
     'ADMOB_INTERSTITIAL_ID': String.fromEnvironment('ADMOB_INTERSTITIAL_ID'),
+    'FIREBASE_API_KEY': String.fromEnvironment('FIREBASE_API_KEY'),
+    'FIREBASE_APP_ID': String.fromEnvironment('FIREBASE_APP_ID'),
+    'FIREBASE_PROJECT_ID': String.fromEnvironment('FIREBASE_PROJECT_ID'),
+    'FIREBASE_MESSAGING_SENDER_ID': String.fromEnvironment(
+      'FIREBASE_MESSAGING_SENDER_ID',
+    ),
+    'ANALYTICS_DEBUG': String.fromEnvironment('ANALYTICS_DEBUG'),
   });
 
   static AppConfig fromMap(Map<String, String> values) {
@@ -137,6 +169,15 @@ class AppConfig {
         appEnvironment,
         _optional(values, 'ADMOB_INTERSTITIAL_ID'),
       ),
+      firebaseApiKey: _optional(values, 'FIREBASE_API_KEY'),
+      firebaseAppId: _optional(values, 'FIREBASE_APP_ID'),
+      firebaseProjectId: _optional(values, 'FIREBASE_PROJECT_ID'),
+      firebaseMessagingSenderId: _optional(
+        values,
+        'FIREBASE_MESSAGING_SENDER_ID',
+      ),
+      analyticsDebug:
+          _optional(values, 'ANALYTICS_DEBUG')?.toLowerCase() == 'true',
     );
   }
 

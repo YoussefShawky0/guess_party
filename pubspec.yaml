@@ -29,6 +29,9 @@ dependencies:
   intl: ^0.20.2
   profanity_filter: ^2.0.0
   google_mobile_ads: ^9.2.0
+  audioplayers: ^6.8.1
+  firebase_core: ^5.2.0
+  firebase_analytics: ^13.1.0
 
 dev_dependencies:
   flutter_lints: ^5.0.0
@@ -43,6 +46,11 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/sounds/
+  fonts:
+    - family: BalooBhaijaan2
+      fonts:
+        - asset: assets/fonts/BalooBhaijaan2-Variable.ttf
 
 # App Icon Configuration
 flutter_launcher_icons:

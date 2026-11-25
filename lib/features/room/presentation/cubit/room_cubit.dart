@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/services/analytics_service.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/features/room/domain/entities/rematch_seed.dart';
 import 'package:guess_party/features/room/domain/entities/room.dart';
@@ -15,6 +16,7 @@ part 'room_state.dart';
 
 class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
   final RoomRepository _repository;
+  final AnalyticsService _analytics;
   StreamSubscription<Room>? _roomDetailsSubscription;
   StreamSubscription<List<Player>>? _roomPlayersSubscription;
   Timer? _roomDetailsPollTimer;
@@ -37,7 +39,9 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
   RoomCubit({
     required RoomRepository repository,
     Duration pollFallbackInterval = const Duration(seconds: 10),
+    AnalyticsService analytics = const NoopAnalyticsService(),
   }) : _repository = repository,
+       _analytics = analytics,
        _pollFallbackInterval = pollFallbackInterval,
        super(RoomInitial());
 
@@ -94,6 +98,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     final session = roomResult.getOrElse(() => throw StateError('unreachable'));
     _createRequestId = null;
     _createRequestFingerprint = null;
+    _analytics.track(RoomCreatedEvent(mode: gameMode, category: category));
     emit(
       RoomWithPlayerCreated(room: session.room, player: session.currentPlayer),
     );
@@ -156,6 +161,7 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
     final session = result.getOrElse(() => throw StateError('unreachable'));
     _createRequestId = null;
     _createRequestFingerprint = null;
+    _analytics.track(RematchStartedEvent(mode: seed.gameMode));
     emit(
       RoomWithPlayerCreated(room: session.room, player: session.currentPlayer),
     );
@@ -373,15 +379,15 @@ class RoomCubit extends Cubit<RoomState> implements RoomSessionCoordinator {
 
     if (isClosed) return;
 
-    roomResult.fold(
-      (failure) => emit(RoomError(failure.code)),
-      (session) => emit(
+    roomResult.fold((failure) => emit(RoomError(failure.code)), (session) {
+      _analytics.track(const RoomJoinedEvent());
+      emit(
         RoomWithPlayerCreated(
           room: session.room,
           player: session.currentPlayer,
         ),
-      ),
-    );
+      );
+    });
   }
 
   @override

@@ -1,6 +1,6 @@
-﻿import 'package:flutter/material.dart';
-import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:flutter/material.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 class JoinRoomButton extends StatelessWidget {
   final VoidCallback onPressed;
@@ -14,33 +14,10 @@ class JoinRoomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
-
-    return ElevatedButton(
+    return GameButton(
       onPressed: isLoading ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.of(context).textPrimary,
-        padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 18),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      ),
-      child: isLoading
-          ? SizedBox(
-              height: isTablet ? 28 : 24,
-              width: isTablet ? 28 : 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.of(context).textPrimary,
-              ),
-            )
-          : Text(
-              context.l10n.joinRoom,
-              style: TextStyle(
-                fontSize: isTablet ? 22 : 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+      isLoading: isLoading,
+      label: context.l10n.joinRoom,
     );
   }
 }

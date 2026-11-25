@@ -9,6 +9,7 @@ import 'package:guess_party/core/services/update_service.dart';
 import 'package:guess_party/core/theme/theme_cubit.dart';
 import 'package:guess_party/features/home/domain/repositories/home_repository.dart';
 import 'package:guess_party/features/home/presentation/views/widgets/settings/account_deletion_dialog.dart';
+import 'package:guess_party/features/home/presentation/views/widgets/settings/feedback_settings_section.dart';
 import 'package:guess_party/features/home/presentation/views/widgets/settings/how_to_play_dialog.dart';
 import 'package:guess_party/features/home/presentation/views/widgets/settings/settings_picker_sheets.dart';
 import 'package:guess_party/features/home/presentation/views/widgets/settings/settings_section.dart';
@@ -81,6 +82,8 @@ class _SettingsViewState extends State<SettingsView> {
           _buildAppearanceSection(isTablet),
           spacing,
           _buildLanguageSection(isTablet),
+          spacing,
+          FeedbackSettingsSection(isTablet: isTablet),
           spacing,
           _buildAccountSection(context, isTablet),
           spacing,

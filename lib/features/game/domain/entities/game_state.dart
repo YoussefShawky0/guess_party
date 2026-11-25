@@ -11,6 +11,7 @@ class GameState extends Equatable {
   final int roundDuration; // in seconds
   final Map<String, int> playerScores; // playerId -> score
   final String gameMode; // 'online' or 'local'
+  final String category; // room category (analytics only)
 
   const GameState({
     required this.roomId,
@@ -21,6 +22,7 @@ class GameState extends Equatable {
     required this.roundDuration,
     required this.playerScores,
     required this.gameMode,
+    this.category = '',
   });
 
   bool get isImposter => currentRound.isImposter(currentPlayerId);
@@ -60,6 +62,7 @@ class GameState extends Equatable {
     int? roundDuration,
     Map<String, int>? playerScores,
     String? gameMode,
+    String? category,
   }) {
     return GameState(
       roomId: roomId ?? this.roomId,
@@ -70,6 +73,7 @@ class GameState extends Equatable {
       roundDuration: roundDuration ?? this.roundDuration,
       playerScores: playerScores ?? this.playerScores,
       gameMode: gameMode ?? this.gameMode,
+      category: category ?? this.category,
     );
   }
 
@@ -83,5 +87,6 @@ class GameState extends Equatable {
     roundDuration,
     playerScores,
     gameMode,
+    category,
   ];
 }

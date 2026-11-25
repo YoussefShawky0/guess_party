@@ -140,6 +140,36 @@ abstract class AppLocalizations {
   /// **'Appearance'**
   String get appearance;
 
+  /// No description provided for @soundAndHaptics.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound and vibration'**
+  String get soundAndHaptics;
+
+  /// No description provided for @soundEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Sound effects'**
+  String get soundEffects;
+
+  /// No description provided for @soundEffectsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Play short sounds during the game'**
+  String get soundEffectsSubtitle;
+
+  /// No description provided for @vibration.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibration'**
+  String get vibration;
+
+  /// No description provided for @vibrationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibrate at key moments in the game'**
+  String get vibrationSubtitle;
+
   /// No description provided for @language.
   ///
   /// In en, this message translates to:
@@ -2449,6 +2479,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This invite is no longer available.'**
   String get errInviteNotFound;
+
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Stats'**
+  String get statsTitle;
+
+  /// No description provided for @statsGames.
+  ///
+  /// In en, this message translates to:
+  /// **'Games played'**
+  String get statsGames;
+
+  /// No description provided for @statsWins.
+  ///
+  /// In en, this message translates to:
+  /// **'Wins'**
+  String get statsWins;
+
+  /// No description provided for @statsRounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Rounds played'**
+  String get statsRounds;
+
+  /// No description provided for @statsAsImposter.
+  ///
+  /// In en, this message translates to:
+  /// **'Times as impostor'**
+  String get statsAsImposter;
+
+  /// No description provided for @statsEscapes.
+  ///
+  /// In en, this message translates to:
+  /// **'Impostor escapes'**
+  String get statsEscapes;
+
+  /// No description provided for @statsCorrectVotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct votes'**
+  String get statsCorrectVotes;
+
+  /// No description provided for @badgesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Badges'**
+  String get badgesTitle;
+
+  /// No description provided for @statsGuestCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create an account to keep your stats forever'**
+  String get statsGuestCardTitle;
+
+  /// No description provided for @newBadgeUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'New badge unlocked!'**
+  String get newBadgeUnlocked;
+
+  /// No description provided for @badgeFirstGameName.
+  ///
+  /// In en, this message translates to:
+  /// **'First Game'**
+  String get badgeFirstGameName;
+
+  /// No description provided for @badgeFirstGameDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play your first game'**
+  String get badgeFirstGameDescription;
+
+  /// No description provided for @badgeRegularName.
+  ///
+  /// In en, this message translates to:
+  /// **'Regular'**
+  String get badgeRegularName;
+
+  /// No description provided for @badgeRegularDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play 10 games'**
+  String get badgeRegularDescription;
+
+  /// No description provided for @badgeVeteranName.
+  ///
+  /// In en, this message translates to:
+  /// **'Veteran'**
+  String get badgeVeteranName;
+
+  /// No description provided for @badgeVeteranDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Play 50 games'**
+  String get badgeVeteranDescription;
+
+  /// No description provided for @badgeChampionName.
+  ///
+  /// In en, this message translates to:
+  /// **'Champion'**
+  String get badgeChampionName;
+
+  /// No description provided for @badgeChampionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Win 10 games'**
+  String get badgeChampionDescription;
+
+  /// No description provided for @badgeMasterOfDisguiseName.
+  ///
+  /// In en, this message translates to:
+  /// **'Master of Disguise'**
+  String get badgeMasterOfDisguiseName;
+
+  /// No description provided for @badgeMasterOfDisguiseDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Escape as the impostor 5 times'**
+  String get badgeMasterOfDisguiseDescription;
+
+  /// No description provided for @badgeDetectiveName.
+  ///
+  /// In en, this message translates to:
+  /// **'Detective'**
+  String get badgeDetectiveName;
+
+  /// No description provided for @badgeDetectiveDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Vote for the impostor correctly 20 times'**
+  String get badgeDetectiveDescription;
+
+  /// No description provided for @homeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Who\'s the Impostor?'**
+  String get homeTitle;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @badgeCountSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{unlocked} of {total} badges'**
+  String badgeCountSemantics(int unlocked, int total);
+
+  /// No description provided for @guestBannerText.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure your account to keep your stats'**
+  String get guestBannerText;
+
+  /// No description provided for @dismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismiss;
+
+  /// No description provided for @guestLogoutWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re playing as a guest. If you log out, you can\'t get this account or its stats back.'**
+  String get guestLogoutWarning;
+
+  /// No description provided for @secureAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure account'**
+  String get secureAccount;
+
+  /// No description provided for @logoutAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out anyway'**
+  String get logoutAnyway;
+
+  /// No description provided for @syncingYourPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing your player...'**
+  String get syncingYourPlayer;
 }
 
 class _AppLocalizationsDelegate

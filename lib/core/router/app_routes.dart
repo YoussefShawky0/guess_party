@@ -14,6 +14,7 @@ class AppRoutes {
   static const String settings = '/settings';
   static const String createRoom = '/create-room';
   static const String joinRoom = '/join-room';
+  static const String stats = '/stats';
 
   // ── Route templates (GoRouter path: definitions — keep :roomId syntax) ──
   static const String roomWaitingTemplate = '/room/:roomId/waiting';

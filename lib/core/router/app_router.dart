@@ -40,6 +40,10 @@ import 'package:guess_party/features/room/presentation/views/countdown_view.dart
 import 'package:guess_party/features/room/presentation/views/create_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/join_room_view.dart';
 import 'package:guess_party/features/room/presentation/views/waiting_room_view.dart';
+import 'package:guess_party/features/stats/domain/badge_summary.dart';
+import 'package:guess_party/features/stats/presentation/cubit/badge_summary_cubit.dart';
+import 'package:guess_party/features/stats/presentation/cubit/player_stats_cubit.dart';
+import 'package:guess_party/features/stats/presentation/views/stats_view.dart';
 import 'package:guess_party/shared/presentation/views/splash_screen.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
@@ -112,9 +116,19 @@ class AppRouter {
       ),
       GoRoute(
         path: AppRoutes.home,
-        builder: (context, state) => BlocProvider(
-          create: (_) => sl<HomeCubit>()..loadUserInfo(),
-          child: HomeView(config: sl<AppConfig>()),
+        builder: (context, state) => MultiBlocProvider(
+          providers: [
+            BlocProvider(create: (_) => sl<HomeCubit>()..loadUserInfo()),
+            BlocProvider(
+              create: (_) => sl<BadgeSummaryCubit>(
+                param1: sl<AuthSessionService>().currentUserId ?? '',
+              )..load(),
+            ),
+          ],
+          child: HomeView(
+            config: sl<AppConfig>(),
+            bannerStore: sl<GuestBannerStore>(),
+          ),
         ),
       ),
       GoRoute(
@@ -124,6 +138,15 @@ class AppRouter {
           localeCubit: sl<LocaleCubit>(),
           config: sl<AppConfig>(),
           homeRepository: sl<HomeRepository>(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.stats,
+        builder: (context, state) => BlocProvider(
+          create: (_) => sl<PlayerStatsCubit>()
+            ..trackViewed()
+            ..load(),
+          child: StatsView(isGuest: sl<AuthSessionService>().isAnonymous),
         ),
       ),
       //room flow
@@ -309,6 +332,7 @@ class AppRouter {
                 : GameConstants.gameModeOnline,
             currentUserId: currentUserId,
             roomRepository: sl<RoomRepository>(),
+            createPlayerStatsCubit: () => sl<PlayerStatsCubit>(),
             createRematchInviteCubit: currentUserId == null
                 ? null
                 : () => sl<RematchInviteCubit>(

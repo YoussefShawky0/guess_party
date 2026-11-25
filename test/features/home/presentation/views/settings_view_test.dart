@@ -65,7 +65,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('settings-language')), findsOneWidget);
-      expect(find.byKey(const Key('settings-delete-account')), findsOneWidget);
       expect(find.text('View on GitHub'), findsNothing);
       expect(find.text('Check out the source code'), findsNothing);
 

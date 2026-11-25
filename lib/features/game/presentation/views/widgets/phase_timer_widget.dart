@@ -11,10 +11,14 @@ class PhaseTimerWidget extends StatefulWidget {
   final VoidCallback? onTimeUp;
   final bool isLargeDisplay;
 
+  /// Called once for every new remaining-seconds value (including the first).
+  final ValueChanged<int>? onSecond;
+
   const PhaseTimerWidget({
     super.key,
     required this.phaseEndTime,
     this.onTimeUp,
+    this.onSecond,
     this.isLargeDisplay = false,
   });
 
@@ -26,6 +30,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
   Timer? _timer;
   int _remainingSeconds = 0;
   bool _hasCalledOnTimeUp = false;
+  bool _hasReportedSecond = false;
 
   @override
   void initState() {
@@ -38,6 +43,7 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.phaseEndTime != widget.phaseEndTime) {
       _hasCalledOnTimeUp = false;
+      _hasReportedSecond = false;
       _startTimer();
     }
   }
@@ -58,9 +64,14 @@ class _PhaseTimerWidgetState extends State<PhaseTimerWidget> {
     final difference = widget.phaseEndTime.difference(now);
     final newSeconds = difference.inSeconds > 0 ? difference.inSeconds : 0;
 
+    final changed = newSeconds != _remainingSeconds || !_hasReportedSecond;
     setState(() {
       _remainingSeconds = newSeconds;
     });
+    if (changed) {
+      _hasReportedSecond = true;
+      widget.onSecond?.call(newSeconds);
+    }
 
     if (_remainingSeconds == 0 && !_hasCalledOnTimeUp) {
       _hasCalledOnTimeUp = true;

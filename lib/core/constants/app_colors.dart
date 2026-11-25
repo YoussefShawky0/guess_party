@@ -120,6 +120,14 @@ class AppColors {
   static const Color buttonDanger = Color(0xFFEF4444); // Red
   static const Color buttonDisabled = Color(0xFF112D4E); // Dark Navy
 
+  // ============== Game UI (chunky buttons, reward chip) ==============
+  static const Color buttonPrimaryEdge = Color(0xFF284A78); // Darker blue edge
+  static const Color buttonSecondaryEdge = Color(0xFF123660); // Dark blue edge
+  static const Color buttonSecondaryEdgeLight = Color(0xFFA9B6CF);
+  static const Color buttonDisabledEdge = Color(0xFF0B1F36);
+  static const Color rewardGold = Color(0xFFF5B83D); // Trophy chip face
+  static const Color rewardGoldEdge = Color(0xFFB7811A); // Trophy chip edge
+
   // ============== Avatar Colors ==============
   static const List<Color> avatarColors = [
     Color(0xFF3F72AF), // Medium Blue

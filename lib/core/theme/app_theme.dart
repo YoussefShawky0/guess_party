@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:guess_party/core/constants/app_colors.dart';
+import 'package:guess_party/core/design/game_tokens.dart';
 
 class AppTheme {
   static const primaryColor = AppColors.primary;
@@ -7,12 +8,35 @@ class AppTheme {
   static const backgroundColor = AppColors.background;
   static const surfaceColor = AppColors.surface;
 
+  /// Font family of headings and buttons (see `pubspec.yaml`).
+  static const headingFontFamily = 'BalooBhaijaan2';
+
+  static TextStyle _baloo(double weight) => TextStyle(
+    fontFamily: headingFontFamily,
+    fontWeight: weight >= 800 ? FontWeight.w800 : FontWeight.w700,
+    fontVariations: [FontVariation('wght', weight)],
+  );
+
+  /// Baloo Bhaijaan 2 on heading and button slots only. Body styles keep the
+  /// default font. Merged over the default text theme by [ThemeData].
+  static TextTheme get _headingTextTheme => TextTheme(
+    displayLarge: _baloo(800),
+    displayMedium: _baloo(800),
+    displaySmall: _baloo(800),
+    headlineLarge: _baloo(800),
+    headlineMedium: _baloo(800),
+    headlineSmall: _baloo(800),
+    titleLarge: _baloo(700),
+    labelLarge: _baloo(700),
+  );
+
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
+      textTheme: _headingTextTheme,
       colorScheme: ColorScheme.dark(
         primary: primaryColor,
         secondary: secondaryColor,
@@ -48,7 +72,7 @@ class AppTheme {
           ),
         ),
       ),
-      extensions: const [AppColorsTheme.dark],
+      extensions: const [AppColorsTheme.dark, GameTokens.dark],
     );
   }
 
@@ -62,6 +86,7 @@ class AppTheme {
       brightness: Brightness.light,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: bg,
+      textTheme: _headingTextTheme,
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.secondary,
@@ -97,7 +122,7 @@ class AppTheme {
           ),
         ),
       ),
-      extensions: const [AppColorsTheme.light],
+      extensions: const [AppColorsTheme.light, GameTokens.light],
     );
   }
 }

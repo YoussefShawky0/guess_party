@@ -8,6 +8,7 @@ import 'package:guess_party/features/room/presentation/cubit/room_cubit.dart';
 import 'package:guess_party/core/error/app_error_localizer.dart';
 import 'package:guess_party/shared/widgets/error_snackbar.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/animated_game_background.dart';
 
 import 'widgets/room_lifecycle_manager.dart';
 import 'widgets/waiting_room_app_bar.dart';
@@ -93,94 +94,98 @@ class _WaitingRoomViewState extends State<WaitingRoomView> {
         isHost: _isHost ?? false,
         roomCubit: context.read<RoomCubit>(),
       ),
-      body: BlocConsumer<RoomCubit, RoomState>(
-        listener: (context, state) {
-          if (state is RoomError) {
-            ErrorSnackBar.show(
-              context,
-              localizedErrorMessage(context.l10n, state.code),
-            );
-          }
-
-          if (state is RoomDetailsLoaded && state.room.status == 'active') {
-            _goToCountdownOnce(context);
-          }
-
-          if (state is RoomDetailsLoaded &&
-              state.room.status == 'finished' &&
-              _isHost != true) {
-            _handleRoomFinishedOnce(context);
-          }
-        },
-        builder: (context, state) {
-          if (state is RoomLoading) {
-            return Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-
-          if (state is RoomDetailsLoaded) {
-            final currentUserId = widget.currentUserIdResolver();
-            final players = state.players ?? [];
-
-            // Find current player safely - avoid firstWhere type mismatch
-            Player? currentPlayer;
-            if (players.isNotEmpty && currentUserId != null) {
-              // Use loop instead of firstWhere to avoid Player/PlayerModel generic issue
-              for (final player in players) {
-                if (player.userId == currentUserId) {
-                  currentPlayer = player;
-                  break;
-                }
-              }
-            }
-
-            if (currentUserId == null || currentPlayer == null) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: AppColors.primary),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Syncing your player...',
-                      style: TextStyle(
-                        color: AppColors.of(context).textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+      // The background sits outside the BlocConsumer so realtime room updates
+      // never rebuild it.
+      body: AnimatedGameBackground(
+        child: BlocConsumer<RoomCubit, RoomState>(
+          listener: (context, state) {
+            if (state is RoomError) {
+              ErrorSnackBar.show(
+                context,
+                localizedErrorMessage(context.l10n, state.code),
               );
             }
 
-            // Update player info for lifecycle management
-            if (_currentPlayerId == null) {
-              final playerId = currentPlayer.id;
-              final isHost = currentPlayer.isHost;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (!mounted) return;
-                _updatePlayerInfo(playerId, isHost);
-              });
+            if (state is RoomDetailsLoaded && state.room.status == 'active') {
+              _goToCountdownOnce(context);
             }
 
-            final isHost =
-                currentPlayer.isHost && currentPlayer.userId == currentUserId;
-            final playerCount = players.length;
+            if (state is RoomDetailsLoaded &&
+                state.room.status == 'finished' &&
+                _isHost != true) {
+              _handleRoomFinishedOnce(context);
+            }
+          },
+          builder: (context, state) {
+            if (state is RoomLoading) {
+              return Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              );
+            }
 
-            return WaitingRoomBody(
-              roomId: widget.roomId,
-              roomCode: state.room.roomCode,
-              isHost: isHost,
-              playerCount: playerCount,
-              playersListBuilder: widget.playersListBuilder,
-              onStartGame: () {
-                context.read<RoomCubit>().startGameSession(widget.roomId);
-              },
-            );
-          }
+            if (state is RoomDetailsLoaded) {
+              final currentUserId = widget.currentUserIdResolver();
+              final players = state.players ?? [];
 
-          return Center(child: Text(context.l10n.somethingWentWrong));
-        },
+              // Find current player safely - avoid firstWhere type mismatch
+              Player? currentPlayer;
+              if (players.isNotEmpty && currentUserId != null) {
+                // Use loop instead of firstWhere to avoid Player/PlayerModel generic issue
+                for (final player in players) {
+                  if (player.userId == currentUserId) {
+                    currentPlayer = player;
+                    break;
+                  }
+                }
+              }
+
+              if (currentUserId == null || currentPlayer == null) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: AppColors.primary),
+                      const SizedBox(height: 16),
+                      Text(
+                        context.l10n.syncingYourPlayer,
+                        style: TextStyle(
+                          color: AppColors.of(context).textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Update player info for lifecycle management
+              if (_currentPlayerId == null) {
+                final playerId = currentPlayer.id;
+                final isHost = currentPlayer.isHost;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) return;
+                  _updatePlayerInfo(playerId, isHost);
+                });
+              }
+
+              final isHost =
+                  currentPlayer.isHost && currentPlayer.userId == currentUserId;
+              final playerCount = players.length;
+
+              return WaitingRoomBody(
+                roomId: widget.roomId,
+                roomCode: state.room.roomCode,
+                isHost: isHost,
+                playerCount: playerCount,
+                playersListBuilder: widget.playersListBuilder,
+                onStartGame: () {
+                  context.read<RoomCubit>().startGameSession(widget.roomId);
+                },
+              );
+            }
+
+            return Center(child: Text(context.l10n.somethingWentWrong));
+          },
+        ),
       ),
     );
   }

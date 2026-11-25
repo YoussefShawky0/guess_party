@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:guess_party/core/error/app_error_code.dart';
+import 'package:guess_party/core/services/analytics_service.dart';
 import 'package:guess_party/features/room/domain/entities/room_invite.dart';
 import 'package:guess_party/features/room/domain/repositories/room_repository.dart';
 
@@ -72,8 +73,12 @@ class RematchInviteCubit extends Cubit<RematchInviteState> {
     required RoomRepository repository,
     required this.previousRoomId,
     required this.userId,
+    AnalyticsService analytics = const NoopAnalyticsService(),
   }) : _repository = repository,
+       _analytics = analytics,
        super(const RematchIdle());
+
+  final AnalyticsService _analytics;
 
   void start() {
     if (isClosed) return;
@@ -133,6 +138,7 @@ class RematchInviteCubit extends Cubit<RematchInviteState> {
           _dismissedRoomIds.add(invite.roomId);
           emit(const RematchFailed(AppErrorCode.inviteNotFound));
         } else {
+          _analytics.track(const RematchInviteAnsweredEvent(accepted: true));
           emit(RematchJoined(session.room.id));
         }
       },
@@ -145,6 +151,7 @@ class RematchInviteCubit extends Cubit<RematchInviteState> {
     final invite = current.invite;
     _dismissedRoomIds.add(invite.roomId);
     emit(const RematchIdle());
+    _analytics.track(const RematchInviteAnsweredEvent(accepted: false));
 
     // Best effort: the card is already gone either way.
     await _repository.respondToRematchInvite(
