@@ -331,12 +331,7 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
         .from('round_revisions')
         .stream(primaryKey: ['round_id'])
         .eq('round_id', roundId)
-        .map((rows) {
-          if (rows.isEmpty) {
-            throw StateError('ROUND_REVISION_NOT_VISIBLE');
-          }
-          return rows.single;
-        });
+        .map((rows) => selectRoundRevisionRow(rows, roundId));
   }
 
   @override
@@ -369,4 +364,20 @@ class GameRemoteDataSourceImpl implements GameRemoteDataSource {
         .eq('room_id', roomId)
         .eq('user_id', userId);
   }
+}
+
+/// Picks the `round_revisions` row for [roundId] from a stream emission.
+///
+/// The stream is filtered by `round_id`, but the client-side stream cache can
+/// still hold revisions of other rounds of the same room (e.g. previous rounds
+/// of a Shared-Device game), so an emission is not guaranteed to hold exactly
+/// one row. Select by id instead of `.single`.
+Map<String, dynamic> selectRoundRevisionRow(
+  List<Map<String, dynamic>> rows,
+  String roundId,
+) {
+  for (final row in rows) {
+    if (row['round_id'] == roundId) return row;
+  }
+  throw StateError('ROUND_REVISION_NOT_VISIBLE');
 }
