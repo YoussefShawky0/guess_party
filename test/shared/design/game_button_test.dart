@@ -89,6 +89,24 @@ void main() {
     expect(feedback.taps, 2);
   });
 
+  testWidgets('a swipe that starts on the button does not press it', (
+    tester,
+  ) async {
+    final feedback = CountingFeedback();
+    var pressed = 0;
+    await tester.pumpWidget(
+      gameTestApp(
+        feedback: feedback,
+        home: Scaffold(body: button(onPressed: () => pressed++)),
+      ),
+    );
+
+    await tester.drag(find.byType(GameButton), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(pressed, 0);
+    expect(feedback.taps, 0);
+  });
+
   testWidgets('loading ignores taps and shows a spinner', (tester) async {
     final feedback = CountingFeedback();
     var pressed = 0;
