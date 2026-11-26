@@ -72,7 +72,7 @@ section) first. The same rules apply here.
 ### Server (already done by the lead, applied live)
 `public.get_my_stats()` returns jsonb:
 `{games_played, games_won, rounds_played, rounds_as_imposter, imposter_escapes, correct_votes}` (all ints).
-- It counts only finished **online** games. It raises `AUTH_REQUIRED` (28000) with no session.
+- It counts finished games in both modes for `games_played` and `rounds_played`; the other four are Online-only (changed by `20261125000000_player_stats_shared_device.sql`, since Shared-Device seats are not people). It raises `AUTH_REQUIRED` (28000) with no session.
 - Migration: `supabase/migrations/20261124000500_player_stats.sql`. Test: `supabase/tests/player_stats_contracts.test.sql`. Do not edit either.
 
 ### App
@@ -93,7 +93,7 @@ section) first. The same rules apply here.
   - Pull to refresh. Error state with retry (reuse `ErrorScreen` or the existing inline error widget).
   - **Guests** (anonymous, see how `home_view`/settings detect guests) see a card: "Create an account to keep your stats forever", which opens the existing account upgrade route.
   - Entry point: a tile/button on the Home screen near the existing actions, using the FontAwesome `chartSimple` or `trophy` icon.
-- **Game Over (online only)**: after the game ends, create a `PlayerStatsCubit` and `load()`. If `newBadges` is not empty, show a `NewBadgesCard` ("New badge unlocked!" with icons and names) above the actions. It must not delay the Play Again or Home buttons, and failures are silent. Shared-device Game Over shows nothing.
+- **Game Over (both modes)**: after the game ends, create a `PlayerStatsCubit` and `load()`. If `newBadges` is not empty, show a `NewBadgesCard` ("New badge unlocked!" with icons and names) above the actions. It must not delay the Play Again or Home buttons, and failures are silent. Shared-device Game Over shows the card too (games played unlock badges there).
 - l10n: stat labels, badge names and descriptions ("Play your first game", ...), screen title, guest card, new-badge title.
 
 ### Tests

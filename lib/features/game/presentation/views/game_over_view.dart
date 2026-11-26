@@ -37,7 +37,7 @@ class GameOverView extends StatefulWidget {
   /// starts and closes it.
   final RematchInviteCubit Function()? createRematchInviteCubit;
 
-  /// Builds the stats cubit used to announce new badges (Online Mode only).
+  /// Builds the stats cubit used to announce new badges (both modes).
   /// The view loads and closes it; failures stay silent.
   final PlayerStatsCubit Function()? createPlayerStatsCubit;
 
@@ -75,12 +75,10 @@ class _GameOverViewState extends State<GameOverView> {
     if (_canInvite) {
       _inviteCubit = widget.createRematchInviteCubit!()..start();
     }
-    final createStats = widget.createPlayerStatsCubit;
-    if (createStats != null &&
-        widget.gameMode == GameConstants.gameModeOnline) {
-      // Fire and forget: the buttons never wait for the stats.
-      _statsCubit = createStats()..load();
-    }
+    // Both modes: Shared-Device games count toward games and rounds played,
+    // so they can unlock badges too. Fire and forget: the buttons never wait
+    // for the stats.
+    _statsCubit = widget.createPlayerStatsCubit?.call()?..load();
   }
 
   @override

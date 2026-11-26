@@ -86,14 +86,14 @@ void main() {
     expect(repo.calls, 1);
   });
 
-  testWidgets('shared-device game over never loads stats or shows the card', (
+  testWidgets('shared-device game over also shows the new-badge card', (
     tester,
   ) async {
     final repo = FakeStatsRepository(const Right(statsOneGame));
     await _pump(tester, gameMode: GameConstants.gameModeLocal, repo: repo);
 
-    expect(repo.calls, 0);
-    expect(find.byKey(const Key('new-badges-card')), findsNothing);
+    expect(repo.calls, 1);
+    expect(find.byKey(const Key('new-badges-card')), findsOneWidget);
   });
 
   testWidgets('no card without new badges, and failures are silent', (

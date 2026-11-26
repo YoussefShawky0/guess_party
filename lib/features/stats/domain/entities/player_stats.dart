@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-/// Lifetime counters of the signed-in player (finished online games only).
+/// Lifetime counters of the signed-in player. Games and rounds played count
+/// both modes; wins, impostor rounds, escapes and votes are Online-only.
 class PlayerStats extends Equatable {
   final int gamesPlayed;
   final int gamesWon;
