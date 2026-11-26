@@ -6,6 +6,7 @@ import 'package:guess_party/features/game/presentation/views/widgets/imposter_re
 import 'package:guess_party/features/game/presentation/views/widgets/voting_results_card.dart';
 import 'package:guess_party/features/game/presentation/views/widgets/current_scores_card.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 class ResultsPhaseContent extends StatelessWidget {
   final RoundInfo roundInfo;
@@ -100,24 +101,12 @@ class ResultsPhaseContent extends StatelessWidget {
 
           // Last Round - Host ends game and goes to leaderboard
           if (isLastRound && isHost)
-            ElevatedButton.icon(
+            GameButton(
+              key: const Key('results-view-leaderboard'),
+              label: context.l10n.viewFinalLeaderboard,
+              icon: const Icon(Icons.leaderboard_rounded),
+              variant: GameButtonVariant.reward,
               onPressed: () => onGameEnd?.call(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.goldMedal,
-                foregroundColor: AppColors.scoreBadgeText,
-                padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              icon: Icon(Icons.leaderboard_rounded, size: isTablet ? 24 : 20),
-              label: Text(
-                context.l10n.viewFinalLeaderboard,
-                style: TextStyle(
-                  fontSize: isTablet ? 20 : 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             )
           else if (isLastRound && !isHost)
             _buildWaitingMessage(
@@ -129,23 +118,11 @@ class ResultsPhaseContent extends StatelessWidget {
             )
           else if (!isLastRound && isHost)
             // Next Round Button (only for host)
-            ElevatedButton(
+            GameButton(
+              key: const Key('results-next-round'),
+              label: context.l10n.startNextRound,
+              icon: const Icon(Icons.play_arrow_rounded),
               onPressed: onNextRound,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: AppColors.of(context).textPrimary,
-                padding: EdgeInsets.symmetric(vertical: isTablet ? 20 : 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                context.l10n.startNextRound,
-                style: TextStyle(
-                  fontSize: isTablet ? 20 : 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             )
           else if (!isLastRound && !isHost)
             _buildWaitingMessage(

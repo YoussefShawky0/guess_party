@@ -112,6 +112,15 @@ class _CustomPlayerCountOptionState extends State<CustomPlayerCountOption> {
           decoration: InputDecoration(
             hintText: context.l10n.customPlayerCountHint,
             hintStyle: TextStyle(color: colors.textSecondary),
+            // Tells the field apart from the preset chips: you type here.
+            prefixIcon: Icon(
+              Icons.edit_rounded,
+              size: isTablet ? 20 : 16,
+              color: widget.isSelected
+                  ? colors.textPrimary
+                  : colors.textSecondary,
+            ),
+            prefixIconConstraints: const BoxConstraints(minWidth: 32),
             errorText: widget.isSelected ? _errorText : null,
             errorMaxLines: 2,
             isDense: true,

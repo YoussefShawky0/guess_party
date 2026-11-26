@@ -239,7 +239,7 @@
   "playerNumber": "Player {number}",
   "@playerNumber": {"placeholders": {"number": {"type": "int"}}},
   "enterName": "Enter name...",
-  "minimumPlayersHelp": "At least 2 players are required to start the game",
+  "minimumPlayersHelp": "At least 4 players are required to start the game",
   "categoryPlaces": "Places",
   "categoryAnimals": "Animals",
   "categoryFootballPlayers": "Football Players",

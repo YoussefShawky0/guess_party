@@ -7,6 +7,7 @@ import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'package:guess_party/features/game/presentation/cubit/game_cubit.dart';
 import 'package:guess_party/features/auth/domain/entities/player.dart';
 import 'package:guess_party/l10n/l10n.dart';
+import 'package:guess_party/shared/design/game_button.dart';
 
 class HintsPhaseContent extends StatefulWidget {
   final RoundInfo round;
@@ -184,24 +185,12 @@ class _HintsPhaseContentState extends State<HintsPhaseContent> {
             ),
           ],
           SizedBox(height: isTablet ? 16 : 12),
-          ElevatedButton.icon(
+          GameButton(
+            key: const Key('hints-send'),
+            label: context.l10n.sendHint,
+            icon: const Icon(Icons.send),
+            size: GameButtonSize.md,
             onPressed: _submitHint,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.buttonPrimary,
-              foregroundColor: AppColors.of(context).textPrimary,
-              padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            icon: Icon(Icons.send, size: isTablet ? 24 : 20),
-            label: Text(
-              context.l10n.sendHint,
-              style: TextStyle(
-                fontSize: isTablet ? 18 : 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
           ),
         ],
       ),

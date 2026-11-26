@@ -1433,7 +1433,7 @@ abstract class AppLocalizations {
   /// No description provided for @minimumPlayersHelp.
   ///
   /// In en, this message translates to:
-  /// **'At least 2 players are required to start the game'**
+  /// **'At least 4 players are required to start the game'**
   String get minimumPlayersHelp;
 
   /// No description provided for @categoryPlaces.

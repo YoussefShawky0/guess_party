@@ -150,30 +150,35 @@ class _HomeViewState extends State<HomeView> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: AppColors.of(dialogContext).surface,
-        content: Text(
-          dialogContext.l10n.guestLogoutWarning,
-          style: TextStyle(color: AppColors.of(dialogContext).textPrimary),
-        ),
-        actionsAlignment: MainAxisAlignment.center,
-        actionsOverflowDirection: VerticalDirection.down,
-        actions: [
-          SizedBox(
-            width: double.infinity,
-            child: GameButton(
+        // Both choices live in the content column (not `actions`), so they
+        // stack centered and full width instead of an end-aligned bar.
+        contentPadding: const EdgeInsetsDirectional.fromSTEB(24, 24, 24, 12),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              dialogContext.l10n.guestLogoutWarning,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.of(dialogContext).textPrimary),
+            ),
+            const SizedBox(height: 20),
+            GameButton(
               key: const Key('guest-logout-secure'),
               label: dialogContext.l10n.secureAccount,
               size: GameButtonSize.md,
               onPressed: () =>
                   Navigator.of(dialogContext).pop(_GuestLogoutChoice.secure),
             ),
-          ),
-          TextButton(
-            key: const Key('guest-logout-anyway'),
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(_GuestLogoutChoice.logOut),
-            child: Text(dialogContext.l10n.logoutAnyway),
-          ),
-        ],
+            const SizedBox(height: 4),
+            TextButton(
+              key: const Key('guest-logout-anyway'),
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(_GuestLogoutChoice.logOut),
+              child: Text(dialogContext.l10n.logoutAnyway),
+            ),
+          ],
+        ),
       ),
     );
     if (!mounted) return;

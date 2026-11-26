@@ -740,7 +740,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get minimumPlayersHelp =>
-      'At least 2 players are required to start the game';
+      'At least 4 players are required to start the game';
 
   @override
   String get categoryPlaces => 'Places';
