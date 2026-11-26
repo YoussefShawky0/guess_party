@@ -224,7 +224,7 @@
   "enterPlayerNamesHelp": "أدخل أسماء اللاعبين الذين سيلعبون على هذا الجهاز",
   "playerNumber": "اللاعب {number}",
   "enterName": "أدخل الاسم...",
-  "minimumPlayersHelp": "يلزم لاعبان على الأقل لبدء اللعبة",
+  "minimumPlayersHelp": "يلزم 4 لاعبين على الأقل لبدء اللعبة",
   "categoryPlaces": "أماكن",
   "categoryAnimals": "حيوانات",
   "categoryFootballPlayers": "لاعبو كرة القدم",

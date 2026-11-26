@@ -730,7 +730,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get enterName => 'أدخل الاسم...';
 
   @override
-  String get minimumPlayersHelp => 'يلزم لاعبان على الأقل لبدء اللعبة';
+  String get minimumPlayersHelp => 'يلزم 4 لاعبين على الأقل لبدء اللعبة';
 
   @override
   String get categoryPlaces => 'أماكن';

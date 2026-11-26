@@ -35,6 +35,9 @@ class MaxPlayersSelector extends StatelessWidget {
         Wrap(
           spacing: isTablet ? 16 : 12,
           runSpacing: isTablet ? 16 : 12,
+          // The chips carry an invisible 48 dp tap area; centering keeps the
+          // custom field on the same line as them.
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             ...playerOptions.map((players) {
               final isSelected = selectedMaxPlayers == players;

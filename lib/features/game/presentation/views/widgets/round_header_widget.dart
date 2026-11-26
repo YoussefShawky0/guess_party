@@ -4,6 +4,7 @@ import 'package:guess_party/core/constants/app_colors.dart';
 import 'package:guess_party/core/constants/game_constants.dart';
 import 'package:guess_party/features/game/domain/entities/round_info.dart';
 import 'phase_timer_widget.dart';
+import 'package:guess_party/l10n/app_localizations.dart';
 import 'package:guess_party/l10n/l10n.dart';
 
 class RoundHeaderWidget extends StatelessWidget {
@@ -22,19 +23,25 @@ class RoundHeaderWidget extends StatelessWidget {
     this.onSecond,
   });
 
-  String get _durationText {
-    switch (round.phase) {
-      case GamePhase.hints:
-        final minutes = roundDuration ~/ 60;
-        final seconds = roundDuration % 60;
-        return seconds > 0
-            ? '$minutes:${seconds.toString().padLeft(2, '0')} min'
-            : '$minutes min';
-      case GamePhase.voting:
-        return '${GameConstants.votingPhaseDurationSeconds ~/ 60} min';
-      case GamePhase.results:
-        return '${GameConstants.resultsPhaseDurationSeconds} sec';
-    }
+  String _durationText(BuildContext context) =>
+      phaseDurationText(context.l10n, round.phase, roundDuration);
+
+  /// Localized length of [phase]. Whole minutes read as "5 min"; anything
+  /// else falls back to seconds.
+  @visibleForTesting
+  static String phaseDurationText(
+    AppLocalizations l10n,
+    GamePhase phase,
+    int roundDuration,
+  ) {
+    String format(int totalSeconds) => totalSeconds % 60 == 0
+        ? l10n.minuteCount(totalSeconds ~/ 60)
+        : l10n.seconds(totalSeconds);
+    return switch (phase) {
+      GamePhase.hints => format(roundDuration),
+      GamePhase.voting => format(GameConstants.votingPhaseDurationSeconds),
+      GamePhase.results => format(GameConstants.resultsPhaseDurationSeconds),
+    };
   }
 
   String _phaseText(BuildContext context) {
@@ -184,7 +191,7 @@ class RoundHeaderWidget extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _durationText,
+                        _durationText(context),
                         style: TextStyle(
                           fontSize: isTablet ? 14 : 12,
                           color: AppColors.primaryLight,
